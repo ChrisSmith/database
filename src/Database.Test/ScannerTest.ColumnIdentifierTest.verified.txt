@@ -1,0 +1,116 @@
+﻿[
+  {
+    TokenType: SELECT,
+    Lexeme: SELECT,
+    Line: 1,
+    Column: 1
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: t,
+    Line: 1,
+    Column: 8
+  },
+  {
+    TokenType: DOT,
+    Lexeme: .,
+    Line: 1,
+    Column: 9
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: a,
+    Line: 1,
+    Column: 10
+  },
+  {
+    TokenType: COMMA,
+    Lexeme: ,,
+    Line: 1,
+    Column: 11
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: t,
+    Line: 1,
+    Column: 13
+  },
+  {
+    TokenType: DOT,
+    Lexeme: .,
+    Line: 1,
+    Column: 14
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: b,
+    Line: 1,
+    Column: 15
+  },
+  {
+    TokenType: COMMA,
+    Lexeme: ,,
+    Line: 1,
+    Column: 16
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: t,
+    Line: 1,
+    Column: 18
+  },
+  {
+    TokenType: DOT,
+    Lexeme: .,
+    Line: 1,
+    Column: 19
+  },
+  {
+    TokenType: STAR,
+    Lexeme: *,
+    Line: 1,
+    Column: 20
+  },
+  {
+    TokenType: COMMA,
+    Lexeme: ,,
+    Line: 1,
+    Column: 21
+  },
+  {
+    TokenType: STAR,
+    Lexeme: *,
+    Line: 1,
+    Column: 23
+  },
+  {
+    TokenType: FROM,
+    Lexeme: FROM,
+    Line: 1,
+    Column: 25
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: table,
+    Line: 1,
+    Column: 30
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: t,
+    Line: 1,
+    Column: 36
+  },
+  {
+    TokenType: SEMICOLON,
+    Lexeme: ;,
+    Line: 1,
+    Column: 37
+  },
+  {
+    TokenType: EOF,
+    Lexeme: ,
+    Line: 1,
+    Column: 38
+  }
+]

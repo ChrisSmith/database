@@ -11,7 +11,7 @@ public class Scanner
     private int _column = 1;
     private readonly List<Token> _tokens = new List<Token>();
     
-    private static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>{
+    private static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>(StringComparer.OrdinalIgnoreCase){
         {"select", SELECT},
         {"from", FROM},
         {"where", WHERE},
