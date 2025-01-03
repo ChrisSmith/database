@@ -1,0 +1,24 @@
+﻿[
+  {
+    Expressions: [
+      {
+        Column: a
+      },
+      {
+        Column: b
+      },
+      {
+        Column: a,
+        Table: t
+      },
+      {
+        Column: b,
+        Table: t
+      },
+      {
+        Table: t
+      },
+      {}
+    ]
+  }
+]

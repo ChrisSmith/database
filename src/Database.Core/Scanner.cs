@@ -14,6 +14,7 @@ public class Scanner
     private static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>(StringComparer.OrdinalIgnoreCase){
         {"select", SELECT},
         {"from", FROM},
+        {"as", AS},
         {"where", WHERE},
         {"having", HAVING},
         {"order", ORDER},

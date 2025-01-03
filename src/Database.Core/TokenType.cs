@@ -5,6 +5,7 @@ public enum TokenType
     UNDEFINED,
     SELECT,
     FROM,
+    AS,
     WHERE,  
     AND,
     OR,

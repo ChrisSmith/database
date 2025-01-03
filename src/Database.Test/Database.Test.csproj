@@ -19,4 +19,10 @@
       <ProjectReference Include="..\Database.Core\Database.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="ScannerTest.Test.verified.txt">
+        <DependentUpon>ScannerTest.cs</DependentUpon>
+      </None>
+    </ItemGroup>
+
 </Project>

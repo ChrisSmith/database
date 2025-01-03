@@ -1,0 +1,10 @@
+﻿[
+  {
+    Expressions: [
+      {
+        Column: a,
+        Table: t
+      }
+    ]
+  }
+]
