@@ -1,12 +1,15 @@
-﻿using NUnit.Framework;
+﻿using Database.Core;
+using VerifyTests;
 
 namespace Database.Test;
 
 public class ParserTest
 {
     [Test]
-    public void Test()
+    public Task Test()
     {
-        Assert.Pass();
+        var scanner = new Scanner("SELECT * FROM table;");
+        var tokens = scanner.ScanTokens();
+        return Verify(tokens);
     }
 }

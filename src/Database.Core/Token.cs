@@ -1,6 +1,3 @@
 namespace Database.Core;
 
-public class Token
-{
-    
-}
+public record Token(TokenType TokenType, string Lexeme, object? Literal, int Line);

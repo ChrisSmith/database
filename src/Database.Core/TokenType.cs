@@ -1,0 +1,37 @@
+namespace Database.Core;
+
+public enum TokenType
+{
+    UNDEFINED,
+    SELECT,
+    FROM,
+    WHERE,  
+    AND,
+    OR,
+    HAVING,
+    ORDER,
+    BY,
+    ASC,
+    DESC,
+    LIMIT,
+    OFFSET,
+    SEMICOLON,
+    STAR,
+    EQUAL,
+    BANG_EQUAL,
+    GREATER,
+    GREATER_EQUAL,
+    LESS,
+    LESS_EQUAL,
+    LEFT_PAREN,
+    RIGHT_PAREN,
+    COMMA,
+    DOT,
+    MINUS,
+    PLUS,
+    IDENTIFIER,
+    STRING,
+    NUMBER,
+    
+    EOF,
+}
