@@ -8,6 +8,7 @@ public class Scanner
 
     private int _start, _current = 0;
     private int _line = 1;
+    private int _column = 1;
     private readonly List<Token> _tokens = new List<Token>();
     
     private static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>{
@@ -39,7 +40,7 @@ public class Scanner
             ScanToken();
         }
 
-        _tokens.Add(new Token(EOF, "", null, _line));
+        _tokens.Add(new Token(EOF, "", null, _line, _column));
         return _tokens;
     }
     
@@ -69,6 +70,7 @@ public class Scanner
                 break;
             case '\n':
                 _line++;
+                _column = 1;
                 break;
 
             case '"': ParseString(); break;
@@ -80,7 +82,7 @@ public class Scanner
                 } else if (IsAlpha(c)){
                     Identifier();
                 } else {
-                    throw new ParseException(_line, $"unexpected character '{c}'.");
+                    throw new ParseException(_line, _column, $"unexpected character '{c}'.");
                 }
 
                 break;
@@ -114,6 +116,7 @@ public class Scanner
             return false;
         }
         _current++;
+        _column++;
         return true;
     }
     
@@ -172,7 +175,7 @@ public class Scanner
         }
 
         if(IsAtEnd()){
-            throw new ParseException(_line, "Unterminated string.");
+            throw new ParseException(_line, _column, "Unterminated string.");
         }
 
         Advance(); // closing "
@@ -185,11 +188,13 @@ public class Scanner
     private void AddToken(TokenType type, object? literal = null)
     {
         var text = _source.SubstringPos(_start, _current);
-        _tokens.Add(new Token(type, text, literal, _line));
-    }
+        var len = _current - _start;
+        _tokens.Add(new Token(type, text, literal, _line, _column - len));
+    }   
 
     private char Advance()
     {
+        _column++;
         return _source[_current++];
     }
 }

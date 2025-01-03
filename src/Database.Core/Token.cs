@@ -1,3 +1,9 @@
 namespace Database.Core;
 
-public record Token(TokenType TokenType, string Lexeme, object? Literal, int Line);
+public record Token(
+    TokenType TokenType, 
+    string Lexeme, 
+    object? Literal, 
+    int Line,
+    int Column
+    );
