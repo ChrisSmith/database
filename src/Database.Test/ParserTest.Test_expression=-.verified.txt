@@ -1,7 +1,11 @@
-﻿[
-  {
+﻿{
+  SelectList: {
     Expressions: [
       {}
     ]
+  },
+  From: {
+    Table: table,
+    Alias: t
   }
-]
+}

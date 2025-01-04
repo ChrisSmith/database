@@ -1,10 +1,14 @@
-﻿[
-  {
+﻿{
+  SelectList: {
     Expressions: [
       {
         Column: a,
         Table: t
       }
     ]
+  },
+  From: {
+    Table: table,
+    Alias: t
   }
-]
+}

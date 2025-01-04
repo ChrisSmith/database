@@ -13,40 +13,69 @@ public class Parser
         _tokens = tokens;
     }
     
-    public List<IStatement> Parse()
+    public IStatement Parse()
     {
-        var statements = new List<IStatement>();
-
-        statements.Add(ParseStatement());
-
+        var stmt = ParseStatement();
+        
+        while (!IsAtEnd() && Match(SEMICOLON))
+        {
+            // consume whitespace
+        }
+        
         if (!IsAtEnd())
         {
-            // throw new ParseException(Peek(), "Only one statement is allowed");
+            throw new ParseException(Peek(), "Only one statement is allowed");
         }
-        return statements;
+        return stmt;
     }
 
     private IStatement ParseStatement()
     {
         if (Match(SELECT))
         {
-            return ParseSelectStatement();
-        }
-        
-        if (Match(FROM))
-        {
-            return ParseFromStatement();
+            var selectList = ParseSelectListStatement();
+            var from = ParseFromStatement();
+            
+            IStatement? where = null;
+            IStatement? order = null;
+
+            if (Match(WHERE))
+            {
+                where = ParseWhereStatement();
+            }
+            
+            if (Match(ORDER))
+            {
+                order = ParseOrderByStatement();
+            }
+
+            return new SelectStatement(selectList, from, where, order);
         }
         
         throw new ParseException(Peek(), "Expected statement");
     }
 
-    private IStatement ParseFromStatement()
+    private IStatement ParseOrderByStatement()
+    {
+        Consume(BY, "Expected BY");
+        // TODO identifier list
+        var identifier = Consume(IDENTIFIER, "Expected column name");
+        
+        throw new NotImplementedException();
+    }
+
+    private IStatement ParseWhereStatement()
+    {
+        throw new NotImplementedException();
+    }
+
+    private FromStatement ParseFromStatement()
     {
         var table = Consume(IDENTIFIER, "Expected table name");
         var tableName = table.Lexeme;
         
-        if (Match(AS))
+        // as is optional in an alias
+        if (Match(AS) || Check(IDENTIFIER))
         {
             var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
             return new FromStatement(tableName, alias);
@@ -55,7 +84,7 @@ public class Parser
         return new FromStatement(tableName);
     }
 
-    private IStatement ParseSelectStatement()
+    private SelectListStatement ParseSelectListStatement()
     {
         var expressions = new List<IExpression>{};
         while (!IsAtEnd())

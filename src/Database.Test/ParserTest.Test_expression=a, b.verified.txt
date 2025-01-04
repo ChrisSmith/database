@@ -1,5 +1,5 @@
-﻿[
-  {
+﻿{
+  SelectList: {
     Expressions: [
       {
         Column: a
@@ -8,5 +8,9 @@
         Column: b
       }
     ]
+  },
+  From: {
+    Table: table,
+    Alias: t
   }
-]
+}
