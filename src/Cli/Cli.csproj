@@ -5,6 +5,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+      
+    <!-- AoT doesn't work because of the reflection (closing the open generic) -->
+    <!--    <PublishAot>true</PublishAot>-->
+    <!-- R2R is a ~50% boost on my sample query -->
+    <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
 
   <ItemGroup>
