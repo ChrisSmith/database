@@ -56,4 +56,8 @@ for(var row = 0; row < 10; row++)
     Console.WriteLine();
 }
 
+// print process memory usage
+var proc = Process.GetCurrentProcess();
+Console.WriteLine($"Working Set: {proc.WorkingSet64 / 1024 / 1024}MB Private: {proc.PrivateMemorySize64 / 1024 / 1024}MB\n");
 Console.WriteLine($"Read {numRows} rows in {sw.ElapsedMilliseconds:N}ms");
+
