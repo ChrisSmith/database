@@ -11,6 +11,7 @@ public record FileScan(string Path) : IOperation
     private ParquetReader? _reader = null;
     private List<string>? _columnNames = null;
     private int _group = -1;
+    private DataField[] _dataFields;
 
     public RowGroup? Next()
     {
@@ -22,6 +23,7 @@ public record FileScan(string Path) : IOperation
             var schema = _reader.Schema;
             var fields = schema.GetDataFields();
             _columnNames = fields.Select(f => f.Name).ToList();
+            _dataFields = schema.GetDataFields();
         }
         
         _group++;
@@ -32,11 +34,9 @@ public record FileScan(string Path) : IOperation
     
         var rg = _reader.OpenRowGroupReader(_group);
         
-        var dataFields = _reader.Schema.GetDataFields();
+        var columnValues = new List<IColumn>(_dataFields.Length);
 
-        var columnValues = new List<IColumn>(dataFields.Length);
-
-        foreach(var field in dataFields)
+        foreach(var field in _dataFields)
         {
             var column = rg.ReadColumnAsync(field).GetAwaiter().GetResult();
             
