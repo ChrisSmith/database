@@ -294,3 +294,5 @@ __pycache__/
 # Example file with random data
 *.bin
 *.parquet
+*.nettrace
+*.speedscope.json
