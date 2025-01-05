@@ -24,7 +24,7 @@ public record Projection(List<string> Columns, IOperation Source): IOperation
             var idx = rowGroup.ColumnNames.IndexOf(column);
             if (idx == -1)
             {
-                throw new InvalidOperationException($"Column {column} not found in source");
+                throw new InvalidOperationException($"Column {column} not found in source. Available columns: {string.Join(", ", rowGroup.ColumnNames)}");
             }
             newColumns.Add(rowGroup.Columns[idx]);
         }
