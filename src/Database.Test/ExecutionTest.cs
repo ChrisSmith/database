@@ -12,13 +12,15 @@ public class ExecutionTest
     [Test]
     public void Test()
     {
+        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var dataPath = Path.Combine(homeDir, "src/database/data.parquet");
         var catalog = new Catalog();
         catalog.Tables.Add(new TableSchema("table", new List<ColumnSchema>
         {
             new("Id", DataType.Int),
             new("Unordered", DataType.Int),
             new("Name", DataType.String),
-        }, "/home/chris/src/database/data.parquet"));
+        }, dataPath));
         
         var planner = new QueryPlanner(catalog);
 
