@@ -1,9 +1,12 @@
 ﻿{
   SelectList: {
-    Distinct: false,
+    Distinct: true,
     Expressions: [
       {
-        Table: t
+        Column: a
+      },
+      {
+        Column: b
       }
     ]
   },

@@ -86,6 +86,16 @@ public class Parser
 
     private SelectListStatement ParseSelectListStatement()
     {
+        var isDistinct = false;
+        if (Match(ALL))
+        {
+            // all is a no-op
+        }
+        else
+        {
+            isDistinct = Match(DISTINCT);
+        }
+
         var expressions = new List<IExpression> { };
         while (!IsAtEnd())
         {
@@ -103,7 +113,7 @@ public class Parser
             throw new ParseException(Peek(), "Expected SELECT to terminate with FROM");
         }
 
-        return new SelectListStatement(expressions);
+        return new SelectListStatement(isDistinct, expressions);
     }
 
     private IExpression ParseSelectExpression()

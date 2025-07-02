@@ -30,6 +30,22 @@ public class ScannerTest
     }
 
     [Test]
+    public Task DistinctTest()
+    {
+        var scanner = new Scanner("SELECT distinct a, b FROM table t;");
+        var tokens = scanner.ScanTokens();
+        return Verify(tokens, Settings);
+    }
+
+    [Test]
+    public Task AllTest()
+    {
+        var scanner = new Scanner("SELECT all a, b FROM table t;");
+        var tokens = scanner.ScanTokens();
+        return Verify(tokens, Settings);
+    }
+
+    [Test]
     public void Test_ParseException()
     {
         var scanner = new Scanner("SELECT \"foo;");

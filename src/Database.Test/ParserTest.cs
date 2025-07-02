@@ -18,6 +18,8 @@ public class ParserTest
     [TestCase("t.a")]
     [TestCase("t.a, t.b")]
     [TestCase("a, b, t.a, t.b, t.*, *")]
+    [TestCase("distinct a, b")]
+    [TestCase("all a, b")]
     public Task Test(string expression)
     {
         var scanner = new Scanner($"SELECT {expression} FROM table t;");

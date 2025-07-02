@@ -1,5 +1,6 @@
 ﻿{
   SelectList: {
+    Distinct: false,
     Expressions: [
       {}
     ]

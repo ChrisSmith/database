@@ -1,4 +1,4 @@
-﻿using static Database.Core.TokenType;
+using static Database.Core.TokenType;
 
 namespace Database.Core;
 
@@ -10,9 +10,14 @@ public class Scanner
     private int _line = 1;
     private int _column = 1;
     private readonly List<Token> _tokens = new List<Token>();
-    
+
     private static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>(StringComparer.OrdinalIgnoreCase){
+        {"with", WITH},
+        {"recursive", RECURSIVE},
         {"select", SELECT},
+        {"distinct", DISTINCT},
+        {"all", ALL},
+        {"window", WINDOW},
         {"from", FROM},
         {"as", AS},
         {"where", WHERE},
@@ -26,7 +31,7 @@ public class Scanner
         {"and", AND},
         {"or", OR},
     };
-    
+
     public Scanner(string source)
     {
         _source = source;
@@ -44,7 +49,7 @@ public class Scanner
         _tokens.Add(new Token(EOF, "", null, _line, _column));
         return _tokens;
     }
-    
+
     private void ScanToken()
     {
         var c = Advance();
@@ -58,12 +63,12 @@ public class Scanner
             case '+': AddToken(PLUS); break;
             case ';': AddToken(SEMICOLON); break;
             case '*': AddToken(STAR); break;
-            
+
             // case '!': addToken(match('=') ? BANG_EQUAL : BANG); break;
             case '=': AddToken(EQUAL); break;
             case '>': AddToken(Match('=') ? GREATER_EQUAL : GREATER); break;
             case '<': AddToken(Match('=') ? LESS_EQUAL : LESS); break;
-            
+
             case ' ':
             case '\r':
             case '\t':
@@ -78,59 +83,75 @@ public class Scanner
 
             default:
 
-                if (IsDigit(c)){
+                if (IsDigit(c))
+                {
                     Number();
-                } else if (IsAlpha(c)){
+                }
+                else if (IsAlpha(c))
+                {
                     Identifier();
-                } else {
+                }
+                else
+                {
                     throw new ParseException(_line, _column, $"unexpected character '{c}'.");
                 }
 
                 break;
         }
     }
-    
+
     private bool IsAtEnd()
     {
         return _current >= _source.Length;
     }
-    
-    private char Peek() {
-        if (IsAtEnd()){
+
+    private char Peek()
+    {
+        if (IsAtEnd())
+        {
             return '\0';
         }
         return _source[_current];
     }
 
-    private char PeekNext() {
-        if (_current +1 >= _source.Length){
+    private char PeekNext()
+    {
+        if (_current + 1 >= _source.Length)
+        {
             return '\0';
         }
         return _source[_current + 1];
     }
 
-    private bool Match(char expected){
-        if(IsAtEnd()){
+    private bool Match(char expected)
+    {
+        if (IsAtEnd())
+        {
             return false;
         }
-        if (_source[_current] != expected){
+        if (_source[_current] != expected)
+        {
             return false;
         }
         _current++;
         _column++;
         return true;
     }
-    
-    private void Number() {
-        while(IsDigit(Peek())){
+
+    private void Number()
+    {
+        while (IsDigit(Peek()))
+        {
             Advance();
         }
 
-        if (Peek() == '.' && IsDigit(PeekNext())){
+        if (Peek() == '.' && IsDigit(PeekNext()))
+        {
             // consume .
             Advance();
 
-            while(IsDigit(Peek())){
+            while (IsDigit(Peek()))
+            {
                 Advance();
             }
         }
@@ -138,51 +159,63 @@ public class Scanner
         AddToken(NUMBER, double.Parse(_source.SubstringPos(_start, _current)));
     }
 
-    private void Identifier(){
-        while(IsAlphaNumeric(Peek())){
+    private void Identifier()
+    {
+        while (IsAlphaNumeric(Peek()))
+        {
             Advance();
         }
 
         var text = _source.SubstringPos(_start, _current);
-            
+
         TokenType type;
-        if (!Keywords.ContainsKey(text)){
+        if (!Keywords.ContainsKey(text))
+        {
             type = IDENTIFIER;
-        } else {
+        }
+        else
+        {
             type = Keywords[text];
         }
 
         AddToken(type);
     }
 
-    private bool IsAlphaNumeric(char c){
+    private bool IsAlphaNumeric(char c)
+    {
         return IsAlpha(c) || IsDigit(c);
     }
-    private static bool IsAlpha(char c){
+    private static bool IsAlpha(char c)
+    {
         return c >= 'a' && c <= 'z'
                || c >= 'A' && c <= 'Z'
                || c == '_';
     }
 
-    private static bool IsDigit(char c){
+    private static bool IsDigit(char c)
+    {
         return c >= '0' && c <= '9';
     }
-    private void ParseString() {
-        while(Peek() != '"' && !IsAtEnd()) {
-            if (Peek() == '\n') {
+    private void ParseString()
+    {
+        while (Peek() != '"' && !IsAtEnd())
+        {
+            if (Peek() == '\n')
+            {
                 _line++;
             }
             Advance();
         }
 
-        if(IsAtEnd()){
+        if (IsAtEnd())
+        {
             throw new ParseException(_line, _column, "Unterminated string.");
         }
 
         Advance(); // closing "
 
         // trim quotes
-        var value = _source.SubstringPos(_start + 1, _current -1);
+        var value = _source.SubstringPos(_start + 1, _current - 1);
         AddToken(STRING, value);
     }
 
@@ -191,7 +224,7 @@ public class Scanner
         var text = _source.SubstringPos(_start, _current);
         var len = _current - _start;
         _tokens.Add(new Token(type, text, literal, _line, _column - len));
-    }   
+    }
 
     private char Advance()
     {

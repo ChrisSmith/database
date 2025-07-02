@@ -296,3 +296,6 @@ __pycache__/
 *.parquet
 *.nettrace
 *.speedscope.json
+
+demo.db
+demo.db.wal

@@ -3,10 +3,15 @@ namespace Database.Core;
 public enum TokenType
 {
     UNDEFINED,
+    WITH,
+    RECURSIVE,
     SELECT,
+    DISTINCT,
+    ALL,
+    WINDOW,
     FROM,
     AS,
-    WHERE,  
+    WHERE,
     AND,
     OR,
     HAVING,
@@ -33,6 +38,6 @@ public enum TokenType
     IDENTIFIER,
     STRING,
     NUMBER,
-    
+
     EOF,
 }
