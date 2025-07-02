@@ -9,45 +9,77 @@ namespace Database.Test;
 
 public class ExecutionTest
 {
-    [Test]
-    public void Test()
+    private Catalog _catalog;
+
+
+    [OneTimeSetUp]
+    public void OneTimeSetup()
     {
         var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var dataPath = Path.Combine(homeDir, "src/database/data.parquet");
-        var catalog = new Catalog();
-        catalog.Tables.Add(new TableSchema("table", new List<ColumnSchema>
+        _catalog = new Catalog();
+        _catalog.Tables.Add(new TableSchema("table", new List<ColumnSchema>
         {
-            new("Id", DataType.Int),
-            new("Unordered", DataType.Int),
-            new("Name", DataType.String),
+            new("Id", DataType.Int, typeof(int)),
+            new("Unordered", DataType.Int, typeof(int)),
+            new("Name", DataType.String, typeof(string)),
+            new("CategoricalInt", DataType.Int, typeof(int)),
+            new("CategoricalString", DataType.String, typeof(string)),
         }, dataPath));
+    }
 
-        var planner = new QueryPlanner(catalog);
-
-        var sw = Stopwatch.StartNew();
-
-        var scanner = new Scanner("SELECT Id, Unordered, Name FROM table;");
+    private List<RowGroup> Query(string query)
+    {
+        var scanner = new Scanner(query);
         var tokens = scanner.ScanTokens();
         var parser = new Parser(tokens);
         var statement = parser.Parse();
 
-        var plan = planner.CreatePlan(statement);
-
         var it = new Interpreter();
+        var planner = new QueryPlanner(_catalog);
+        var plan = planner.CreatePlan(statement);
         var result = it.Execute(plan).ToList();
+        return result;
+    }
 
-        sw.Stop();
-        Console.WriteLine($"Elapsed: {sw.ElapsedMilliseconds}ms");
+    [Test]
+    public void Select_All()
+    {
+        var result = Query("""
+            SELECT
+                   Id
+                 , Unordered
+                 , Name
+                 , CategoricalInt
+                 , CategoricalString
+            FROM table;
+        """);
 
         result.Should().HaveCount(10);
         var rg = result[0];
-        rg.ColumnNames.Should().BeEquivalentTo(new List<string> { "Id", "Unordered", "Name" });
-        rg.Columns.Should().HaveCount(3);
+        rg.Schema.Columns.Select(c => c.Name).Should().BeEquivalentTo(new List<string>
+        {
+            "Id", "Unordered", "Name", "CategoricalInt", "CategoricalString"
+        });
+        rg.Columns.Should().HaveCount(5);
         rg.Columns[0].Should().BeOfType<Column<int>>();
         rg.Columns[1].Should().BeOfType<Column<int>>();
         rg.Columns[2].Should().BeOfType<Column<string>>();
+        rg.Columns[3].Should().BeOfType<Column<int>>();
+        rg.Columns[4].Should().BeOfType<Column<string>>();
 
         var column = (Column<int>)rg.Columns[0];
         column.Values.Should().HaveCount(10_000);
+    }
+
+    [Test]
+    public void Select_Distinct()
+    {
+        var result = Query("SELECT distinct CategoricalInt FROM table;").AsRowList();
+
+        result.Should().HaveCount(5);
+        var values = result.Select(r => r.Values[0]).OrderBy(r => r).ToList();
+        values.Should().HaveCount(5);
+        values.Should().BeEquivalentTo(new List<int> { 0, 1, 2, 3, 4 });
     }
 }

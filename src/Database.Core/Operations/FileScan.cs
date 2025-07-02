@@ -1,16 +1,18 @@
 using System.Data;
 using System.IO.MemoryMappedFiles;
+using Database.Core.Catalog;
 using Database.Core.Execution;
 using Parquet;
 using Parquet.Schema;
 using BindingFlags = System.Reflection.BindingFlags;
+using static Database.Core.Catalog.DataTypeExtensions;
 
 namespace Database.Core.Operations;
 
 public record FileScan(string Path) : IOperation
 {
     private ParquetReader? _reader = null;
-    private List<string>? _columnNames = null;
+    private Schema? _schema = null;
     private int _group = -1;
     private DataField[] _dataFields;
 
@@ -18,7 +20,7 @@ public record FileScan(string Path) : IOperation
     {
         if (_reader == null)
         {
-            // Is this a good idea or a bad one? 
+            // Is this a good idea or a bad one?
             // memory mapping the file takes ~10ms off the runtime (10%) of my simple test query
             // Once we have a page manager maybe we can do this ourselves?
             var file = MemoryMappedFile.CreateFromFile(Path);
@@ -27,8 +29,15 @@ public record FileScan(string Path) : IOperation
             // Do we want to pass the expected schema from the catalog here and ensure it matches?
             var schema = _reader.Schema;
             var fields = schema.GetDataFields();
-            _columnNames = fields.Select(f => f.Name).ToList();
+            var columnNames = fields.Select(f => f.Name).ToList();
             _dataFields = schema.GetDataFields();
+
+            // FIX ME
+            var columns = columnNames.Zip(_dataFields)
+                .Select((c, d) => new ColumnSchema(c.First, DataTypeFromClrType(c.Second.ClrType), c.Second.ClrType))
+                .ToList();
+
+            _schema = new Schema(columns);
         }
 
         _group++;
@@ -51,6 +60,6 @@ public record FileScan(string Path) : IOperation
             columnValues.Add((IColumn)obj);
         }
 
-        return new RowGroup(_columnNames!, columnValues);
+        return new RowGroup(_schema!, columnValues);
     }
 }

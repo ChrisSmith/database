@@ -19,6 +19,12 @@ public class QueryPlanner(Catalog.Catalog catalog)
 
             var projection = new Projection(Columns(select.SelectList), new FileScan(table.Location));
 
+            if (select.SelectList.Distinct)
+            {
+                var distinct = new Distinct(projection);
+                return new QueryPlan(distinct);
+            }
+
             return new QueryPlan(projection);
         }
 

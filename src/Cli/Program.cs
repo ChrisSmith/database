@@ -11,9 +11,11 @@ var dataPath = Path.Combine(homeDir, "src/database/data.parquet");
 
 catalog.Tables.Add(new TableSchema("table", new List<ColumnSchema>
 {
-    new("Id", DataType.Int),
-    new("Unordered", DataType.Int),
-    new("Name", DataType.String),
+    new("Id", DataType.Int, typeof(int)),
+    new("Unordered", DataType.Int, typeof(int)),
+    new("Name", DataType.String, typeof(string)),
+    new("CategoricalInt", DataType.Int, typeof(int)),
+    new("CategoricalString", DataType.String, typeof(string))
 }, dataPath));
 
 var planner = new QueryPlanner(catalog);
@@ -35,7 +37,7 @@ sw.Stop();
 
 var rg = result[0];
 
-var columnHeader = string.Join(", ", rg.ColumnNames);
+var columnHeader = string.Join(", ", rg.Schema.Columns.Select(c => c.Name));
 Console.WriteLine(columnHeader);
 
 for (var row = 0; row < 10; row++)
