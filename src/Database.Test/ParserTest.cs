@@ -4,6 +4,13 @@ namespace Database.Test;
 
 public class ParserTest
 {
+    private static readonly VerifySettings Settings = new();
+    static ParserTest()
+    {
+        Settings.UseDirectory("Snapshots/Parser/");
+        Settings.AutoVerify();
+    }
+
     [TestCase("*")]
     [TestCase("a")]
     [TestCase("a, b")]
@@ -18,6 +25,6 @@ public class ParserTest
 
         var parser = new Parser(tokens);
         var result = parser.Parse();
-        return Verify(result);
+        return Verify(result, Settings);
     }
 }

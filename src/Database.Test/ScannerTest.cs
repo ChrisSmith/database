@@ -6,12 +6,19 @@ namespace Database.Test;
 
 public class ScannerTest
 {
+    private static readonly VerifySettings Settings = new();
+    static ScannerTest()
+    {
+        Settings.UseDirectory("Snapshots/Scanner/");
+        Settings.AutoVerify();
+    }
+
     [Test]
     public Task Test()
     {
         var scanner = new Scanner("SELECT * FROM table;");
         var tokens = scanner.ScanTokens();
-        return Verify(tokens);
+        return Verify(tokens, Settings);
     }
 
     [Test]
@@ -19,7 +26,7 @@ public class ScannerTest
     {
         var scanner = new Scanner("SELECT t.a, t.b, t.*, * FROM table t;");
         var tokens = scanner.ScanTokens();
-        return Verify(tokens);
+        return Verify(tokens, Settings);
     }
 
     [Test]
