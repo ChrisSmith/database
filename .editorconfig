@@ -1,3 +1,15 @@
+root = true
+
+[*]
+insert_final_newline = true
+charset = utf-8
+indent_style = space
+
+
+[*.cs]
+indent_size = 4
+tab_width = 4
+
 # Verify settings
 [*.{received,verified}.{json,txt,xml}]
 charset = "utf-8-bom"

@@ -2,7 +2,7 @@ using Database.Core.Execution;
 
 namespace Database.Core.Operations;
 
-public record Projection(List<string> Columns, IOperation Source): IOperation
+public record Projection(List<string> Columns, IOperation Source) : IOperation
 {
     public RowGroup? Next()
     {
@@ -16,10 +16,10 @@ public record Projection(List<string> Columns, IOperation Source): IOperation
         {
             return rowGroup;
         }
-        
+
         var newColumns = new List<IColumn>(Columns.Count);
-        
-        foreach(var column in Columns)
+
+        foreach (var column in Columns)
         {
             var idx = rowGroup.ColumnNames.IndexOf(column);
             if (idx == -1)
@@ -28,7 +28,7 @@ public record Projection(List<string> Columns, IOperation Source): IOperation
             }
             newColumns.Add(rowGroup.Columns[idx]);
         }
-        
+
         var newRowGroup = new RowGroup(Columns, newColumns);
         return newRowGroup;
     }

@@ -1,4 +1,4 @@
-﻿using Database.Core;
+using Database.Core;
 using FluentAssertions;
 using VerifyTests;
 
@@ -13,7 +13,7 @@ public class ScannerTest
         var tokens = scanner.ScanTokens();
         return Verify(tokens);
     }
-    
+
     [Test]
     public Task ColumnIdentifierTest()
     {
@@ -21,7 +21,7 @@ public class ScannerTest
         var tokens = scanner.ScanTokens();
         return Verify(tokens);
     }
-    
+
     [Test]
     public void Test_ParseException()
     {

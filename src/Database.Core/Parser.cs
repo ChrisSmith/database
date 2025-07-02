@@ -12,16 +12,16 @@ public class Parser
     {
         _tokens = tokens;
     }
-    
+
     public IStatement Parse()
     {
         var stmt = ParseStatement();
-        
+
         while (!IsAtEnd() && Match(SEMICOLON))
         {
             // consume whitespace
         }
-        
+
         if (!IsAtEnd())
         {
             throw new ParseException(Peek(), "Only one statement is allowed");
@@ -35,7 +35,7 @@ public class Parser
         {
             var selectList = ParseSelectListStatement();
             var from = ParseFromStatement();
-            
+
             IStatement? where = null;
             IStatement? order = null;
 
@@ -43,7 +43,7 @@ public class Parser
             {
                 where = ParseWhereStatement();
             }
-            
+
             if (Match(ORDER))
             {
                 order = ParseOrderByStatement();
@@ -51,7 +51,7 @@ public class Parser
 
             return new SelectStatement(selectList, from, where, order);
         }
-        
+
         throw new ParseException(Peek(), "Expected statement");
     }
 
@@ -60,7 +60,7 @@ public class Parser
         Consume(BY, "Expected BY");
         // TODO identifier list
         var identifier = Consume(IDENTIFIER, "Expected column name");
-        
+
         throw new NotImplementedException();
     }
 
@@ -73,24 +73,24 @@ public class Parser
     {
         var table = Consume(IDENTIFIER, "Expected table name");
         var tableName = table.Lexeme;
-        
+
         // as is optional in an alias
         if (Match(AS) || Check(IDENTIFIER))
         {
             var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
             return new FromStatement(tableName, alias);
         }
-        
+
         return new FromStatement(tableName);
     }
 
     private SelectListStatement ParseSelectListStatement()
     {
-        var expressions = new List<IExpression>{};
+        var expressions = new List<IExpression> { };
         while (!IsAtEnd())
         {
             expressions.Add(ParseSelectExpression());
-            
+
             if (Match(COMMA))
             {
                 continue;
@@ -99,10 +99,10 @@ public class Parser
             {
                 break;
             }
-            
+
             throw new ParseException(Peek(), "Expected SELECT to terminate with FROM");
         }
-        
+
         return new SelectListStatement(expressions);
     }
 
@@ -114,13 +114,13 @@ public class Parser
         }
 
         string? column, table;
-        
+
         var name = Consume(IDENTIFIER, "Expected column name or alias").Lexeme;
 
         if (Match(DOT))
         {
             table = name;
-            
+
             if (Match(STAR))
             {
                 return new StarExpression(table);
@@ -130,11 +130,11 @@ public class Parser
         else
         {
             column = name;
-            table = null;            
+            table = null;
         }
-        
+
         var expression = new ColumnExpression(column, table);
-        
+
         if (Match(AS))
         {
             var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
@@ -144,7 +144,7 @@ public class Parser
         return expression;
     }
 
-    
+
     /**
      * Conditionally consumes a token of a specific type
      */
@@ -157,7 +157,7 @@ public class Parser
         }
         return false;
     }
-    
+
     /**
      * Used to consume a token of a specific type when it's the only valid option
      * Throws a ParseException if the token is not of the expected type
@@ -170,7 +170,7 @@ public class Parser
         }
         throw new ParseException(Peek(), message);
     }
-    
+
     /**
      * Used to check if the current token is of a specific type
      * Does not consume the token
@@ -193,12 +193,12 @@ public class Parser
     {
         return _tokens[_current];
     }
-    
+
     private Token Previous()
     {
         return _tokens[_current - 1];
     }
-    
+
     private Token Advance()
     {
         if (!IsAtEnd())

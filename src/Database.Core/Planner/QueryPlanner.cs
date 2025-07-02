@@ -16,12 +16,12 @@ public class QueryPlanner(Catalog.Catalog catalog)
             {
                 throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
             }
-            
+
             var projection = new Projection(Columns(select.SelectList), new FileScan(table.Location));
-            
+
             return new QueryPlan(projection);
         }
-        
+
         throw new QueryPlanException($"Unknown statement type '{statement.GetType().Name}'. Cannot create query plan.");
     }
 
@@ -40,7 +40,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
             }
             throw new QueryPlanException($"Unsupported expression type '{exp.GetType().Name}'");
         }
-        
+
         return selectSelectList.Expressions.Select(ColumnName).ToList();
     }
 }

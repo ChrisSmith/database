@@ -8,7 +8,7 @@ public class Interpreter
     {
         var operation = plan.Operation;
         var group = operation.Next();
-        while(group != null)
+        while (group != null)
         {
             yield return group;
             group = operation.Next();

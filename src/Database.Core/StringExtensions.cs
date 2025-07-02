@@ -1,8 +1,11 @@
 namespace Database.Core;
 
-public static class StringExtensions {
-    public static string SubstringPos(this string str, int start, int end){
-        if(end <= start) {
+public static class StringExtensions
+{
+    public static string SubstringPos(this string str, int start, int end)
+    {
+        if (end <= start)
+        {
             throw new ArgumentException($"end {end} <= start {start}");
         }
 

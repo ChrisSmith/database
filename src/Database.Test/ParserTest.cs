@@ -15,7 +15,7 @@ public class ParserTest
     {
         var scanner = new Scanner($"SELECT {expression} FROM table t;");
         var tokens = scanner.ScanTokens();
-        
+
         var parser = new Parser(tokens);
         var result = parser.Parse();
         return Verify(result);
