@@ -20,50 +20,79 @@ catalog.Tables.Add(new TableSchema("table", new List<ColumnSchema>
 
 var planner = new QueryPlanner(catalog);
 
-var sw = Stopwatch.StartNew();
+var previousLines = new List<string>();
 
-var scanner = new Scanner("SELECT Id, Unordered, Name FROM table;");
-var tokens = scanner.ScanTokens();
-var parser = new Parser(tokens);
-var statement = parser.Parse();
-
-var plan = planner.CreatePlan(statement);
-
-var it = new Interpreter();
-var result = it.Execute(plan).ToList();
-var numRows = result.Sum(r => r.Columns[0].Length);
-
-sw.Stop();
-
-var rg = result[0];
-
-var columnHeader = string.Join(", ", rg.Schema.Columns.Select(c => c.Name));
-Console.WriteLine(columnHeader);
-
-for (var row = 0; row < 10; row++)
+while (true)
 {
-    for (var col = 0; col < rg.Columns.Count; col++)
+    try
     {
-        switch (rg.Columns[col])
+        Console.Write("> ");
+        var query = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(query))
         {
-            case Column<int> c:
-                Console.Write(c.Values[row]);
-                break;
-            case Column<string> c:
-                Console.Write(c.Values[row]);
-                break;
+            continue;
         }
+        if (query == ".exit")
+        {
+            break;
+        }
+        previousLines.Add(query);
 
-        if (col < rg.Columns.Count - 1)
-        {
-            Console.Write(", ");
-        }
+        var sw = Stopwatch.StartNew();
+
+        var scanner = new Scanner(query);
+        var tokens = scanner.ScanTokens();
+        var parser = new Parser(tokens);
+        var statement = parser.Parse();
+
+        var plan = planner.CreatePlan(statement);
+
+        var it = new Interpreter();
+        var result = it.Execute(plan).ToList();
+        sw.Stop();
+
+        PrintTable(result);
+
+        var numRows = result.Sum(r => r.Columns[0].Length);
+        Console.WriteLine($"{numRows} rows in {sw.ElapsedMilliseconds:N}ms");
     }
-    Console.WriteLine();
+    catch (Exception ex)
+    {
+        Console.WriteLine("Error: " + ex.Message);
+        Console.WriteLine(ex);
+    }
 }
 
-// print process memory usage
-var proc = Process.GetCurrentProcess();
-Console.WriteLine($"Working Set: {proc.WorkingSet64 / 1024 / 1024}MB Private: {proc.PrivateMemorySize64 / 1024 / 1024}MB\n");
-Console.WriteLine($"Read {numRows} rows in {sw.ElapsedMilliseconds:N}ms");
+void PrintTable(List<RowGroup> result)
+{
+    var rg = result[0];
+    var columnHeader = string.Join(", ", rg.Schema.Columns.Select(c => c.Name));
+    Console.WriteLine(columnHeader);
+
+    var max = Math.Min(10, rg.Columns[0].Length);
+
+    for (var row = 0; row < max; row++)
+    {
+        for (var col = 0; col < rg.Columns.Count; col++)
+        {
+            switch (rg.Columns[col])
+            {
+                case Column<int> c:
+                    Console.Write(c.Values[row]);
+                    break;
+                case Column<string> c:
+                    Console.Write(c.Values[row]);
+                    break;
+            }
+
+            if (col < rg.Columns.Count - 1)
+            {
+                Console.Write(", ");
+            }
+        }
+        Console.WriteLine();
+    }
+}
+
+
 
