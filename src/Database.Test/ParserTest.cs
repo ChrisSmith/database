@@ -29,4 +29,19 @@ public class ParserTest
         var result = parser.Parse();
         return Verify(result, Settings);
     }
+
+    [TestCase("count(1)")]
+    [TestCase("count(a)")]
+    [TestCase("sum(1)")]
+    [TestCase("sum(a)")]
+    [TestCase("sum(a), count(a)")]
+    public Task Aggregations(string expression)
+    {
+        var scanner = new Scanner($"SELECT {expression} FROM table t;");
+        var tokens = scanner.ScanTokens();
+
+        var parser = new Parser(tokens);
+        var result = parser.Parse();
+        return Verify(result, Settings);
+    }
 }

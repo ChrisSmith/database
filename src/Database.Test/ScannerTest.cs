@@ -45,6 +45,18 @@ public class ScannerTest
         return Verify(tokens, Settings);
     }
 
+    [TestCase("count(1)")]
+    [TestCase("count(a)")]
+    [TestCase("sum(1)")]
+    [TestCase("sum(a)")]
+    [TestCase("sum(a), b")]
+    public Task Aggregations(string expr)
+    {
+        var scanner = new Scanner($"SELECT {expr} FROM table t;");
+        var tokens = scanner.ScanTokens();
+        return Verify(tokens, Settings);
+    }
+
     [Test]
     public void Test_ParseException()
     {

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Database.Core.Expressions;
 using static Database.Core.TokenType;
 
@@ -123,35 +124,89 @@ public class Parser
             return new StarExpression();
         }
 
-        string? column, table;
-
-        var name = Consume(IDENTIFIER, "Expected column name or alias").Lexeme;
-
-        if (Match(DOT))
+        // Table alias
+        if (Check(IDENTIFIER)
+            && Check(DOT, offset: 1)
+            && Check(STAR, offset: 2))
         {
-            table = name;
-
-            if (Match(STAR))
-            {
-                return new StarExpression(table);
-            }
-            column = Consume(IDENTIFIER, "Expected column name").Lexeme;
-        }
-        else
-        {
-            column = name;
-            table = null;
+            var table = Consume(IDENTIFIER, "Expected column name or alias").Lexeme;
+            Consume(DOT, "Expected .");
+            Consume(STAR, "Expected *");
+            return new StarExpression(table);
         }
 
-        var expression = new ColumnExpression(column, table);
+        var expr = ParseExpr();
 
         if (Match(AS))
         {
             var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
-            return new AliasExpression(expression, alias);
+            return new AliasExpression(expr, alias);
         }
 
-        return expression;
+        return expr;
+    }
+
+    /**
+     * A single literal, column, switch or function invocation
+     */
+    private IExpression ParseExpr()
+    {
+        // https://www.sqlite.org/syntax/expr.html
+
+        // Literal
+        if (Match(NUMBER, out var num))
+        {
+            return new NumericLiteral((double)num.Literal!);
+        }
+        if (Match(STRING, out var str))
+        {
+            return new StringLiteral((string)str.Literal!);
+        }
+        // TODO literal bools, null
+
+        // TODO bound parameters (@foo)
+
+        if (Match(IDENTIFIER, out var ident))
+        {
+            // function invocation
+            if (Check(LEFT_PAREN))
+            {
+                var arguments = ParseFunctionArguments();
+                return new FunctionExpression(ident.Lexeme, arguments);
+            }
+
+            // Column
+            var column = ident.Lexeme;
+            string? table = null;
+            if (Match(DOT))
+            {
+                table = ident.Lexeme;
+                column = Consume(IDENTIFIER, "Expected table name").Lexeme;
+            }
+            return new ColumnExpression(column, table);
+        }
+
+        throw new ParseException(Peek(), "Expected expression");
+    }
+
+    private IExpression[] ParseFunctionArguments()
+    {
+        // https://www.sqlite.org/syntax/function-arguments.html
+        // TODO distinct + order by
+        Consume(LEFT_PAREN, "Expected '('");
+        if (Match(RIGHT_PAREN))
+        {
+            return [];
+        }
+
+        var arguments = new List<IExpression>();
+        do
+        {
+            arguments.Add(ParseExpr());
+        } while (Match(COMMA));
+
+        Consume(RIGHT_PAREN, "Expected ')'");
+        return arguments.ToArray();
     }
 
 
@@ -165,6 +220,21 @@ public class Parser
             Advance();
             return true;
         }
+        return false;
+    }
+
+    /**
+     * Conditionally consumes a token of a specific type
+     */
+    private bool Match(TokenType tokenType, [NotNullWhen(true)] out Token? token)
+    {
+        if (Peek().TokenType == tokenType)
+        {
+            token = Advance();
+            return true;
+        }
+
+        token = null;
         return false;
     }
 
@@ -185,23 +255,23 @@ public class Parser
      * Used to check if the current token is of a specific type
      * Does not consume the token
      */
-    private bool Check(TokenType tokenType)
+    private bool Check(TokenType tokenType, int offset = 0)
     {
-        if (IsAtEnd())
+        if (IsAtEnd(offset))
         {
             return false;
         }
-        return Peek().TokenType == tokenType;
+        return Peek(offset).TokenType == tokenType;
     }
 
-    private bool IsAtEnd()
+    private bool IsAtEnd(int offset = 0)
     {
-        return Peek().TokenType == EOF;
+        return Peek(offset).TokenType == EOF;
     }
 
-    private Token Peek()
+    private Token Peek(int offset = 0)
     {
-        return _tokens[_current];
+        return _tokens[_current + offset];
     }
 
     private Token Previous()

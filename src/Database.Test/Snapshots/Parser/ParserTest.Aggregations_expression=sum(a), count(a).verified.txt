@@ -1,0 +1,27 @@
+﻿{
+  SelectList: {
+    Distinct: false,
+    Expressions: [
+      {
+        Name: sum,
+        Args: [
+          {
+            Column: a
+          }
+        ]
+      },
+      {
+        Name: count,
+        Args: [
+          {
+            Column: a
+          }
+        ]
+      }
+    ]
+  },
+  From: {
+    Table: table,
+    Alias: t
+  }
+}

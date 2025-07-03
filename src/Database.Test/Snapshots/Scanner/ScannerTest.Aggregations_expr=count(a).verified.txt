@@ -1,0 +1,62 @@
+﻿[
+  {
+    TokenType: SELECT,
+    Lexeme: SELECT,
+    Line: 1,
+    Column: 1
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: count,
+    Line: 1,
+    Column: 8
+  },
+  {
+    TokenType: LEFT_PAREN,
+    Lexeme: (,
+    Line: 1,
+    Column: 13
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: a,
+    Line: 1,
+    Column: 14
+  },
+  {
+    TokenType: RIGHT_PAREN,
+    Lexeme: ),
+    Line: 1,
+    Column: 15
+  },
+  {
+    TokenType: FROM,
+    Lexeme: FROM,
+    Line: 1,
+    Column: 17
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: table,
+    Line: 1,
+    Column: 22
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: t,
+    Line: 1,
+    Column: 28
+  },
+  {
+    TokenType: SEMICOLON,
+    Lexeme: ;,
+    Line: 1,
+    Column: 29
+  },
+  {
+    TokenType: EOF,
+    Lexeme: ,
+    Line: 1,
+    Column: 30
+  }
+]
