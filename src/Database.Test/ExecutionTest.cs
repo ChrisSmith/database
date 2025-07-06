@@ -98,6 +98,7 @@ public class ExecutionTest
                                SELECT
                                       count(Id) as count_id
                                     , count(CategoricalInt) as count_cat_int
+                                    , sum(CategoricalInt) as sum_cat_int
                                FROM table;
                            """);
 
@@ -107,16 +108,16 @@ public class ExecutionTest
         {
             "count_id",
             "count_cat_int",
+            "sum_cat_int",
 
             // "count",
             // "sum_1",
-            // "sum_cat_int",
             // "avg_cat_int"
         });
-        rg.Columns.Should().HaveCount(2);
+        rg.Columns.Should().HaveCount(3);
         rg.Columns[0].Should().BeOfType<Column<int>>();
         rg.Columns[1].Should().BeOfType<Column<int>>();
-        // rg.Columns[2].Should().BeOfType<Column<int>>();
+        rg.Columns[2].Should().BeOfType<Column<int>>();
         // rg.Columns[3].Should().BeOfType<Column<int>>();
         // rg.Columns[4].Should().BeOfType<Column<double>>();
     }

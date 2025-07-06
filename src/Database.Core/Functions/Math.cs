@@ -95,3 +95,33 @@ public record StringCount(int ColumnIndex) : AggregateValue<string?, int>
         }
     }
 }
+
+public record IntSum(int ColumnIndex) : AggregateValue<int, int>
+{
+    private int _state = 0;
+    public int Value() => _state;
+    public object? GetValue() => Value();
+
+    public void Next(int[] value)
+    {
+        foreach (var item in value)
+        {
+            _state += item;
+        }
+    }
+}
+
+public record DoubleSum(int ColumnIndex) : AggregateValue<double, double>
+{
+    private double _state = 0;
+    public double Value() => _state;
+    public object? GetValue() => Value();
+
+    public void Next(double[] value)
+    {
+        foreach (var item in value)
+        {
+            _state += item;
+        }
+    }
+}

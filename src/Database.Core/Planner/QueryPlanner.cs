@@ -7,6 +7,8 @@ namespace Database.Core.Planner;
 
 public class QueryPlanner(Catalog.Catalog catalog)
 {
+    private FunctionRegistry _functions = new();
+
     public QueryPlan CreatePlan(IStatement statement)
     {
         if (statement is SelectStatement select)
@@ -59,44 +61,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
                 throw new QueryPlanException($"expression '{expression}' is not an aggregate function");
             }
 
-            if (function.Name == "count")
-            {
-                var argument = function.Args.Single();
-                if (argument is ColumnExpression columnExpr)
-                {
-                    var index = table.Columns.FindIndex(c => c.Name == columnExpr.Column);
-                    var column = table.Columns[index];
-
-                    switch (column.DataType)
-                    {
-                        case DataType.Int:
-                            result.Add(new IntCount(index));
-                            break;
-                        case DataType.Double:
-                            result.Add(new DoubleCount(index));
-                            break;
-                        case DataType.String:
-                            result.Add(new StringCount(index));
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-                }
-                else if (argument is NumericLiteral or StarExpression)
-                {
-                    // TODO how do we want to handle constant values in expressions?
-                    // result.Add(new DoubleCount(-1));
-                    throw new NotImplementedException($"numeric literal or * not implemented for count yet");
-                }
-                else
-                {
-                    throw new QueryPlanException($"arguments to function '{function.Name}' are invalid got {argument}");
-                }
-            }
-            else
-            {
-                throw new QueryPlanException($"function '{function.Name}' is invalid");
-            }
+            result.Add(_functions.Bind(function.Name, function.Args, table));
         }
 
         return result;
