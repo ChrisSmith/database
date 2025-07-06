@@ -12,7 +12,6 @@ namespace Database.Core.Operations;
 public record FileScan(string Path) : IOperation
 {
     private ParquetReader? _reader = null;
-    private Schema? _schema = null;
     private int _group = -1;
     private DataField[] _dataFields;
 
@@ -28,16 +27,7 @@ public record FileScan(string Path) : IOperation
 
             // Do we want to pass the expected schema from the catalog here and ensure it matches?
             var schema = _reader.Schema;
-            var fields = schema.GetDataFields();
-            var columnNames = fields.Select(f => f.Name).ToList();
             _dataFields = schema.GetDataFields();
-
-            // FIX ME
-            var columns = columnNames.Zip(_dataFields)
-                .Select((c, d) => new ColumnSchema(c.First, DataTypeFromClrType(c.Second.ClrType), c.Second.ClrType))
-                .ToList();
-
-            _schema = new Schema(columns);
         }
 
         _group++;
@@ -50,16 +40,21 @@ public record FileScan(string Path) : IOperation
 
         var columnValues = new List<IColumn>(_dataFields.Length);
 
-        foreach (var field in _dataFields)
+        for (var i = 0; i < _dataFields.Length; i++)
         {
+            var field = _dataFields[i];
             var column = rg.ReadColumnAsync(field).GetAwaiter().GetResult();
 
             var type = typeof(Column<>).MakeGenericType(field.ClrType);
-            var obj = type.GetConstructors().Single().Invoke([column.Data]);
+            var obj = type.GetConstructors().Single().Invoke([
+                field.Name,
+                i,
+                column.Data
+            ]);
 
             columnValues.Add((IColumn)obj);
         }
 
-        return new RowGroup(_schema!, columnValues);
+        return new RowGroup(columnValues);
     }
 }

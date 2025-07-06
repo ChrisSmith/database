@@ -57,7 +57,7 @@ public class ExecutionTest
 
         result.Should().HaveCount(10);
         var rg = result[0];
-        rg.Schema.Columns.Select(c => c.Name).Should().BeEquivalentTo(new List<string>
+        rg.Columns.Select(c => c.Name).Should().BeEquivalentTo(new List<string>
         {
             "Id", "Unordered", "Name", "CategoricalInt", "CategoricalString"
         });
@@ -81,5 +81,43 @@ public class ExecutionTest
         var values = result.Select(r => r.Values[0]).OrderBy(r => r).ToList();
         values.Should().HaveCount(5);
         values.Should().BeEquivalentTo(new List<int> { 0, 1, 2, 3, 4 });
+    }
+
+    [Test]
+    public void Select_Aggregations()
+    {
+        // SELECT
+        // count(*) as count
+        //     , count(Id) as count_id
+        //     , sum(1) as sum_1
+        //     , sum(CategoricalInt) as sum_cat_int
+        //     , avg(CategoricalInt) as avg_cat_int
+        // FROM table;
+        //
+        var result = Query("""
+                               SELECT
+                                      count(Id) as count_id
+                                    , count(CategoricalInt) as count_cat_int
+                               FROM table;
+                           """);
+
+        result.Should().HaveCount(1);
+        var rg = result[0];
+        rg.Columns.Select(c => c.Name).Should().BeEquivalentTo(new List<string>
+        {
+            "count_id",
+            "count_cat_int",
+
+            // "count",
+            // "sum_1",
+            // "sum_cat_int",
+            // "avg_cat_int"
+        });
+        rg.Columns.Should().HaveCount(2);
+        rg.Columns[0].Should().BeOfType<Column<int>>();
+        rg.Columns[1].Should().BeOfType<Column<int>>();
+        // rg.Columns[2].Should().BeOfType<Column<int>>();
+        // rg.Columns[3].Should().BeOfType<Column<int>>();
+        // rg.Columns[4].Should().BeOfType<Column<double>>();
     }
 }

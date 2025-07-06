@@ -199,6 +199,12 @@ public class Parser
             return [];
         }
 
+        if (Match(STAR))
+        {
+            Consume(RIGHT_PAREN, "Expected ')'");
+            return [new StarExpression()];
+        }
+
         var arguments = new List<IExpression>();
         do
         {

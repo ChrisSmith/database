@@ -1,0 +1,97 @@
+namespace Database.Core.Functions;
+
+// TODO pure vs non-pure functions
+// Some can use an accumulator for state, some cannot?
+
+/**
+ * Operate on one row at a time, produce a single column
+ */
+public interface SingleValue<In, Out>
+{
+    Out Execute(In value);
+}
+
+public interface AggregateValue
+{
+    int ColumnIndex { get; }
+
+    object? GetValue();
+}
+
+/**
+ * Operator on the entire column, one row at a time
+ */
+public interface AggregateValue<In, Out> : AggregateValue
+{
+    void Next(In[] value);
+
+    Out Value();
+}
+
+// TODO checkout using System.Numerics
+// https://learn.microsoft.com/en-us/dotnet/standard/generics/math
+public record DoubleCount(int ColumnIndex) : AggregateValue<double?, int>
+{
+    private int _state = 0;
+    public int Value() => _state;
+    public object? GetValue() => Value();
+
+    public void Next(double?[] value)
+    {
+        foreach (var item in value)
+        {
+            if (item.HasValue)
+            {
+                _state += 1;
+            }
+        }
+    }
+}
+
+public record NullableIntCount(int ColumnIndex) : AggregateValue<int?, int>
+{
+    private int _state = 0;
+    public int Value() => _state;
+    public object? GetValue() => Value();
+
+    public void Next(int?[] value)
+    {
+        foreach (var item in value)
+        {
+            if (item.HasValue)
+            {
+                _state += 1;
+            }
+        }
+    }
+}
+
+public record IntCount(int ColumnIndex) : AggregateValue<int, int>
+{
+    private int _state = 0;
+    public int Value() => _state;
+    public object? GetValue() => Value();
+
+    public void Next(int[] value)
+    {
+        _state += value.Length;
+    }
+}
+
+public record StringCount(int ColumnIndex) : AggregateValue<string?, int>
+{
+    private int _state = 0;
+    public int Value() => _state;
+    public object? GetValue() => Value();
+
+    public void Next(string?[] value)
+    {
+        foreach (var item in value)
+        {
+            if (item != null)
+            {
+                _state += 1;
+            }
+        }
+    }
+}

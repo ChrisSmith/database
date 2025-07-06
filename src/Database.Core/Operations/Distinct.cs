@@ -14,8 +14,7 @@ public record Distinct(IOperation Source) : IOperation
             return null;
         }
 
-        var schema = rowGroup.Schema;
-        var columns = schema.Columns;
+        var columns = rowGroup.Columns;
         var numColumns = columns.Count;
 
         // What are some better options here?
@@ -41,10 +40,10 @@ public record Distinct(IOperation Source) : IOperation
 
         var uniqueList = _unique.ToList();
 
-        var result = new RowGroup(schema, new List<IColumn>(numColumns));
+        var result = new RowGroup(new List<IColumn>(numColumns));
         for (var i = 0; i < numColumns; i++)
         {
-            var columnType = columns[i].ClrType;
+            var columnType = columns[i].Type;
             var values = Array.CreateInstance(columnType, uniqueList.Count);
 
             for (var j = 0; j < uniqueList.Count; j++)
@@ -54,7 +53,11 @@ public record Distinct(IOperation Source) : IOperation
             }
 
             var type = typeof(Column<>).MakeGenericType(columnType);
-            var column = type.GetConstructors().Single().Invoke([values]);
+            var column = type.GetConstructors().Single().Invoke([
+                $"{i}.{columnType}",
+                i,
+                values
+            ]);
             result.Columns.Add((IColumn)column);
         }
 

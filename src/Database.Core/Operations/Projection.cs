@@ -3,38 +3,34 @@ using Database.Core.Execution;
 
 namespace Database.Core.Operations;
 
-public record Projection(List<string> Columns, IOperation Source) : IOperation
+public record Projection(List<string> Columns, List<int> ColumnIndexes, IOperation Source) : IOperation
 {
     public RowGroup? Next()
     {
         var rowGroup = Source.Next();
-        if (rowGroup == null || Columns.Count == 0)
+        if (rowGroup == null)
         {
             return null;
         }
 
-        var columnNames = rowGroup.Schema.Columns.Select(c => c.Name).ToList();
-        if (Columns.Count == rowGroup.Columns.Count && Columns.SequenceEqual(columnNames))
-        {
-            return rowGroup;
-        }
-
         var newColumns = new List<IColumn>(Columns.Count);
-        var columnSchema = new List<ColumnSchema>(Columns.Count);
-        var newSchema = new Schema(columnSchema);
 
-        foreach (var column in Columns)
+        for (var i = 0; i < Columns.Count; i++)
         {
-            var idx = columnNames.IndexOf(column);
-            if (idx == -1)
-            {
-                throw new InvalidOperationException($"Column {column} not found in source. Available columns: {string.Join(", ", columnNames)}");
-            }
-            newColumns.Add(rowGroup.Columns[idx]);
-            columnSchema.Add(rowGroup.Schema.Columns[idx]);
+            var columnIdx = ColumnIndexes[i];
+            var columnName = Columns[i];
+            var oldColumn = rowGroup.Columns[columnIdx];
+
+            var type = typeof(Column<>).MakeGenericType(oldColumn.Type);
+            var column = type.GetConstructors().Single().Invoke([
+                columnName,
+                i,
+                oldColumn.ValuesArray
+            ]);
+            newColumns.Add((IColumn)column);
         }
 
-        var newRowGroup = new RowGroup(newSchema, newColumns);
+        var newRowGroup = new RowGroup(newColumns);
         return newRowGroup;
     }
 }

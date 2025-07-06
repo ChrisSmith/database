@@ -66,7 +66,7 @@ while (true)
 void PrintTable(List<RowGroup> result)
 {
     var rg = result[0];
-    var columnHeader = string.Join(", ", rg.Schema.Columns.Select(c => c.Name));
+    var columnHeader = string.Join(", ", rg.Columns.Select(c => c.Name));
     Console.WriteLine(columnHeader);
 
     var max = Math.Min(10, rg.Columns[0].Length);

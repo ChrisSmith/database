@@ -2,12 +2,7 @@ using Database.Core.Catalog;
 
 namespace Database.Core.Execution;
 
-public record Schema(List<ColumnSchema> Columns)
-{
-
-}
-
-public record RowGroup(Schema Schema, List<IColumn> Columns)
+public record RowGroup(List<IColumn> Columns)
 {
     public List<Row> MaterializeRows()
     {
@@ -15,7 +10,7 @@ public record RowGroup(Schema Schema, List<IColumn> Columns)
         var rows = new List<Row>(numRows);
         for (var i = 0; i < numRows; i++)
         {
-            rows.Add(new Row(new List<object?>(Schema.Columns.Count)));
+            rows.Add(new Row(new List<object?>(Columns.Count)));
         }
 
         for (var i = 0; i < Columns.Count; i++)
