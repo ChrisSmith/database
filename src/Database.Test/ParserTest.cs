@@ -44,4 +44,16 @@ public class ParserTest
         var result = parser.Parse();
         return Verify(result, Settings);
     }
+
+    [TestCase("Id < 100")]
+    public Task Where(string expr)
+    {
+        var scanner = new Scanner($"SELECT Id FROM table t where {expr};");
+        var tokens = scanner.ScanTokens();
+
+        var parser = new Parser(tokens);
+        var result = parser.Parse();
+
+        return Verify(result, Settings);
+    }
 }

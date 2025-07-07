@@ -37,7 +37,7 @@ public class Parser
             var selectList = ParseSelectListStatement();
             var from = ParseFromStatement();
 
-            IStatement? where = null;
+            IExpression? where = null;
             IStatement? order = null;
 
             if (Match(WHERE))
@@ -65,9 +65,9 @@ public class Parser
         throw new NotImplementedException();
     }
 
-    private IStatement ParseWhereStatement()
+    private IExpression ParseWhereStatement()
     {
-        throw new NotImplementedException();
+        return ParseExpr();
     }
 
     private FromStatement ParseFromStatement()
@@ -117,6 +117,9 @@ public class Parser
         return new SelectListStatement(isDistinct, expressions);
     }
 
+    // select * from table
+    // select * from table where
+
     private IExpression ParseSelectExpression()
     {
         if (Match(STAR))
@@ -146,10 +149,24 @@ public class Parser
         return expr;
     }
 
+    private IExpression ParseExpr()
+    {
+        var expr = SingleParseExpr();
+        // TODO what about operator precedence
+        // TODO needs to be all the operators in https://www.sqlite.org/lang_expr.html
+        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
+        {
+            var right = ParseExpr();
+            return new BinaryExpression(token, expr, right);
+        }
+
+        return expr;
+    }
+
     /**
      * A single literal, column, switch or function invocation
      */
-    private IExpression ParseExpr()
+    private IExpression SingleParseExpr()
     {
         // https://www.sqlite.org/syntax/expr.html
 
@@ -226,6 +243,21 @@ public class Parser
             Advance();
             return true;
         }
+        return false;
+    }
+
+    private bool Match([NotNullWhen(true)] out Token? token, params TokenType[] tokenTypes)
+    {
+        token = null;
+        foreach (var t in tokenTypes)
+        {
+            if (Peek().TokenType == t)
+            {
+                token = Advance();
+                return true;
+            }
+        }
+
         return false;
     }
 

@@ -57,6 +57,15 @@ public class ScannerTest
         return Verify(tokens, Settings);
     }
 
+
+    [TestCase("Id < 100")]
+    public Task Where(string expr)
+    {
+        var scanner = new Scanner($"SELECT Id FROM table t where {expr};");
+        var tokens = scanner.ScanTokens();
+        return Verify(tokens, Settings);
+    }
+
     [Test]
     public void Test_ParseException()
     {

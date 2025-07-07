@@ -1,7 +1,9 @@
+using Database.Core.Expressions;
+
 namespace Database.Core;
 
 internal record SelectStatement(
     SelectListStatement SelectList,
     FromStatement From,
-    IStatement? Where,
+    IExpression? Where,
     IStatement? Order) : IStatement;
