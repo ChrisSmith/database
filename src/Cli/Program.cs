@@ -80,6 +80,9 @@ void PrintTable(List<RowGroup> result)
                 case Column<int> c:
                     Console.Write(c.Values[row]);
                     break;
+                case Column<double> c:
+                    Console.Write(c.Values[row]);
+                    break;
                 case Column<string> c:
                     Console.Write(c.Values[row]);
                     break;

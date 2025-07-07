@@ -36,6 +36,9 @@ public record Aggregate(IOperation Source, List<AggregateValue> Expressions) : I
                     case AggregateValue<int, int> agg when column is Column<int> c:
                         agg.Next(c.Values);
                         break;
+                    case AggregateValue<int, double> agg when column is Column<int> c:
+                        agg.Next(c.Values);
+                        break;
                     case AggregateValue<string, int> agg when column is Column<string> c:
                         agg.Next(c.Values);
                         break;

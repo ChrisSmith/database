@@ -23,6 +23,12 @@ public class FunctionRegistry
             { DataType.Int, typeof(IntSum)},
             { DataType.Double, typeof(DoubleSum)},
         }));
+
+        _aggregateFuncs.Add("avg", new("avg", 1, new()
+        {
+            { DataType.Int, typeof(IntAvg)},
+            { DataType.Double, typeof(DoubleAvg)},
+        }));
     }
 
     public AggregateValue Bind(string name, IExpression[] args, TableSchema table)

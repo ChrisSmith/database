@@ -91,7 +91,7 @@ public class ExecutionTest
         //     , count(Id) as count_id
         //     , sum(1) as sum_1
         //     , sum(CategoricalInt) as sum_cat_int
-        //     , avg(CategoricalInt) as avg_cat_int
+        //
         // FROM table;
         //
         var result = Query("""
@@ -99,6 +99,7 @@ public class ExecutionTest
                                       count(Id) as count_id
                                     , count(CategoricalInt) as count_cat_int
                                     , sum(CategoricalInt) as sum_cat_int
+                                    , avg(CategoricalInt) as avg_cat_int
                                FROM table;
                            """);
 
@@ -109,15 +110,22 @@ public class ExecutionTest
             "count_id",
             "count_cat_int",
             "sum_cat_int",
+            "avg_cat_int",
 
             // "count",
             // "sum_1",
-            // "avg_cat_int"
         });
-        rg.Columns.Should().HaveCount(3);
         rg.Columns[0].Should().BeOfType<Column<int>>();
         rg.Columns[1].Should().BeOfType<Column<int>>();
         rg.Columns[2].Should().BeOfType<Column<int>>();
+        rg.Columns[3].Should().BeOfType<Column<double>>();
+
+
+        rg.Columns[0][0].Should().Be(100_000);
+        rg.Columns[1][0].Should().Be(100_000);
+        rg.Columns[2][0].Should().Be(199_549);
+        rg.Columns[3][0].Should().Be(1.99549);
+
         // rg.Columns[3].Should().BeOfType<Column<int>>();
         // rg.Columns[4].Should().BeOfType<Column<double>>();
     }

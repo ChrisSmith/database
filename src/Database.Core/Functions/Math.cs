@@ -125,3 +125,37 @@ public record DoubleSum(int ColumnIndex) : AggregateValue<double, double>
         }
     }
 }
+
+public record IntAvg(int ColumnIndex) : AggregateValue<int, double>
+{
+    private int _sum = 0;
+    private int _count = 0;
+    public double Value() => (double)_sum / _count;
+    public object? GetValue() => Value();
+
+    public void Next(int[] value)
+    {
+        foreach (var item in value)
+        {
+            _sum += item;
+        }
+        _count += value.Length;
+    }
+}
+
+public record DoubleAvg(int ColumnIndex) : AggregateValue<double, double>
+{
+    private double _sum = 0;
+    private int _count = 0;
+    public double Value() => _sum / _count;
+    public object? GetValue() => Value();
+
+    public void Next(double[] value)
+    {
+        foreach (var item in value)
+        {
+            _sum += item;
+        }
+        _count += value.Length;
+    }
+}
