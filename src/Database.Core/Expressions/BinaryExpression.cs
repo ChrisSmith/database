@@ -1,6 +1,6 @@
 namespace Database.Core.Expressions;
 
-public record BinaryExpression(Token Operator, IExpression Left, IExpression Right) : IExpression
+public record BinaryExpression(TokenType Operator, IExpression Left, IExpression Right) : IExpression
 {
 
 }

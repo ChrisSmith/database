@@ -157,7 +157,7 @@ public class Parser
         if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
         {
             var right = ParseExpr();
-            return new BinaryExpression(token, expr, right);
+            return new BinaryExpression(token.TokenType, expr, right);
         }
 
         return expr;

@@ -129,4 +129,11 @@ public class ExecutionTest
         // rg.Columns[3].Should().BeOfType<Column<int>>();
         // rg.Columns[4].Should().BeOfType<Column<double>>();
     }
+
+    [Test]
+    public void Where()
+    {
+        var result = Query("SELECT Id FROM table where Id < 100;").AsRowList();
+        result.Select(r => r.Values.Single()).Should().HaveCount(100);
+    }
 }

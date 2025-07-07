@@ -4,6 +4,8 @@ namespace Database.Core.Execution;
 
 public record RowGroup(List<IColumn> Columns)
 {
+    public int NumRows => Columns[0].Length;
+
     public List<Row> MaterializeRows()
     {
         var numRows = Columns[0].Length;
