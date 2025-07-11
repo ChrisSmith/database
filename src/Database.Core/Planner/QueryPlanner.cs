@@ -83,15 +83,39 @@ public class QueryPlanner(Catalog.Catalog catalog)
             {
                 throw new QueryPlanException($"left expression '{b.Left}' is not a column expression");
             }
-            var (_, leftIndex) = FindColumnIndex(table, b.Left);
+            var (_, leftIndex, rightType) = FindColumnIndex(table, b.Left);
 
             if (b.Right is ColumnExpression right)
             {
-                var (_, rightIndex) = FindColumnIndex(table, b.Right);
-
-                return b.Operator switch
+                var (_, rightIndex, leftType) = FindColumnIndex(table, b.Right);
+                if (leftType != rightType || leftType == null || rightType == null)
                 {
-                    LESS => new IntLessThanTwo(leftIndex, rightIndex),
+                    // TODO automatic type casts?
+                    throw new QueryPlanException($"left and right expression types do not match. got {leftType} != {rightType}");
+                }
+
+                return (leftType.Value, b.Operator) switch
+                {
+                    (DataType.Int, LESS) => new LessThanTwo<int>(leftIndex, rightIndex),
+                    (DataType.Long, LESS) => new LessThanTwo<long>(leftIndex, rightIndex),
+                    (DataType.Float, LESS) => new LessThanTwo<float>(leftIndex, rightIndex),
+                    (DataType.Double, LESS) => new LessThanTwo<double>(leftIndex, rightIndex),
+
+                    (DataType.Int, LESS_EQUAL) => new LessThanEqualTwo<int>(leftIndex, rightIndex),
+                    (DataType.Long, LESS_EQUAL) => new LessThanEqualTwo<long>(leftIndex, rightIndex),
+                    (DataType.Float, LESS_EQUAL) => new LessThanEqualTwo<float>(leftIndex, rightIndex),
+                    (DataType.Double, LESS_EQUAL) => new LessThanEqualTwo<double>(leftIndex, rightIndex),
+
+                    (DataType.Int, EQUAL) => new EqualTwo<int>(leftIndex, rightIndex),
+                    (DataType.Long, EQUAL) => new EqualTwo<long>(leftIndex, rightIndex),
+                    (DataType.Float, EQUAL) => new EqualTwo<float>(leftIndex, rightIndex),
+                    (DataType.Double, EQUAL) => new EqualTwo<double>(leftIndex, rightIndex),
+
+                    (DataType.Int, BANG_EQUAL) => new NotEqualTwo<int>(leftIndex, rightIndex),
+                    (DataType.Long, BANG_EQUAL) => new NotEqualTwo<long>(leftIndex, rightIndex),
+                    (DataType.Float, BANG_EQUAL) => new NotEqualTwo<float>(leftIndex, rightIndex),
+                    (DataType.Double, BANG_EQUAL) => new NotEqualTwo<double>(leftIndex, rightIndex),
+
                     _ => throw new ArgumentOutOfRangeException()
                 };
             }
@@ -101,7 +125,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
                 int rightValue = Convert.ChangeType(num.Literal, typeof(int)) as int? ?? throw new QueryPlanException($"right expression '{b.Right}' is not a numeric literal");
                 return b.Operator switch
                 {
-                    LESS => new IntLessThanOne(leftIndex, rightValue),
+                    LESS => new LessThanOne<int>(leftIndex, rightValue),
                     _ => throw new ArgumentOutOfRangeException()
                 };
             }
@@ -122,7 +146,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
 
         for (var i = 0; i < selectSelectList.Expressions.Count; i++)
         {
-            var (name, idx) = FindColumnIndex(table, selectSelectList.Expressions[i]);
+            var (name, idx, _) = FindColumnIndex(table, selectSelectList.Expressions[i]);
             columnsNames.Add(name);
             columnsIndexes.Add(idx == -1 ? i : idx);
         }
@@ -130,7 +154,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
         return (columnsNames, columnsIndexes);
     }
 
-    private (string, int) FindColumnIndex(TableSchema table, IExpression exp)
+    private (string, int, DataType?) FindColumnIndex(TableSchema table, IExpression exp)
     {
         // TODO we need to actually handle * and alias
         if (exp is ColumnExpression column)
@@ -140,16 +164,17 @@ public class QueryPlanner(Catalog.Catalog catalog)
             {
                 throw new QueryPlanException($"Column '{column.Column}' does not exist on table '{table.Name}'");
             }
-            return (column.Column, colIdx);
+            return (column.Column, colIdx, table.Columns[colIdx].DataType);
         }
         if (exp is AliasExpression alias)
         {
-            var (_, idx) = FindColumnIndex(table, alias.Expression);
-            return (alias.Alias, idx);
+            var (_, idx, dataType) = FindColumnIndex(table, alias.Expression);
+            return (alias.Alias, idx, dataType);
         }
         if (exp is FunctionExpression fun)
         {
-            return (fun.Name, -1); // function is bound to is position
+            // Might need to eagerly bind functions so we have the datatypes
+            return (fun.Name, -1, null); // function is bound to is position
         }
         throw new QueryPlanException($"Unsupported expression type '{exp.GetType().Name}'");
     }

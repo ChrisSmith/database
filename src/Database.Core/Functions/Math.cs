@@ -3,14 +3,6 @@ namespace Database.Core.Functions;
 // TODO pure vs non-pure functions
 // Some can use an accumulator for state, some cannot?
 
-/**
- * Operate on one row at a time, produce a single column
- */
-public interface SingleValue<In, Out>
-{
-    Out Execute(In value);
-}
-
 public interface AggregateValue
 {
     int ColumnIndex { get; }

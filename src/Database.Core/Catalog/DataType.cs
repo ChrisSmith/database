@@ -11,7 +11,7 @@ public enum DataType
 
 public static class DataTypeExtensions
 {
-    public static DataType DataTypeFromClrType(Type clrType)
+    public static DataType DataTypeFromClrType(this Type clrType)
     {
         if (clrType == typeof(string))
         {
@@ -35,5 +35,18 @@ public static class DataTypeExtensions
         }
 
         throw new Exception($"No type mapping available from {clrType.FullName} to {typeof(DataType).FullName}");
+    }
+
+    public static Type ClrTypeFromDataType(this DataType dataType)
+    {
+        switch (dataType)
+        {
+            case DataType.String: return typeof(string);
+            case DataType.Int: return typeof(int);
+            case DataType.Long: return typeof(long);
+            case DataType.Float: return typeof(float);
+            case DataType.Double: return typeof(double);
+            default: throw new Exception($"No type mapping available from {dataType} to {typeof(DataType).FullName}");
+        }
     }
 }
