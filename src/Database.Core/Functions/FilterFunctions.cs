@@ -1,17 +1,21 @@
 using System.Numerics;
+using Database.Core.Catalog;
 
 namespace Database.Core.Functions;
 
-public interface IFilterFunction { }
-
-public interface IFilterFunctionOne<In> : IFilterFunction
+public interface IFilterFunctionOne<In> : IFunction
 {
     public int LeftIndex { get; }
 
     public bool[] Ok(In[] left);
 }
 
-public interface IFilterFunctionTwo<In> : IFilterFunction
+public abstract record BoolFunction : IFunction
+{
+    public DataType ReturnType => DataType.Bool;
+}
+
+public interface IFilterFunctionTwo<In> : IFunction
 {
     public int LeftIndex { get; }
 
@@ -20,7 +24,7 @@ public interface IFilterFunctionTwo<In> : IFilterFunction
     public bool[] Ok(In[] left, In[] right);
 }
 
-public interface IFilterThreeColsThree<In> : IFilterFunction
+public interface IFilterThreeColsThree<In> : IFunction
 {
     public int LeftIndex { get; }
 
@@ -32,7 +36,7 @@ public interface IFilterThreeColsThree<In> : IFilterFunction
 }
 
 # region Less Than
-public record LessThanOne<T>(int LeftIndex, T Right) : IFilterFunctionOne<T>
+public record LessThanOne<T>(int LeftIndex, T Right) : BoolFunction, IFilterFunctionOne<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left)
@@ -46,7 +50,7 @@ public record LessThanOne<T>(int LeftIndex, T Right) : IFilterFunctionOne<T>
     }
 }
 
-public record LessThanEqualOne<T>(int LeftIndex, T Right) : IFilterFunctionOne<T>
+public record LessThanEqualOne<T>(int LeftIndex, T Right) : BoolFunction, IFilterFunctionOne<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left)
@@ -60,7 +64,7 @@ public record LessThanEqualOne<T>(int LeftIndex, T Right) : IFilterFunctionOne<T
     }
 }
 
-public record LessThanTwo<T>(int LeftIndex, int RightIndex) : IFilterFunctionTwo<T>
+public record LessThanTwo<T>(int LeftIndex, int RightIndex) : BoolFunction, IFilterFunctionTwo<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left, T[] right)
@@ -74,7 +78,7 @@ public record LessThanTwo<T>(int LeftIndex, int RightIndex) : IFilterFunctionTwo
     }
 }
 
-public record LessThanEqualTwo<T>(int LeftIndex, int RightIndex) : IFilterFunctionTwo<T>
+public record LessThanEqualTwo<T>(int LeftIndex, int RightIndex) : BoolFunction, IFilterFunctionTwo<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left, T[] right)
@@ -92,7 +96,7 @@ public record LessThanEqualTwo<T>(int LeftIndex, int RightIndex) : IFilterFuncti
 
 #region Equal
 
-public record EqualOne<T>(int LeftIndex, T Right) : IFilterFunctionOne<T>
+public record EqualOne<T>(int LeftIndex, T Right) : BoolFunction, IFilterFunctionOne<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left)
@@ -106,7 +110,7 @@ public record EqualOne<T>(int LeftIndex, T Right) : IFilterFunctionOne<T>
     }
 }
 
-public record EqualTwo<T>(int LeftIndex, int RightIndex) : IFilterFunctionTwo<T>
+public record EqualTwo<T>(int LeftIndex, int RightIndex) : BoolFunction, IFilterFunctionTwo<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left, T[] right)
@@ -120,7 +124,7 @@ public record EqualTwo<T>(int LeftIndex, int RightIndex) : IFilterFunctionTwo<T>
     }
 }
 
-public record NotEqualOne<T>(int LeftIndex, T Right) : IFilterFunctionOne<T>
+public record NotEqualOne<T>(int LeftIndex, T Right) : BoolFunction, IFilterFunctionOne<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left)
@@ -134,7 +138,7 @@ public record NotEqualOne<T>(int LeftIndex, T Right) : IFilterFunctionOne<T>
     }
 }
 
-public record NotEqualTwo<T>(int LeftIndex, int RightIndex) : IFilterFunctionTwo<T>
+public record NotEqualTwo<T>(int LeftIndex, int RightIndex) : BoolFunction, IFilterFunctionTwo<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left, T[] right)
@@ -152,7 +156,7 @@ public record NotEqualTwo<T>(int LeftIndex, int RightIndex) : IFilterFunctionTwo
 
 #region Between
 
-public record Between<T>(int LeftIndex, int ValueIndex, int RightIndex) : IFilterThreeColsThree<T>
+public record Between<T>(int LeftIndex, int ValueIndex, int RightIndex) : BoolFunction, IFilterThreeColsThree<T>
     where T : INumber<T>
 {
     public bool[] Ok(T[] left, T[] values, T[] right)

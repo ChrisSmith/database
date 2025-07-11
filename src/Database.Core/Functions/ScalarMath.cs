@@ -1,12 +1,16 @@
 using System.Numerics;
+using Database.Core.Catalog;
 
 namespace Database.Core.Functions;
 
-public interface IScalerFunction
+public interface IFunction
 {
+    public DataType ReturnType { get; }
 }
 
-public interface ScalarMathOneLeft<T> : IScalerFunction
+// Left refers to the left column, so multiply one left is left_col * const value
+
+public interface ScalarMathOneLeft<T> : IFunction
     where T : INumber<T>
 {
     public int LeftIndex { get; }
@@ -16,7 +20,7 @@ public interface ScalarMathOneLeft<T> : IScalerFunction
     T[] Execute(T[] left);
 }
 
-public interface ScalarMathOneRight<T> : IScalerFunction
+public interface ScalarMathOneRight<T> : IFunction
     where T : INumber<T>
 {
     public T Value { get; }
@@ -26,7 +30,17 @@ public interface ScalarMathOneRight<T> : IScalerFunction
     T[] Execute(T[] right);
 }
 
-public interface ScalarMathTwo<T> : IScalerFunction
+public interface ScalarMathOneCommutative<T> : IFunction
+    where T : INumber<T>
+{
+    public T Value { get; }
+
+    public int Index { get; }
+
+    T[] Execute(T[] values);
+}
+
+public interface ScalarMathTwo<T> : IFunction
     where T : INumber<T>
 {
     public int LeftIndex { get; }
@@ -36,7 +50,7 @@ public interface ScalarMathTwo<T> : IScalerFunction
     T[] Execute(T[] left, T[] right);
 }
 
-public record SumOneLeft<T>(int LeftIndex, T Value) : ScalarMathOneLeft<T>
+public record SumOne<T>(int Index, T Value, DataType ReturnType) : ScalarMathOneCommutative<T>
     where T : INumber<T>
 {
     public T[] Execute(T[] values)
@@ -51,22 +65,7 @@ public record SumOneLeft<T>(int LeftIndex, T Value) : ScalarMathOneLeft<T>
     }
 }
 
-public record SumOneRight<T>(int RightIndex, T Value) : ScalarMathOneRight<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = Value + values[i];
-        }
-
-        return result;
-    }
-}
-
-public record SumTwo<T>(int LeftIndex, int RightIndex) : ScalarMathTwo<T>
+public record SumTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : ScalarMathTwo<T>
     where T : INumber<T>
 {
     public T[] Execute(T[] left, T[] right)
@@ -81,3 +80,72 @@ public record SumTwo<T>(int LeftIndex, int RightIndex) : ScalarMathTwo<T>
     }
 }
 
+public record MultiplyTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : ScalarMathTwo<T>
+    where T : INumber<T>
+{
+    public T[] Execute(T[] left, T[] right)
+    {
+        var result = new T[left.Length];
+        for (var i = 0; i < left.Length; i++)
+        {
+            result[i] = left[i] * right[i];
+        }
+        return result;
+    }
+}
+
+public record MultiplyOne<T>(int Index, T Value, DataType ReturnType) : ScalarMathOneCommutative<T>
+    where T : INumber<T>
+{
+    public T[] Execute(T[] values)
+    {
+        var result = new T[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i] * Value;
+        }
+        return result;
+    }
+}
+
+public record MinusOneRight<T>(int RightIndex, T Value, DataType ReturnType) : ScalarMathOneRight<T>
+    where T : INumber<T>
+{
+    public T[] Execute(T[] values)
+    {
+        var result = new T[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = Value - values[i];
+        }
+        return result;
+    }
+}
+
+public record MinusOneLeft<T>(int LeftIndex, T Value, DataType ReturnType) : ScalarMathOneLeft<T>
+    where T : INumber<T>
+{
+    public T[] Execute(T[] values)
+    {
+        var result = new T[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i] - Value;
+        }
+        return result;
+    }
+}
+
+public record MinusTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : ScalarMathTwo<T>
+    where T : INumber<T>
+{
+    public T[] Execute(T[] left, T[] right)
+    {
+        var result = new T[left.Length];
+        for (var i = 0; i < left.Length; i++)
+        {
+            result[i] = left[i] - right[i];
+        }
+        return result;
+    }
+}

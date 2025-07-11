@@ -4,7 +4,7 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Filter(IOperation Source, IFilterFunction Expression) : IOperation
+public record Filter(IOperation Source, BoolFunction Expression) : IOperation
 {
     private bool _done = false;
 

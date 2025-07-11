@@ -7,6 +7,8 @@ public enum DataType
     String,
     Float,
     Double,
+
+    Bool,
 }
 
 public static class DataTypeExtensions
@@ -33,6 +35,10 @@ public static class DataTypeExtensions
         {
             return DataType.Double;
         }
+        if (clrType == typeof(bool))
+        {
+            return DataType.Bool;
+        }
 
         throw new Exception($"No type mapping available from {clrType.FullName} to {typeof(DataType).FullName}");
     }
@@ -46,6 +52,7 @@ public static class DataTypeExtensions
             case DataType.Long: return typeof(long);
             case DataType.Float: return typeof(float);
             case DataType.Double: return typeof(double);
+            case DataType.Bool: return typeof(bool);
             default: throw new Exception($"No type mapping available from {dataType} to {typeof(DataType).FullName}");
         }
     }

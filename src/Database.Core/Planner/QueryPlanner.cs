@@ -26,7 +26,12 @@ public class QueryPlanner(Catalog.Catalog catalog)
             if (select.Where != null)
             {
                 var filterFunc = BindBinaryExpression(table, select.Where);
-                source = new Filter(source, filterFunc);
+                if (filterFunc is not BoolFunction predicate)
+                {
+                    // TODO cast values to "truthy"
+                    throw new QueryPlanException($"Filter expression '{select.Where}' is not a boolean expression");
+                }
+                source = new Filter(source, predicate);
             }
 
             if (select.SelectList.Expressions
@@ -37,6 +42,8 @@ public class QueryPlanner(Catalog.Catalog catalog)
                 source = new Aggregate(source, BindExpressions(table, select.SelectList.Expressions));
             }
 
+            // TODO pickup here, we need to evaluate the expression for each item in the select list
+            // its not enough to take their index (ie Id + 1 as foo)
             var (names, indexes) = Columns(select.SelectList, table);
             var projection = new Projection(names, indexes, source);
 
@@ -75,7 +82,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
         return result;
     }
 
-    private IFilterFunction BindBinaryExpression(TableSchema table, IExpression expression)
+    private IFunction BindBinaryExpression(TableSchema table, IExpression expression)
     {
         if (expression is BinaryExpression b)
         {
@@ -83,11 +90,11 @@ public class QueryPlanner(Catalog.Catalog catalog)
             {
                 throw new QueryPlanException($"left expression '{b.Left}' is not a column expression");
             }
-            var (_, leftIndex, rightType) = FindColumnIndex(table, b.Left);
+            var (_, leftIndex, leftType) = FindColumnIndex(table, b.Left);
 
             if (b.Right is ColumnExpression right)
             {
-                var (_, rightIndex, leftType) = FindColumnIndex(table, b.Right);
+                var (_, rightIndex, rightType) = FindColumnIndex(table, b.Right);
                 if (leftType != rightType || leftType == null || rightType == null)
                 {
                     // TODO automatic type casts?
@@ -106,6 +113,16 @@ public class QueryPlanner(Catalog.Catalog catalog)
                     (DataType.Float, LESS_EQUAL) => new LessThanEqualTwo<float>(leftIndex, rightIndex),
                     (DataType.Double, LESS_EQUAL) => new LessThanEqualTwo<double>(leftIndex, rightIndex),
 
+                    (DataType.Int, GREATER) => new LessThanTwo<int>(rightIndex, leftIndex),
+                    (DataType.Long, GREATER) => new LessThanTwo<long>(rightIndex, leftIndex),
+                    (DataType.Float, GREATER) => new LessThanTwo<float>(rightIndex, leftIndex),
+                    (DataType.Double, GREATER) => new LessThanTwo<double>(rightIndex, leftIndex),
+
+                    (DataType.Int, GREATER_EQUAL) => new LessThanEqualTwo<int>(rightIndex, leftIndex),
+                    (DataType.Long, GREATER_EQUAL) => new LessThanEqualTwo<long>(rightIndex, leftIndex),
+                    (DataType.Float, GREATER_EQUAL) => new LessThanEqualTwo<float>(rightIndex, leftIndex),
+                    (DataType.Double, GREATER_EQUAL) => new LessThanEqualTwo<double>(rightIndex, leftIndex),
+
                     (DataType.Int, EQUAL) => new EqualTwo<int>(leftIndex, rightIndex),
                     (DataType.Long, EQUAL) => new EqualTwo<long>(leftIndex, rightIndex),
                     (DataType.Float, EQUAL) => new EqualTwo<float>(leftIndex, rightIndex),
@@ -116,17 +133,55 @@ public class QueryPlanner(Catalog.Catalog catalog)
                     (DataType.Float, BANG_EQUAL) => new NotEqualTwo<float>(leftIndex, rightIndex),
                     (DataType.Double, BANG_EQUAL) => new NotEqualTwo<double>(leftIndex, rightIndex),
 
-                    _ => throw new ArgumentOutOfRangeException()
+                    _ => throw new QueryPlanException($"query plan doesn't support {b.Operator} {leftType.Value} yet")
                 };
             }
 
             if (b.Right is NumericLiteral num)
             {
-                int rightValue = Convert.ChangeType(num.Literal, typeof(int)) as int? ?? throw new QueryPlanException($"right expression '{b.Right}' is not a numeric literal");
-                return b.Operator switch
+                var targetType = leftType!.Value.ClrTypeFromDataType();
+                var rightValue = Convert.ChangeType(num.Literal, targetType) ?? throw new QueryPlanException($"right expression '{b.Right}' is not a numeric literal");
+                var returnType = leftType.Value;
+
+                return (returnType, b.Operator) switch
                 {
-                    LESS => new LessThanOne<int>(leftIndex, rightValue),
-                    _ => throw new ArgumentOutOfRangeException()
+                    (DataType.Int, LESS) => new LessThanOne<int>(leftIndex, (int)rightValue),
+                    (DataType.Long, LESS) => new LessThanOne<long>(leftIndex, (long)rightValue),
+                    (DataType.Float, LESS) => new LessThanOne<float>(leftIndex, (float)rightValue),
+                    (DataType.Double, LESS) => new LessThanOne<double>(leftIndex, (double)rightValue),
+
+                    (DataType.Int, LESS_EQUAL) => new LessThanEqualOne<int>(leftIndex, (int)rightValue),
+                    (DataType.Long, LESS_EQUAL) => new LessThanEqualOne<long>(leftIndex, (long)rightValue),
+                    (DataType.Float, LESS_EQUAL) => new LessThanEqualOne<float>(leftIndex, (float)rightValue),
+                    (DataType.Double, LESS_EQUAL) => new LessThanEqualOne<double>(leftIndex, (double)rightValue),
+
+
+                    (DataType.Int, EQUAL) => new EqualOne<int>(leftIndex, (int)rightValue),
+                    (DataType.Long, EQUAL) => new EqualOne<long>(leftIndex, (long)rightValue),
+                    (DataType.Float, EQUAL) => new EqualOne<float>(leftIndex, (float)rightValue),
+                    (DataType.Double, EQUAL) => new EqualOne<double>(leftIndex, (double)rightValue),
+
+                    (DataType.Int, BANG_EQUAL) => new NotEqualOne<int>(leftIndex, (int)rightValue),
+                    (DataType.Long, BANG_EQUAL) => new NotEqualOne<long>(leftIndex, (long)rightValue),
+                    (DataType.Float, BANG_EQUAL) => new NotEqualOne<float>(leftIndex, (float)rightValue),
+                    (DataType.Double, BANG_EQUAL) => new NotEqualOne<double>(leftIndex, (double)rightValue),
+
+                    (DataType.Int, PLUS) => new SumOne<int>(leftIndex, (int)rightValue, returnType),
+                    (DataType.Long, PLUS) => new SumOne<long>(leftIndex, (long)rightValue, returnType),
+                    (DataType.Float, PLUS) => new SumOne<float>(leftIndex, (float)rightValue, returnType),
+                    (DataType.Double, PLUS) => new SumOne<double>(leftIndex, (double)rightValue, returnType),
+
+                    (DataType.Int, MINUS) => new MinusOneRight<int>(leftIndex, (int)rightValue, returnType),
+                    (DataType.Long, MINUS) => new MinusOneRight<long>(leftIndex, (long)rightValue, returnType),
+                    (DataType.Float, MINUS) => new MinusOneRight<float>(leftIndex, (float)rightValue, returnType),
+                    (DataType.Double, MINUS) => new MinusOneRight<double>(leftIndex, (double)rightValue, returnType),
+
+                    (DataType.Int, STAR) => new MultiplyOne<int>(leftIndex, (int)rightValue, returnType),
+                    (DataType.Long, STAR) => new MultiplyOne<long>(leftIndex, (long)rightValue, returnType),
+                    (DataType.Float, STAR) => new MultiplyOne<float>(leftIndex, (float)rightValue, returnType),
+                    (DataType.Double, STAR) => new MultiplyOne<double>(leftIndex, (double)rightValue, returnType),
+
+                    _ => throw new QueryPlanException($"query plan doesn't support {b.Operator} {returnType} yet")
                 };
             }
 
@@ -175,6 +230,11 @@ public class QueryPlanner(Catalog.Catalog catalog)
         {
             // Might need to eagerly bind functions so we have the datatypes
             return (fun.Name, -1, null); // function is bound to is position
+        }
+        if (exp is BinaryExpression b)
+        {
+            // probably want the literal text of the expression here to name the column
+            return ("foo", -1, null); // function is bound to is position
         }
         throw new QueryPlanException($"Unsupported expression type '{exp.GetType().Name}'");
     }

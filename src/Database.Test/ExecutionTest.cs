@@ -83,6 +83,22 @@ public class ExecutionTest
         values.Should().BeEquivalentTo(new List<int> { 0, 1, 2, 3, 4 });
     }
 
+    [TestCase("Id", ExpectedResult = 10)]
+    [TestCase("Id + 1", ExpectedResult = 11)]
+    [TestCase("Id * 2", ExpectedResult = 20)]
+    [TestCase("Id % 2", ExpectedResult = 0)]
+    [TestCase("Id / 1", ExpectedResult = 10)]
+    [TestCase("Id / 2", ExpectedResult = 5)]
+    [TestCase("Id / 8", ExpectedResult = 1)]
+    [TestCase("Id / 8.0", ExpectedResult = 1.25)]
+    public object Select_Expressions(string expr)
+    {
+        var result = Query($"SELECT {expr} FROM table where Id = 10;").AsRowList();
+
+        result.Should().HaveCount(1);
+        return result[0].Values[0]!;
+    }
+
     [Test]
     public void Select_Aggregations()
     {
@@ -130,10 +146,20 @@ public class ExecutionTest
         // rg.Columns[4].Should().BeOfType<Column<double>>();
     }
 
-    [Test]
-    public void Where()
+    // passing
+    [TestCase("Id < 100")]
+    [TestCase("Id <= 99")]
+    // Don't pass yet
+    // [TestCase("Id > 9900")]
+    // [TestCase("Id > 10000 - 100")]
+    // [TestCase("100 > Id")]
+    // [TestCase("99 >= Id")]
+    // [TestCase("9900 > Id")]
+    // [TestCase("10000 - 100 < Id")]
+    // [TestCase("Id between 0 and 100")]
+    public void Where(string expr)
     {
-        var result = Query("SELECT Id FROM table where Id < 100;").AsRowList();
+        var result = Query($"SELECT Id FROM table where {expr};").AsRowList();
         result.Select(r => r.Values.Single()).Should().HaveCount(100);
     }
 }
