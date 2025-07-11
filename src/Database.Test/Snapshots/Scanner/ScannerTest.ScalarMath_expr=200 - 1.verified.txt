@@ -1,0 +1,52 @@
+﻿[
+  {
+    TokenType: SELECT,
+    Lexeme: SELECT,
+    Line: 1,
+    Column: 1
+  },
+  {
+    TokenType: NUMBER,
+    Lexeme: 200,
+    Literal: 200.0,
+    Line: 1,
+    Column: 8
+  },
+  {
+    TokenType: MINUS,
+    Lexeme: -,
+    Line: 1,
+    Column: 12
+  },
+  {
+    TokenType: NUMBER,
+    Lexeme: 1,
+    Literal: 1.0,
+    Line: 1,
+    Column: 14
+  },
+  {
+    TokenType: FROM,
+    Lexeme: FROM,
+    Line: 1,
+    Column: 16
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: table,
+    Line: 1,
+    Column: 21
+  },
+  {
+    TokenType: SEMICOLON,
+    Lexeme: ;,
+    Line: 1,
+    Column: 26
+  },
+  {
+    TokenType: EOF,
+    Lexeme: ,
+    Line: 1,
+    Column: 27
+  }
+]

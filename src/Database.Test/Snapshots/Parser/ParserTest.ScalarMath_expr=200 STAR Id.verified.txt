@@ -1,0 +1,19 @@
+﻿{
+  SelectList: {
+    Distinct: false,
+    Expressions: [
+      {
+        Operator: STAR,
+        Left: {
+          Literal: 200.0
+        },
+        Right: {
+          Column: Id
+        }
+      }
+    ]
+  },
+  From: {
+    Table: table
+  }
+}

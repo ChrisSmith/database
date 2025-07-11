@@ -63,8 +63,10 @@ public class Scanner
             case '+': AddToken(PLUS); break;
             case ';': AddToken(SEMICOLON); break;
             case '*': AddToken(STAR); break;
+            case '/': AddToken(SLASH); break;
+            case '%': AddToken(PERCENT); break;
 
-            // case '!': addToken(match('=') ? BANG_EQUAL : BANG); break;
+            case '!': AddToken(Match('=') ? BANG_EQUAL : throw new ParseException(_line, _column, $"unexpected character '{c}'.")); break;
             case '=': AddToken(EQUAL); break;
             case '>': AddToken(Match('=') ? GREATER_EQUAL : GREATER); break;
             case '<': AddToken(Match('=') ? LESS_EQUAL : LESS); break;

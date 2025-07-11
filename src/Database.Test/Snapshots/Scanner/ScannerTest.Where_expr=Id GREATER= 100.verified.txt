@@ -1,0 +1,69 @@
+﻿[
+  {
+    TokenType: SELECT,
+    Lexeme: SELECT,
+    Line: 1,
+    Column: 1
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: Id,
+    Line: 1,
+    Column: 8
+  },
+  {
+    TokenType: FROM,
+    Lexeme: FROM,
+    Line: 1,
+    Column: 11
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: table,
+    Line: 1,
+    Column: 16
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: t,
+    Line: 1,
+    Column: 22
+  },
+  {
+    TokenType: WHERE,
+    Lexeme: where,
+    Line: 1,
+    Column: 24
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: Id,
+    Line: 1,
+    Column: 30
+  },
+  {
+    TokenType: GREATER_EQUAL,
+    Lexeme: >=,
+    Line: 1,
+    Column: 33
+  },
+  {
+    TokenType: NUMBER,
+    Lexeme: 100,
+    Literal: 100.0,
+    Line: 1,
+    Column: 36
+  },
+  {
+    TokenType: SEMICOLON,
+    Lexeme: ;,
+    Line: 1,
+    Column: 39
+  },
+  {
+    TokenType: EOF,
+    Lexeme: ,
+    Line: 1,
+    Column: 40
+  }
+]

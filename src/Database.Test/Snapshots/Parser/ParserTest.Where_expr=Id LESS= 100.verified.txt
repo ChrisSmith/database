@@ -1,0 +1,23 @@
+﻿{
+  SelectList: {
+    Distinct: false,
+    Expressions: [
+      {
+        Column: Id
+      }
+    ]
+  },
+  From: {
+    Table: table,
+    Alias: t
+  },
+  Where: {
+    Operator: LESS_EQUAL,
+    Left: {
+      Column: Id
+    },
+    Right: {
+      Literal: 100.0
+    }
+  }
+}

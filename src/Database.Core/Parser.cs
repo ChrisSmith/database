@@ -154,7 +154,9 @@ public class Parser
         var expr = SingleParseExpr();
         // TODO what about operator precedence
         // TODO needs to be all the operators in https://www.sqlite.org/lang_expr.html
-        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
+        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL,
+           PLUS, MINUS, STAR, SLASH, PERCENT, IS, NOT, BETWEEN
+                ))
         {
             var right = ParseExpr();
             return new BinaryExpression(token.TokenType, expr, right);

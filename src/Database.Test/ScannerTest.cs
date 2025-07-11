@@ -3,6 +3,7 @@ using FluentAssertions;
 using VerifyTests;
 
 namespace Database.Test;
+using static TestUtils;
 
 public class ScannerTest
 {
@@ -59,11 +60,33 @@ public class ScannerTest
 
 
     [TestCase("Id < 100")]
+    [TestCase("Id <= 100")]
+    [TestCase("Id != 100")]
+    [TestCase("Id > 100")]
+    [TestCase("Id >= 100")]
+    [TestCase("Id = 100")]
     public Task Where(string expr)
     {
         var scanner = new Scanner($"SELECT Id FROM table t where {expr};");
         var tokens = scanner.ScanTokens();
-        return Verify(tokens, Settings);
+
+        var parameters = CleanStringForFileName(expr);
+        return Verify(tokens, Settings).UseParameters(parameters);
+    }
+
+    [TestCase("200 + Id")]
+    [TestCase("Id - 100")]
+    [TestCase("200 - 1")]
+    [TestCase("200 * Id")]
+    [TestCase("Id / 100")]
+    [TestCase("Id % 100")]
+    public Task ScalarMath(string expr)
+    {
+        var scanner = new Scanner($"SELECT {expr} FROM table;");
+        var tokens = scanner.ScanTokens();
+
+        var parameters = CleanStringForFileName(expr);
+        return Verify(tokens, Settings).UseParameters(parameters);
     }
 
     [Test]

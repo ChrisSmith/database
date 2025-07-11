@@ -1,0 +1,19 @@
+﻿{
+  SelectList: {
+    Distinct: false,
+    Expressions: [
+      {
+        Operator: PLUS,
+        Left: {
+          Literal: 200.0
+        },
+        Right: {
+          Column: Id
+        }
+      }
+    ]
+  },
+  From: {
+    Table: table
+  }
+}

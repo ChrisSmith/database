@@ -2,6 +2,7 @@ using Database.Core;
 
 namespace Database.Test;
 
+using static TestUtils;
 public class ParserTest
 {
     private static readonly VerifySettings Settings = new();
@@ -46,6 +47,13 @@ public class ParserTest
     }
 
     [TestCase("Id < 100")]
+    [TestCase("Id <= 100")]
+    [TestCase("100 > Id")]
+    [TestCase("100 >= Id")]
+    [TestCase("100 = Id")]
+    [TestCase("100 != Id")]
+    // [TestCase("Id between 0 and 1")]
+    // [TestCase("Id not between 0 and 1")]
     public Task Where(string expr)
     {
         var scanner = new Scanner($"SELECT Id FROM table t where {expr};");
@@ -54,6 +62,36 @@ public class ParserTest
         var parser = new Parser(tokens);
         var result = parser.Parse();
 
-        return Verify(result, Settings);
+        var parameters = CleanStringForFileName(expr);
+        return Verify(result, Settings).UseParameters(parameters);
+    }
+
+    // https://www.sqlite.org/lang_expr.html
+    [TestCase("200 + Id")]
+    [TestCase("Id + 100")]
+    [TestCase("200 + 1")]
+    [TestCase("200 - Id")]
+    [TestCase("Id - 100")]
+    [TestCase("200 - 1")]
+    [TestCase("200 * Id")]
+    [TestCase("Id * 100")]
+    [TestCase("200 * 1")]
+    [TestCase("200 / Id")]
+    [TestCase("Id / 100")]
+    [TestCase("200 / 1")]
+    [TestCase("200 % Id")]
+    [TestCase("Id % 100")]
+    [TestCase("200 % 1")]
+    public Task ScalarMath(string expr)
+    {
+        var scanner = new Scanner($"SELECT {expr} FROM table;");
+        var tokens = scanner.ScanTokens();
+
+        var parser = new Parser(tokens);
+        var result = parser.Parse();
+
+
+        var parameters = CleanStringForFileName(expr);
+        return Verify(result, Settings).UseParameters(parameters);
     }
 }
