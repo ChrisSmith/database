@@ -151,19 +151,93 @@ public class Parser
 
     private IExpression ParseExpr()
     {
-        var expr = SingleParseExpr();
-        // TODO what about operator precedence
-        // TODO needs to be all the operators in https://www.sqlite.org/lang_expr.html
-        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL,
-           PLUS, MINUS, STAR, SLASH, PERCENT, IS, NOT, BETWEEN
-                ))
-        {
-            var right = ParseExpr();
-            return new BinaryExpression(token.TokenType, expr, right);
-        }
+        var expr = ParseOr();
+
+        // https://www.sqlite.org/lang_expr.html
+        // Operator precedence in sql
+        // * / %
+        // + -
+        // & |
+        // equality
+        // not
+        // and
+        // or
 
         return expr;
     }
+
+    private IExpression ParseOr()
+    {
+        var and = ParseAnd();
+        if (Match(OR, out var token))
+        {
+            var right = ParseAnd();
+            return new BinaryExpression(token.TokenType, and, right);
+        }
+
+        return and;
+    }
+
+    private IExpression ParseAnd()
+    {
+        var not = ParseNot();
+        if (Match(AND, out var token))
+        {
+            var right = ParseNot();
+            return new BinaryExpression(token.TokenType, not, right);
+        }
+
+        return not;
+    }
+
+    private IExpression ParseNot()
+    {
+        var equality = ParseEquality();
+        if (Match(NOT, out var token))
+        {
+            var right = ParseEquality();
+            return new BinaryExpression(token.TokenType, equality, right);
+        }
+
+        return equality;
+    }
+
+    private IExpression ParseEquality()
+    {
+        var plus = ParsePlusMinus();
+        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, BETWEEN))
+        {
+            var right = ParsePlusMinus();
+            return new BinaryExpression(token.TokenType, plus, right);
+        }
+
+        return plus;
+    }
+
+    private IExpression ParsePlusMinus()
+    {
+        var plus = ParseMultiplication();
+        if (Match(out var token, PLUS, MINUS))
+        {
+            var right = ParseMultiplication();
+            return new BinaryExpression(token.TokenType, plus, right);
+        }
+
+        return plus;
+    }
+
+    private IExpression ParseMultiplication()
+    {
+        var value = SingleParseExpr();
+        if (Match(out var token, STAR, SLASH, PERCENT))
+        {
+            var right = SingleParseExpr();
+            return new BinaryExpression(token.TokenType, value, right);
+        }
+
+        return value;
+    }
+
 
     /**
      * A single literal, column, switch or function invocation
@@ -207,6 +281,10 @@ public class Parser
 
         throw new ParseException(Peek(), "Expected expression");
     }
+
+
+
+
 
     private IExpression[] ParseFunctionArguments()
     {

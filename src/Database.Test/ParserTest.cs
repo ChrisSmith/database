@@ -35,6 +35,9 @@ public class ParserTest
     [TestCase("count(a)")]
     [TestCase("sum(1)")]
     [TestCase("sum(a)")]
+    [TestCase("sum(a + b)")]
+    [TestCase("sum(a + b * 1)")]
+    [TestCase("sum(b * 1 + a)")]
     [TestCase("sum(a), count(a)")]
     public Task Aggregations(string expression)
     {
