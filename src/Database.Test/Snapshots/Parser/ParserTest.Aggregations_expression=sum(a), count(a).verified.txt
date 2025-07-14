@@ -6,17 +6,25 @@
         Name: sum,
         Args: [
           {
-            Column: a
+            Column: a,
+            BoundIndex: -1,
+            Alias: a
           }
-        ]
+        ],
+        BoundIndex: -1,
+        Alias: 
       },
       {
         Name: count,
         Args: [
           {
-            Column: a
+            Column: a,
+            BoundIndex: -1,
+            Alias: a
           }
-        ]
+        ],
+        BoundIndex: -1,
+        Alias: 
       }
     ]
   },

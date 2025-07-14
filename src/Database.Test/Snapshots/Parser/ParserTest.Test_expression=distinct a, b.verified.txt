@@ -3,10 +3,14 @@
     Distinct: true,
     Expressions: [
       {
-        Column: a
+        Column: a,
+        BoundIndex: -1,
+        Alias: a
       },
       {
-        Column: b
+        Column: b,
+        BoundIndex: -1,
+        Alias: b
       }
     ]
   },

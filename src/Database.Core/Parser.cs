@@ -202,7 +202,7 @@ public class Parser
                 table = ident.Lexeme;
                 column = Consume(IDENTIFIER, "Expected table name").Lexeme;
             }
-            return new ColumnExpression(column, table);
+            return new ColumnExpression(column, table) { Alias = column };
         }
 
         throw new ParseException(Peek(), "Expected expression");

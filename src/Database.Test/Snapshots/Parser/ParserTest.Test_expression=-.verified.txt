@@ -2,7 +2,10 @@
   SelectList: {
     Distinct: false,
     Expressions: [
-      {}
+      {
+        BoundIndex: -1,
+        Alias: 
+      }
     ]
   },
   From: {

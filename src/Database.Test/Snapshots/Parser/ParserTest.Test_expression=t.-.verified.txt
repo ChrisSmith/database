@@ -3,7 +3,9 @@
     Distinct: false,
     Expressions: [
       {
-        Table: t
+        Table: t,
+        BoundIndex: -1,
+        Alias: 
       }
     ]
   },

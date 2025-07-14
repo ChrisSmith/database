@@ -3,7 +3,9 @@
     Distinct: false,
     Expressions: [
       {
-        Column: Id
+        Column: Id,
+        BoundIndex: -1,
+        Alias: Id
       }
     ]
   },
@@ -14,10 +16,16 @@
   Where: {
     Operator: GREATER_EQUAL,
     Left: {
-      Literal: 100.0
+      Literal: 100.0,
+      BoundIndex: -1,
+      Alias: 
     },
     Right: {
-      Column: Id
-    }
+      Column: Id,
+      BoundIndex: -1,
+      Alias: Id
+    },
+    BoundIndex: -1,
+    Alias: 
   }
 }

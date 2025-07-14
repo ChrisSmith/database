@@ -5,11 +5,17 @@
       {
         Operator: STAR,
         Left: {
-          Literal: 200.0
+          Literal: 200.0,
+          BoundIndex: -1,
+          Alias: 
         },
         Right: {
-          Column: Id
-        }
+          Column: Id,
+          BoundIndex: -1,
+          Alias: Id
+        },
+        BoundIndex: -1,
+        Alias: 
       }
     ]
   },

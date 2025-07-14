@@ -5,11 +5,17 @@
       {
         Operator: MINUS,
         Left: {
-          Column: Id
+          Column: Id,
+          BoundIndex: -1,
+          Alias: Id
         },
         Right: {
-          Literal: 100.0
-        }
+          Literal: 100.0,
+          BoundIndex: -1,
+          Alias: 
+        },
+        BoundIndex: -1,
+        Alias: 
       }
     ]
   },
