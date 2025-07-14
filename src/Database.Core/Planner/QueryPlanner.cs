@@ -161,6 +161,31 @@ public class QueryPlanner(Catalog.Catalog catalog)
                     (DataType.Float, BANG_EQUAL) => new NotEqualTwo<float>(leftIndex, rightIndex),
                     (DataType.Double, BANG_EQUAL) => new NotEqualTwo<double>(leftIndex, rightIndex),
 
+                    (DataType.Int, PLUS) => new SumTwo<int>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Long, PLUS) => new SumTwo<long>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Float, PLUS) => new SumTwo<float>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Double, PLUS) => new SumTwo<double>(leftIndex, rightIndex, leftType.Value),
+
+                    (DataType.Int, MINUS) => new MinusTwo<int>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Long, MINUS) => new MinusTwo<long>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Float, MINUS) => new MinusTwo<float>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Double, MINUS) => new MinusTwo<double>(leftIndex, rightIndex, leftType.Value),
+
+                    (DataType.Int, STAR) => new MultiplyTwo<int>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Long, STAR) => new MultiplyTwo<long>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Float, STAR) => new MultiplyTwo<float>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Double, STAR) => new MultiplyTwo<double>(leftIndex, rightIndex, leftType.Value),
+
+                    (DataType.Int, SLASH) => new DivideTwo<int>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Long, SLASH) => new DivideTwo<long>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Float, SLASH) => new DivideTwo<float>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Double, SLASH) => new DivideTwo<double>(leftIndex, rightIndex, leftType.Value),
+
+                    (DataType.Int, PERCENT) => new ModuloTwo<int>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Long, PERCENT) => new ModuloTwo<long>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Float, PERCENT) => new ModuloTwo<float>(leftIndex, rightIndex, leftType.Value),
+                    (DataType.Double, PERCENT) => new ModuloTwo<double>(leftIndex, rightIndex, leftType.Value),
+
                     _ => throw new QueryPlanException($"query plan doesn't support {b.Operator} {leftType.Value} yet")
                 };
             }
@@ -199,15 +224,25 @@ public class QueryPlanner(Catalog.Catalog catalog)
                     (DataType.Float, PLUS) => new SumOne<float>(leftIndex, (float)rightValue, returnType),
                     (DataType.Double, PLUS) => new SumOne<double>(leftIndex, (double)rightValue, returnType),
 
-                    (DataType.Int, MINUS) => new MinusOneRight<int>(leftIndex, (int)rightValue, returnType),
-                    (DataType.Long, MINUS) => new MinusOneRight<long>(leftIndex, (long)rightValue, returnType),
-                    (DataType.Float, MINUS) => new MinusOneRight<float>(leftIndex, (float)rightValue, returnType),
-                    (DataType.Double, MINUS) => new MinusOneRight<double>(leftIndex, (double)rightValue, returnType),
+                    (DataType.Int, MINUS) => new MinusOneLeft<int>(leftIndex, (int)rightValue, returnType),
+                    (DataType.Long, MINUS) => new MinusOneLeft<long>(leftIndex, (long)rightValue, returnType),
+                    (DataType.Float, MINUS) => new MinusOneLeft<float>(leftIndex, (float)rightValue, returnType),
+                    (DataType.Double, MINUS) => new MinusOneLeft<double>(leftIndex, (double)rightValue, returnType),
 
                     (DataType.Int, STAR) => new MultiplyOne<int>(leftIndex, (int)rightValue, returnType),
                     (DataType.Long, STAR) => new MultiplyOne<long>(leftIndex, (long)rightValue, returnType),
                     (DataType.Float, STAR) => new MultiplyOne<float>(leftIndex, (float)rightValue, returnType),
                     (DataType.Double, STAR) => new MultiplyOne<double>(leftIndex, (double)rightValue, returnType),
+
+                    (DataType.Int, SLASH) => new DivideOneLeft<int>(leftIndex, (int)rightValue, returnType),
+                    (DataType.Long, SLASH) => new DivideOneLeft<long>(leftIndex, (long)rightValue, returnType),
+                    (DataType.Float, SLASH) => new DivideOneLeft<float>(leftIndex, (float)rightValue, returnType),
+                    (DataType.Double, SLASH) => new DivideOneLeft<double>(leftIndex, (double)rightValue, returnType),
+
+                    (DataType.Int, PERCENT) => new ModuloOneLeft<int>(leftIndex, (int)rightValue, returnType),
+                    (DataType.Long, PERCENT) => new ModuloOneLeft<long>(leftIndex, (long)rightValue, returnType),
+                    (DataType.Float, PERCENT) => new ModuloOneLeft<float>(leftIndex, (float)rightValue, returnType),
+                    (DataType.Double, PERCENT) => new ModuloOneLeft<double>(leftIndex, (double)rightValue, returnType),
 
                     _ => throw new QueryPlanException($"query plan doesn't support {b.Operator} {returnType} yet")
                 };
