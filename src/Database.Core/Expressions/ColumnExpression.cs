@@ -1,6 +1,6 @@
 namespace Database.Core.Expressions;
 
-public record ColumnExpression(string Column, string? Table = null) : IExpression
+public record ColumnExpression(string Column, string? Table = null) : BaseExpression
 {
 
 }

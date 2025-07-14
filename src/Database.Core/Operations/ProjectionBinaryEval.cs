@@ -14,7 +14,8 @@ public class ProjectionBinaryEval(TableSchema Schema, IOperation Source, List<IF
             return null;
         }
         var newColumns = new List<IColumn>(Schema.Columns.Count);
-        for (var i = 0; i < Schema.Columns.Count - functions.Count; i++)
+        var nonExpressionColumns = Schema.Columns.Count - functions.Count;
+        for (var i = 0; i < nonExpressionColumns; i++)
         {
             var column = next.Columns[i];
             newColumns.Add(column);
@@ -112,8 +113,9 @@ public class ProjectionBinaryEval(TableSchema Schema, IOperation Source, List<IF
                 throw new NotImplementedException($"Function {fun.GetType().Name} not implemented");
             }
 
+            var columnInSchema = Schema.Columns[nonExpressionColumns + i];
             var column = type.GetConstructors().Single().Invoke([
-                $"fun+{i}",
+                columnInSchema.Name,
                 i,
                 outputArray
             ]);

@@ -1,21 +1,21 @@
 namespace Database.Core.Expressions;
 
-public record NumericLiteral(double Literal) : IExpression
+public record NumericLiteral(double Literal) : BaseExpression
 {
 
 }
 
-public record StringLiteral(string Literal) : IExpression
+public record StringLiteral(string Literal) : BaseExpression
 {
 
 }
 
-public record BoolLiteral(bool Literal) : IExpression
+public record BoolLiteral(bool Literal) : BaseExpression
 {
 
 }
 
-public record NullLiteral() : IExpression
+public record NullLiteral() : BaseExpression
 {
 
 }

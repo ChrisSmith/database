@@ -143,7 +143,7 @@ public class Parser
         if (Match(AS))
         {
             var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
-            return new AliasExpression(expr, alias);
+            expr.Alias = alias;
         }
 
         return expr;

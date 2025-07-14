@@ -100,6 +100,15 @@ public class ExecutionTest
     }
 
     [Test]
+    public void Select_Expressions_Reference_In_Where()
+    {
+        var result = Query($"SELECT Id + 1 as foo FROM table where foo = 11;").AsRowList();
+
+        result.Should().HaveCount(1);
+        result[0].Values[0]!.Should().Be(11);
+    }
+
+    [Test]
     public void Select_Aggregations()
     {
         // SELECT

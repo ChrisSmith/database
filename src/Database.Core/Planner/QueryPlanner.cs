@@ -30,7 +30,6 @@ public class QueryPlanner(Catalog.Catalog catalog)
         // If any projections require the computation of a new column, do it prior to the filters/aggregations
         // so that we can filter/aggregate on them too
         var binaryExpr = select.SelectList.Expressions
-            .Select(e => e is AliasExpression alias ? alias.Expression : e)
             .Where(e => e is BinaryExpression)
             .ToList();
 
@@ -40,13 +39,15 @@ public class QueryPlanner(Catalog.Catalog catalog)
             var columns = new List<ColumnSchema>(table.Columns);
             foreach (var expr in binaryExpr)
             {
-                if (expr is BinaryExpression b)
+                expr.BoundIndex = columns.Count;
+
+                if (expr is BinaryExpression { Alias: "" } b)
                 {
-                    b.BoundIndex = columns.Count;
+                    expr.Alias = b.Operator.ToString(); // TODO literal of the expression
                 }
 
                 var fun = BindBinaryExpression(table, expr);
-                columns.Add(new ColumnSchema((ColumnId)(-1), "", fun.ReturnType, fun.ReturnType.ClrTypeFromDataType()));
+                columns.Add(new ColumnSchema((ColumnId)(-1), expr.Alias, fun.ReturnType, fun.ReturnType.ClrTypeFromDataType()));
                 functions.Add(fun);
             }
 
@@ -66,7 +67,6 @@ public class QueryPlanner(Catalog.Catalog catalog)
         }
 
         if (select.SelectList.Expressions
-            .Select(e => e is AliasExpression alias ? alias.Expression : e)
             .Any(e => e is FunctionExpression)
            )
         {
@@ -93,12 +93,6 @@ public class QueryPlanner(Catalog.Catalog catalog)
         for (var i = 0; i < expressions.Count; i++)
         {
             var expression = expressions[i];
-            if (expression is AliasExpression alias)
-            {
-                // TODO consider removing alias or making it a part of other expressions?
-                expression = alias.Expression;
-            }
-
             if (expression is not FunctionExpression function)
             {
                 throw new QueryPlanException($"expression '{expression}' is not an aggregate function");
@@ -274,6 +268,11 @@ public class QueryPlanner(Catalog.Catalog catalog)
 
     private (string, int, DataType?) FindColumnIndex(TableSchema table, IExpression exp)
     {
+        if (exp.BoundIndex != -1)
+        {
+            return (exp.Alias, exp.BoundIndex, exp.BoundDataType);
+        }
+
         // TODO we need to actually handle * and alias
         if (exp is ColumnExpression column)
         {
@@ -284,11 +283,6 @@ public class QueryPlanner(Catalog.Catalog catalog)
             }
             return (column.Column, colIdx, table.Columns[colIdx].DataType);
         }
-        if (exp is AliasExpression alias)
-        {
-            var (_, idx, dataType) = FindColumnIndex(table, alias.Expression);
-            return (alias.Alias, idx, dataType);
-        }
         if (exp is FunctionExpression fun)
         {
             // Might need to eagerly bind functions so we have the datatypes
@@ -297,7 +291,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
         if (exp is BinaryExpression b)
         {
             // probably want the literal text of the expression here to name the column
-            return ("foo", b.BoundIndex, null); // function is bound to is position
+            return (b.Alias, b.BoundIndex, b.BoundDataType); // function is bound to is position
         }
         throw new QueryPlanException($"Unsupported expression type '{exp.GetType().Name}'");
     }
