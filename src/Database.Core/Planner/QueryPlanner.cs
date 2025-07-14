@@ -12,51 +12,79 @@ public class QueryPlanner(Catalog.Catalog catalog)
 
     public QueryPlan CreatePlan(IStatement statement)
     {
-        if (statement is SelectStatement select)
+        if (statement is not SelectStatement select)
         {
-            var from = select.From;
-            var table = catalog.Tables.FirstOrDefault(t => t.Name == from.Table);
-            if (table == null)
-            {
-                throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
-            }
-
-            IOperation source = new FileScan(table.Location);
-
-            if (select.Where != null)
-            {
-                var filterFunc = BindBinaryExpression(table, select.Where);
-                if (filterFunc is not BoolFunction predicate)
-                {
-                    // TODO cast values to "truthy"
-                    throw new QueryPlanException($"Filter expression '{select.Where}' is not a boolean expression");
-                }
-                source = new Filter(source, predicate);
-            }
-
-            if (select.SelectList.Expressions
-                .Select(e => e is AliasExpression alias ? alias.Expression : e)
-                .Any(e => e is FunctionExpression)
-               )
-            {
-                source = new Aggregate(source, BindExpressions(table, select.SelectList.Expressions));
-            }
-
-            // TODO pickup here, we need to evaluate the expression for each item in the select list
-            // its not enough to take their index (ie Id + 1 as foo)
-            var (names, indexes) = Columns(select.SelectList, table);
-            var projection = new Projection(names, indexes, source);
-
-            if (select.SelectList.Distinct)
-            {
-                var distinct = new Distinct(projection);
-                return new QueryPlan(distinct);
-            }
-
-            return new QueryPlan(projection);
+            throw new QueryPlanException(
+                $"Unknown statement type '{statement.GetType().Name}'. Cannot create query plan.");
         }
 
-        throw new QueryPlanException($"Unknown statement type '{statement.GetType().Name}'. Cannot create query plan.");
+        var from = select.From;
+        var table = catalog.Tables.FirstOrDefault(t => t.Name == from.Table);
+        if (table == null)
+        {
+            throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
+        }
+
+        IOperation source = new FileScan(table.Location);
+
+        // If any projections require the computation of a new column, do it prior to the filters/aggregations
+        // so that we can filter/aggregate on them too
+        var binaryExpr = select.SelectList.Expressions
+            .Select(e => e is AliasExpression alias ? alias.Expression : e)
+            .Where(e => e is BinaryExpression)
+            .ToList();
+
+        if (binaryExpr.Count != 0) // or FunctionExpression args any BinaryExpression
+        {
+            var functions = new List<IFunction>(binaryExpr.Count);
+            var columns = new List<ColumnSchema>(table.Columns);
+            foreach (var expr in binaryExpr)
+            {
+                if (expr is BinaryExpression b)
+                {
+                    b.BoundIndex = columns.Count;
+                }
+
+                var fun = BindBinaryExpression(table, expr);
+                columns.Add(new ColumnSchema((ColumnId)(-1), "", fun.ReturnType, fun.ReturnType.ClrTypeFromDataType()));
+                functions.Add(fun);
+            }
+
+            table = new TableSchema((TableId)(-1), "temp", columns, "memory");
+            source = new ProjectionBinaryEval(table, source, functions);
+        }
+
+        if (select.Where != null)
+        {
+            var filterFunc = BindBinaryExpression(table, select.Where);
+            if (filterFunc is not BoolFunction predicate)
+            {
+                // TODO cast values to "truthy"
+                throw new QueryPlanException($"Filter expression '{select.Where}' is not a boolean expression");
+            }
+            source = new Filter(source, predicate);
+        }
+
+        if (select.SelectList.Expressions
+            .Select(e => e is AliasExpression alias ? alias.Expression : e)
+            .Any(e => e is FunctionExpression)
+           )
+        {
+            source = new Aggregate(source, BindExpressions(table, select.SelectList.Expressions));
+        }
+
+        // TODO pickup here, we need to evaluate the expression for each item in the select list
+        // its not enough to take their index (ie Id + 1 as foo)
+        var (names, indexes) = Columns(select.SelectList, table);
+        var projection = new Projection(names, indexes, source);
+
+        if (select.SelectList.Distinct)
+        {
+            var distinct = new Distinct(projection);
+            return new QueryPlan(distinct);
+        }
+
+        return new QueryPlan(projection);
     }
 
     private List<AggregateValue> BindExpressions(TableSchema table, List<IExpression> expressions)
@@ -234,7 +262,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
         if (exp is BinaryExpression b)
         {
             // probably want the literal text of the expression here to name the column
-            return ("foo", -1, null); // function is bound to is position
+            return ("foo", b.BoundIndex, null); // function is bound to is position
         }
         throw new QueryPlanException($"Unsupported expression type '{exp.GetType().Name}'");
     }

@@ -18,13 +18,13 @@ public class ExecutionTest
         var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var dataPath = Path.Combine(homeDir, "src/database/data.parquet");
         _catalog = new Catalog();
-        _catalog.Tables.Add(new TableSchema("table", new List<ColumnSchema>
+        _catalog.Tables.Add(new TableSchema((TableId)1, "table", new List<ColumnSchema>
         {
-            new("Id", DataType.Int, typeof(int)),
-            new("Unordered", DataType.Int, typeof(int)),
-            new("Name", DataType.String, typeof(string)),
-            new("CategoricalInt", DataType.Int, typeof(int)),
-            new("CategoricalString", DataType.String, typeof(string)),
+            new((ColumnId)1, "Id", DataType.Int, typeof(int)),
+            new((ColumnId)2, "Unordered", DataType.Int, typeof(int)),
+            new((ColumnId)3, "Name", DataType.String, typeof(string)),
+            new((ColumnId)4, "CategoricalInt", DataType.Int, typeof(int)),
+            new((ColumnId)5, "CategoricalString", DataType.String, typeof(string)),
         }, dataPath));
     }
 
