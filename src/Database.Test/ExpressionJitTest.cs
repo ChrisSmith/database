@@ -10,17 +10,20 @@ public class ExpressionJitTest
     [Test]
     public void Test()
     {
-        var method1 = Method1();
+        var method1 = FusedMultiplyAdd(debug: true);
         double result = 0;
         try
         {
-            result = (double)method1.Invoke(null, [1.0d, 1.2d])!;
+            double[] left = [1.0d, 1.2d];
+            double[] right = [1.0d, 1.2d];
+
+            result = (double)method1.Invoke(null, [left, right])!;
         }
         catch (TargetInvocationException e)
         {
             Assert.Fail((e.InnerException ?? e).ToString());
         }
-        result.Should().BeApproximately(1.2d, 1e-6);
+        result.Should().BeApproximately(2.44d, 1e-6);
     }
 
     private Dictionary<char, OpCode> _opCodesMappings = new()
@@ -32,15 +35,14 @@ public class ExpressionJitTest
         {'%', OpCodes.Rem},
     };
 
-    private static DynamicMethod Method1()
+    private static DynamicMethod FusedMultiplyAdd(bool debug = false)
     {
         // Console.WriteLine();
         var wlParams = new[] { typeof(string), typeof(object), typeof(object) };
         var writeLineMi = typeof(Console).GetMethod("WriteLine", wlParams)!;
 
-        var sw = Stopwatch.StartNew();
         var method1 = new DynamicMethod("Method1", typeof(double),
-            [typeof(double), typeof(double)]);
+            [typeof(double[]), typeof(double[])]);
 
         var il = method1.GetILGenerator();
         // il.EmitWriteLine("Method 1 here");
@@ -56,19 +58,29 @@ public class ExpressionJitTest
         il.Emit(OpCodes.Ldc_I4_0);
         il.Emit(OpCodes.Stloc_0); // i loc_0
 
-        // loop boundary
-        il.Emit(OpCodes.Ldc_I4, 4); // 4 iterations
-        il.Emit(OpCodes.Stloc_1); // length loc_1 = 4
+        // loc_1 = loop length
+        il.Emit(OpCodes.Ldarg_0); // load the array length
+        il.Emit(OpCodes.Ldlen); // n iterations
+        il.Emit(OpCodes.Stloc_1); // length loc_1 = n
+
+        // Drop this into the stack early so its there for the accumulation at the end
+        // I'm assuming this will keep it in register instead of requiring a mem load
+        il.Emit(OpCodes.Ldloc_2); // load res
 
         var loopBodyStart = il.DefineLabel();
         il.MarkLabel(loopBodyStart);
+
         // loop body
-        il.Emit(OpCodes.Ldarg_0);
-        il.Emit(OpCodes.Ldarg_1);
-        il.Emit(OpCodes.Add);
-        il.Emit(OpCodes.Ldc_R8, 1.0d);
-        il.Emit(OpCodes.Sub);
-        il.Emit(OpCodes.Stloc_2); // res loc_2
+        il.Emit(OpCodes.Ldarg_0); // left array
+        il.Emit(OpCodes.Ldloc_0);
+        il.Emit(OpCodes.Ldelem_R8);
+
+        il.Emit(OpCodes.Ldarg_1); // right array
+        il.Emit(OpCodes.Ldloc_0);
+        il.Emit(OpCodes.Ldelem_R8);
+
+        il.Emit(OpCodes.Mul);
+        il.Emit(OpCodes.Add); // res has been sitting on the stack, add to it (fused)
 
         // loop increment
         il.Emit(OpCodes.Ldloc_0);
@@ -76,26 +88,25 @@ public class ExpressionJitTest
         il.Emit(OpCodes.Add);
         il.Emit(OpCodes.Stloc_0); // loc_0 i = i + 1
 
-        // Console.WriteLine("i = {0} res = {1}", i, res);
-        il.Emit(OpCodes.Ldstr, "i = {0} res = {1}");
-        il.Emit(OpCodes.Ldloc_0);
-        il.Emit(OpCodes.Box, typeof(int));
-        il.Emit(OpCodes.Ldloc_2);
-        il.Emit(OpCodes.Box, typeof(double));
-        il.Emit(OpCodes.Call, writeLineMi);
-
-        // console log locals[2]
+        if (debug)
+        {
+            // Console.WriteLine("i = {0} res = {1}", i, res);
+            il.Emit(OpCodes.Ldstr, "i = {0} res = {1}");
+            il.Emit(OpCodes.Ldloc_0);
+            il.Emit(OpCodes.Box, typeof(int));
+            il.Emit(OpCodes.Ldloc_2);
+            il.Emit(OpCodes.Box, typeof(double));
+            il.Emit(OpCodes.Call, writeLineMi);
+        }
 
         // check condition
         il.Emit(OpCodes.Ldloc_0);
         il.Emit(OpCodes.Ldloc_1);
         il.Emit(OpCodes.Blt, loopBodyStart); // if (i < 4) goto loop boundary;
 
-        il.Emit(OpCodes.Ldloc_2); // result double
+        // loc_2 is still on the stack at this point, ready to be returned directly
         il.Emit(OpCodes.Ret);
 
-        sw.Stop();
-        Console.WriteLine($"took {sw.ElapsedMilliseconds} ms to emit IL");
         return method1;
     }
 
