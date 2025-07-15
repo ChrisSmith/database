@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cli.Parquet", "src\Cli.Parq
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cli", "src\Cli\Cli.csproj", "{ADB6FAD8-599E-4166-8A6B-B5A3A1E408FB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmarks", "src\Benchmarks\Benchmarks.csproj", "{08B6A352-6FBA-4FD8-82B2-3A71B292113C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{ADB6FAD8-599E-4166-8A6B-B5A3A1E408FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADB6FAD8-599E-4166-8A6B-B5A3A1E408FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADB6FAD8-599E-4166-8A6B-B5A3A1E408FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08B6A352-6FBA-4FD8-82B2-3A71B292113C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08B6A352-6FBA-4FD8-82B2-3A71B292113C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08B6A352-6FBA-4FD8-82B2-3A71B292113C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08B6A352-6FBA-4FD8-82B2-3A71B292113C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E438600C-7AE2-43D3-B1BA-581D6D7D7A70} = {2A0F2268-DC8C-4351-BD3E-A78767716AE2}
