@@ -1,32 +1,46 @@
 using System.Numerics;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using Database.Core.JIT;
 
 namespace MyBenchmarks
 {
-    [SimpleJob(iterationCount: 10)]
+    [SimpleJob(iterationCount: 20)]
     public class MultiplyAdd
     {
         private readonly double[] data;
         private readonly DynamicMethod _method;
-        private readonly Func<double[], double[], double> _delegate;
-
         public MultiplyAdd()
         {
             var rand = new Random(42);
 
-            int N = (int)(2 * rand.NextDouble() + 1000 * 1000);
+            int N = 1000 * 1000;
             data = new double[N];
             for (var i = 0; i < N; i++)
             {
                 data[i] = rand.NextDouble();
             }
             _method = ExpressionJit.FusedMultiplyAdd(debug: false);
-            _delegate = (Func<double[], double[], double>)_method.CreateDelegate(typeof(Func<double[], double[], double>));
+
+            // var sw = Stopwatch.StartNew();
+            // // Create a dynamic assembly & module
+            // var asmName = new AssemblyName("MyDynamicAssembly");
+            // var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.Run);
+            // var moduleBuilder = asmBuilder.DefineDynamicModule("MyDynamicModule");
+            // var typeBuilder = moduleBuilder.DefineType("MyDynamicType", TypeAttributes.Public | TypeAttributes.Class);
+            // var methodBuilder = typeBuilder.DefineMethod(
+            //     "FusedMultiplyAdd",
+            //     MethodAttributes.Public | MethodAttributes.Static,
+            //     typeof(double),
+            //     new[] { typeof(double[]), typeof(double[]) });
+            //
+            // ExpressionJit.FusedMultiplyAdd(methodBuilder.GetILGenerator());
+            // var dynamicType = typeBuilder.CreateType();
+            // sw.Stop();
+            // Console.WriteLine($"Dynamic type creation took {sw.ElapsedMilliseconds} ms");
+            // _delegateFromAssembly = dynamicType.GetMethod("FusedMultiplyAdd")!.CreateDelegate<Func<double[], double[], double>>();
         }
 
         [Benchmark(Baseline = true)]
@@ -50,10 +64,8 @@ namespace MyBenchmarks
         [Benchmark]
         public double Benchmark_Jit_MultiplyAdd_Fused()
         {
-            // return (double)_method.Invoke(null, [data, data])!;
-            return _delegate(data, data);
+            return (double)_method.Invoke(null, [data, data])!;
         }
-
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static double MultiplyAddLoop(double[] left, double[] right)
@@ -110,10 +122,12 @@ namespace MyBenchmarks
         public static void Main(string[] args)
         {
             // var c = new MultiplyAdd();
-            // var baseline = c.Multiply_Then_Add_Loop();
-            // var fused = c.MultiplyAdd_Fused();
-            // var fusedVector = c.MultiplyAdd_Fused_Vector();
-            // var jitFused = c.ExpressionJit_MultiplyAdd_Fused();
+            // c.Benchmark_Jit_MultiplyAdd_Fused();
+
+            // var baseline = c.Benchmark_Multiply_Then_Add_Loop();
+            // var fused = c.Benchmark_MultiplyAdd_Fused();
+            // var fusedVector = c.Benchmark_MultiplyAdd_Fused_Vector();
+            // var jitFused = c.Benchmark_Jit_MultiplyAdd_Fused();
             //
             // const double TOLERANCE = 1e-6;
             // Console.WriteLine($"{Math.Abs(baseline - fused) < TOLERANCE} {baseline} == {fused}");
@@ -123,9 +137,10 @@ namespace MyBenchmarks
             // double d=0;
             // for (var i = 0; i < 1000; i++)
             // {
-            //     d += c.ExpressionJit_MultiplyAdd_Fused();
+            //     d += c.Benchmark_Jit_MultiplyAdd_Fused();
             // }
             // Console.WriteLine(d);
+
             var summary = BenchmarkRunner.Run<MultiplyAdd>();
         }
     }
