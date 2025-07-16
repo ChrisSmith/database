@@ -37,7 +37,20 @@ public class FunctionRegistry
             { DataType.Float, typeof(EqualTwo<float>) },
             { DataType.Double, typeof(EqualTwo<double>) },
         }));
-
+        _funcs.Add(">", new(">", 2, new()
+        {
+            { DataType.Int, typeof(GreaterThanTwo<int>) },
+            { DataType.Long, typeof(GreaterThanTwo<long>) },
+            { DataType.Float, typeof(GreaterThanTwo<float>) },
+            { DataType.Double, typeof(GreaterThanTwo<double>) },
+        }));
+        _funcs.Add(">=", new(">=", 2, new()
+        {
+            { DataType.Int, typeof(GreaterThanEqualTwo<int>) },
+            { DataType.Long, typeof(GreaterThanEqualTwo<long>) },
+            { DataType.Float, typeof(GreaterThanEqualTwo<float>) },
+            { DataType.Double, typeof(GreaterThanEqualTwo<double>) },
+        }));
         _funcs.Add("<", new("<", 2, new()
         {
             { DataType.Int, typeof(LessThanTwo<int>) },
@@ -65,6 +78,13 @@ public class FunctionRegistry
             { DataType.Long, typeof(DivideTwo<long>) },
             { DataType.Float, typeof(DivideTwo<float>) },
             { DataType.Double, typeof(DivideTwo<double>) },
+        }));
+        _funcs.Add("-", new("-", 2, new()
+        {
+            { DataType.Int, typeof(MinusTwo<int>) },
+            { DataType.Long, typeof(MinusTwo<long>) },
+            { DataType.Float, typeof(MinusTwo<float>) },
+            { DataType.Double, typeof(MinusTwo<double>) },
         }));
         _funcs.Add("+", new("+", 2, new()
         {

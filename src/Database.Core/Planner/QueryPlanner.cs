@@ -161,6 +161,8 @@ public class QueryPlanner(Catalog.Catalog catalog)
             return (be.Operator) switch
             {
                 EQUAL => _functions.BindFunction("=", args, table),
+                GREATER => _functions.BindFunction(">", args, table),
+                GREATER_EQUAL => _functions.BindFunction(">=", args, table),
                 LESS => _functions.BindFunction("<", args, table),
                 LESS_EQUAL => _functions.BindFunction("<=", args, table),
                 STAR => _functions.BindFunction("*", args, table),

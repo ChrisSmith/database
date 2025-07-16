@@ -159,13 +159,14 @@ public class ExecutionTest
     // passing
     [TestCase("Id < 100")]
     [TestCase("Id <= 99")]
+    [TestCase("100 > Id")]
+    [TestCase("99 >= Id")]
+
     // Don't pass yet
-    // [TestCase("Id > 9900")]
-    // [TestCase("Id > 10000 - 100")]
-    // [TestCase("100 > Id")]
-    // [TestCase("99 >= Id")]
-    // [TestCase("9900 > Id")]
-    // [TestCase("10000 - 100 < Id")]
+    [TestCase("Id > 9900")]
+    [TestCase("Id > 10000 - 100")]
+    [TestCase("9900 > Id")]
+    [TestCase("10000 - 100 < Id")]
     // [TestCase("Id between 0 and 100")]
     public void Where(string expr)
     {

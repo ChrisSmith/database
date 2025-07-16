@@ -24,6 +24,37 @@ public interface IFilterThreeColsThree<In> : IFunction
     public bool[] Ok(In[] left, In[] value, In[] right);
 }
 
+# region Greater Than
+public record GreaterThanTwo<T>() : BoolFunction, IFilterFunctionTwo<T>
+    where T : INumber<T>
+{
+    public bool[] Ok(T[] left, T[] right)
+    {
+        var result = new bool[left.Length];
+        for (var i = 0; i < left.Length; i++)
+        {
+            result[i] = left[i] > right[i];
+        }
+        return result;
+    }
+}
+
+public record GreaterThanEqualTwo<T>() : BoolFunction, IFilterFunctionTwo<T>
+    where T : INumber<T>
+{
+    public bool[] Ok(T[] left, T[] right)
+    {
+        var result = new bool[left.Length];
+        for (var i = 0; i < left.Length; i++)
+        {
+            result[i] = left[i] >= right[i];
+        }
+        return result;
+    }
+}
+
+#endregion
+
 # region Less Than
 public record LessThanTwo<T>() : BoolFunction, IFilterFunctionTwo<T>
     where T : INumber<T>
