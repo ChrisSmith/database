@@ -12,3 +12,10 @@ Notes on emitting IL so RyuJIT can optimizate it correctly
 | Benchmark_MultiplyAdd_Fused        | 570.8 us |  2.34 us |  2.69 us |  0.58 |    0.02 |
 | Benchmark_MultiplyAdd_Fused_Vector | 404.7 us |  1.43 us |  1.53 us |  0.41 |    0.01 |
 | Benchmark_Jit_MultiplyAdd_Fused    | 567.6 us |  0.75 us |  0.83 us |  0.58 |    0.02 |
+
+
+# Viewing Assembly 
+
+https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/viewing-jit-dumps.md
+
+DOTNET_JitDisasm=Method1 dotnet run -c Release  --project src/Benchmarks/
