@@ -16,7 +16,7 @@
   Where: {
     Operator: GREATER,
     Left: {
-      Literal: 100.0,
+      Literal: 100,
       BoundIndex: -1,
       Alias: 
     },

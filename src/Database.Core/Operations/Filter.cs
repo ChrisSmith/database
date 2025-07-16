@@ -4,9 +4,11 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Filter(IOperation Source, BoolFunction Expression) : IOperation
+public record Filter(IOperation Source, IExpression Expression) : IOperation
 {
     private bool _done = false;
+
+    private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
     public RowGroup? Next()
     {
@@ -24,25 +26,8 @@ public record Filter(IOperation Source, BoolFunction Expression) : IOperation
                 return null;
             }
 
-            bool[] keep;
-
-            if (Expression is IFilterFunctionOne<int> one)
-            {
-                var left = next.Columns[one.LeftIndex];
-                keep = one.Ok((int[])left.ValuesArray);
-            }
-            else if (Expression is IFilterFunctionTwo<int> twos)
-            {
-                var left = next.Columns[twos.LeftIndex];
-                var right = next.Columns[twos.RightIndex];
-
-                keep = twos.Ok((int[])left.ValuesArray, (int[])right.ValuesArray);
-            }
-            else
-            {
-                throw new NotImplementedException(
-                    $"Expression {Expression.GetType().FullName} is not supported in a filter yet");
-            }
+            var res = (Column<bool>)_interpreter.Execute(Expression, next);
+            var keep = res.Values;
 
             int count = 0;
             for (var i = 0; i < keep.Length; i++)

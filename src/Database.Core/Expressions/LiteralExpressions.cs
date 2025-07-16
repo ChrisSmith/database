@@ -3,7 +3,13 @@ using System.Diagnostics;
 namespace Database.Core.Expressions;
 
 [DebuggerDisplay("{Literal}")]
-public record NumericLiteral(double Literal) : BaseExpression
+public record DoubleLiteral(double Literal) : BaseExpression
+{
+
+}
+
+[DebuggerDisplay("{Literal}")]
+public record IntegerLiteral(int Literal) : BaseExpression
 {
 
 }

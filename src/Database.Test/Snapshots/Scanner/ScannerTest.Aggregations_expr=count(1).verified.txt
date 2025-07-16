@@ -20,7 +20,7 @@
   {
     TokenType: NUMBER,
     Lexeme: 1,
-    Literal: 1.0,
+    Literal: 1,
     Line: 1,
     Column: 14
   },

@@ -83,6 +83,7 @@ public class ExecutionTest
         values.Should().BeEquivalentTo(new List<int> { 0, 1, 2, 3, 4 });
     }
 
+    [TestCase("Id * Id", ExpectedResult = 100)]
     [TestCase("Id", ExpectedResult = 10)]
     [TestCase("Id + 1", ExpectedResult = 11)]
     [TestCase("Id * 2", ExpectedResult = 20)]

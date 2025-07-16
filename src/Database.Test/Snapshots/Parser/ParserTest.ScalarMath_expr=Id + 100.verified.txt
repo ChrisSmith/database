@@ -10,7 +10,7 @@
           Alias: Id
         },
         Right: {
-          Literal: 100.0,
+          Literal: 100,
           BoundIndex: -1,
           Alias: 
         },

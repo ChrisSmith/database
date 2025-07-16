@@ -7,33 +7,84 @@ public record FunctionDefinition(string Name, int Arity, Dictionary<DataType, Ty
 
 public class FunctionRegistry
 {
-    private readonly Dictionary<string, FunctionDefinition> _aggregateFuncs = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, FunctionDefinition> _funcs = new(StringComparer.OrdinalIgnoreCase);
 
     public FunctionRegistry()
     {
-        _aggregateFuncs.Add("count", new("count", 1, new()
+        _funcs.Add("count", new("count", 1, new()
         {
-            { DataType.Int, typeof(IntCount)},
-            { DataType.Double, typeof(DoubleCount)},
+            { DataType.Int, typeof(Count<int>)},
+            { DataType.Double, typeof(Count<double>)},
             { DataType.String, typeof(StringCount)},
         }));
 
-        _aggregateFuncs.Add("sum", new("sum", 1, new()
+        _funcs.Add("sum", new("sum", 1, new()
         {
-            { DataType.Int, typeof(IntSum)},
-            { DataType.Double, typeof(DoubleSum)},
+            { DataType.Int, typeof(Sum<int>)},
+            { DataType.Double, typeof(Sum<double>)},
         }));
 
-        _aggregateFuncs.Add("avg", new("avg", 1, new()
+        _funcs.Add("avg", new("avg", 1, new()
         {
-            { DataType.Int, typeof(IntAvg)},
-            { DataType.Double, typeof(DoubleAvg)},
+            { DataType.Int, typeof(Avg<int>)},
+            { DataType.Double, typeof(Avg<double>)},
+        }));
+
+        _funcs.Add("=", new("=", 2, new()
+        {
+            { DataType.Int, typeof(EqualTwo<int>) },
+            { DataType.Long, typeof(EqualTwo<long>) },
+            { DataType.Float, typeof(EqualTwo<float>) },
+            { DataType.Double, typeof(EqualTwo<double>) },
+        }));
+
+        _funcs.Add("<", new("<", 2, new()
+        {
+            { DataType.Int, typeof(LessThanTwo<int>) },
+            { DataType.Long, typeof(LessThanTwo<long>) },
+            { DataType.Float, typeof(LessThanTwo<float>) },
+            { DataType.Double, typeof(LessThanTwo<double>) },
+        }));
+        _funcs.Add("<=", new("<=", 2, new()
+        {
+            { DataType.Int, typeof(LessThanEqualTwo<int>) },
+            { DataType.Long, typeof(LessThanEqualTwo<long>) },
+            { DataType.Float, typeof(LessThanEqualTwo<float>) },
+            { DataType.Double, typeof(LessThanEqualTwo<double>) },
+        }));
+        _funcs.Add("*", new("*", 2, new()
+        {
+            { DataType.Int, typeof(MultiplyTwo<int>) },
+            { DataType.Long, typeof(MultiplyTwo<long>) },
+            { DataType.Float, typeof(MultiplyTwo<float>) },
+            { DataType.Double, typeof(MultiplyTwo<double>) },
+        }));
+        _funcs.Add("/", new("/", 2, new()
+        {
+            { DataType.Int, typeof(DivideTwo<int>) },
+            { DataType.Long, typeof(DivideTwo<long>) },
+            { DataType.Float, typeof(DivideTwo<float>) },
+            { DataType.Double, typeof(DivideTwo<double>) },
+        }));
+        _funcs.Add("+", new("+", 2, new()
+        {
+            { DataType.Int, typeof(SumTwo<int>) },
+            { DataType.Long, typeof(SumTwo<long>) },
+            { DataType.Float, typeof(SumTwo<float>) },
+            { DataType.Double, typeof(SumTwo<double>) },
+        }));
+        _funcs.Add("%", new("%", 2, new()
+        {
+            { DataType.Int, typeof(ModuloTwo<int>) },
+            { DataType.Long, typeof(ModuloTwo<long>) },
+            { DataType.Float, typeof(ModuloTwo<float>) },
+            { DataType.Double, typeof(ModuloTwo<double>) },
         }));
     }
 
-    public AggregateValue Bind(string name, IExpression[] args, TableSchema table)
+    public IFunction BindFunction(string name, IExpression[] args, TableSchema table)
     {
-        if (!_aggregateFuncs.TryGetValue(name, out var func))
+        if (!_funcs.TryGetValue(name, out var func))
         {
             throw new FunctionBindException($"function '{name}' is not registered");
         }
@@ -43,29 +94,23 @@ public class FunctionRegistry
             throw new FunctionBindException($"function '{name}' expects {func.Arity} arguments, got {args.Length}");
         }
 
-        // TODO probably not a single datatype, but an array of datatypes for the method signatiture
-        // could also support multiple arity that way
+        var firstArgument = args.First();
+        var dataType = firstArgument.BoundDataType!.Value;
 
-        // TODO should expressions know what datatypes they're operating on?
-        // Expressions probably also need to know what table/column.
-        // Having the table as an argument to this function doesn't make a ton of sense
-        // How should we handle nested invocations? foo(bar(col))
-        var argument = args.First();
-        if (argument is ColumnExpression columnExpr)
+        if (!func.Functions.TryGetValue(dataType, out var funcType))
         {
-            var index = table.Columns.FindIndex(c => c.Name == columnExpr.Column);
-            var column = table.Columns[index];
-
-            if (!func.Functions.TryGetValue(column.DataType, out var funcType))
-            {
-                throw new FunctionBindException($"{column.DataType} not supported for {func.Name}");
-            }
-
-            return (AggregateValue)funcType.GetConstructors().Single().Invoke([index]);
+            throw new FunctionBindException($"{dataType} not supported for {func.Name}");
         }
 
-        // TODO how do we want to handle constant values in expressions?
-        throw new FunctionBindException($"{argument} not implemented yet");
+        var ctorArgs = new object[] { dataType };
+
+        var ctor = funcType.GetConstructors().Single();
+        if (ctor.GetParameters().Length == 0)
+        {
+            ctorArgs = [];
+        }
+
+        return (IFunction)ctor.Invoke(ctorArgs);
     }
 }
 

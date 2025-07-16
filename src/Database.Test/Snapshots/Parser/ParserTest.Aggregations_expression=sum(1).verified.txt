@@ -6,7 +6,7 @@
         Name: sum,
         Args: [
           {
-            Literal: 1.0,
+            Literal: 1,
             BoundIndex: -1,
             Alias: 
           }

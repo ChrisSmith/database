@@ -147,8 +147,10 @@ public class Scanner
             Advance();
         }
 
+        var isDouble = false;
         if (Peek() == '.' && IsDigit(PeekNext()))
         {
+            isDouble = true;
             // consume .
             Advance();
 
@@ -158,7 +160,15 @@ public class Scanner
             }
         }
 
-        AddToken(NUMBER, double.Parse(_source.SubstringPos(_start, _current)));
+        var literal = _source.SubstringPos(_start, _current);
+        if (isDouble)
+        {
+            AddToken(NUMBER, double.Parse(literal));
+        }
+        else
+        {
+            AddToken(NUMBER, int.Parse(literal));
+        }
     }
 
     private void Identifier()

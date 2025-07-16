@@ -5,7 +5,7 @@
       {
         Operator: STAR,
         Left: {
-          Literal: 200.0,
+          Literal: 200,
           BoundIndex: -1,
           Alias: 
         },

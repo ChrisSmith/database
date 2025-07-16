@@ -249,7 +249,11 @@ public class Parser
         // Literal
         if (Match(NUMBER, out var num))
         {
-            return new NumericLiteral((double)num.Literal!);
+            if (num.Literal is int literal)
+            {
+                return new IntegerLiteral(literal);
+            }
+            return new DoubleLiteral((double)num.Literal!);
         }
         if (Match(STRING, out var str))
         {

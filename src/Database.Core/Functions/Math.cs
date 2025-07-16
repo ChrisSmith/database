@@ -1,77 +1,41 @@
+using System.Numerics;
+using Database.Core.Catalog;
+
 namespace Database.Core.Functions;
 
-// TODO pure vs non-pure functions
-// Some can use an accumulator for state, some cannot?
-
-public interface AggregateValue
+public interface IAggregateFunction : IFunction
 {
-    int ColumnIndex { get; }
-
     object? GetValue();
 }
-
 /**
  * Operator on the entire column, one row at a time
  */
-public interface AggregateValue<In, Out> : AggregateValue
+public interface IAggregateFunction<In, Out> : IAggregateFunction
 {
     void Next(In[] value);
 
     Out Value();
 }
 
-// TODO checkout using System.Numerics
-// https://learn.microsoft.com/en-us/dotnet/standard/generics/math
-public record DoubleCount(int ColumnIndex) : AggregateValue<double?, int>
+public record Count<In> : IAggregateFunction<In, int>
+    where In : INumber<In>
 {
+    public DataType ReturnType => DataType.Int;
+
     private int _state = 0;
     public int Value() => _state;
     public object? GetValue() => Value();
 
-    public void Next(double?[] value)
-    {
-        foreach (var item in value)
-        {
-            if (item.HasValue)
-            {
-                _state += 1;
-            }
-        }
-    }
-}
-
-public record NullableIntCount(int ColumnIndex) : AggregateValue<int?, int>
-{
-    private int _state = 0;
-    public int Value() => _state;
-    public object? GetValue() => Value();
-
-    public void Next(int?[] value)
-    {
-        foreach (var item in value)
-        {
-            if (item.HasValue)
-            {
-                _state += 1;
-            }
-        }
-    }
-}
-
-public record IntCount(int ColumnIndex) : AggregateValue<int, int>
-{
-    private int _state = 0;
-    public int Value() => _state;
-    public object? GetValue() => Value();
-
-    public void Next(int[] value)
+    public void Next(In[] value)
     {
         _state += value.Length;
     }
 }
 
-public record StringCount(int ColumnIndex) : AggregateValue<string?, int>
+public record StringCount : IAggregateFunction<string?, int>
 {
+    public DataType ReturnType => DataType.String;
+
     private int _state = 0;
     public int Value() => _state;
     public object? GetValue() => Value();
@@ -88,13 +52,14 @@ public record StringCount(int ColumnIndex) : AggregateValue<string?, int>
     }
 }
 
-public record IntSum(int ColumnIndex) : AggregateValue<int, int>
+public record Sum<T>(DataType ReturnType) : IAggregateFunction<T, T>
+    where T : INumber<T>
 {
-    private int _state = 0;
-    public int Value() => _state;
+    private T _state = default!;
+    public T Value() => _state;
     public object? GetValue() => Value();
 
-    public void Next(int[] value)
+    public void Next(T[] value)
     {
         foreach (var item in value)
         {
@@ -103,46 +68,17 @@ public record IntSum(int ColumnIndex) : AggregateValue<int, int>
     }
 }
 
-public record DoubleSum(int ColumnIndex) : AggregateValue<double, double>
+public record Avg<T> : IAggregateFunction<T, double>
+    where T : INumber<T>
 {
-    private double _state = 0;
-    public double Value() => _state;
-    public object? GetValue() => Value();
+    public DataType ReturnType => DataType.Double;
 
-    public void Next(double[] value)
-    {
-        foreach (var item in value)
-        {
-            _state += item;
-        }
-    }
-}
-
-public record IntAvg(int ColumnIndex) : AggregateValue<int, double>
-{
-    private int _sum = 0;
+    private T _sum = default!;
     private int _count = 0;
-    public double Value() => (double)_sum / _count;
+    public double Value() => (double)Convert.ChangeType(_sum, typeof(double)) / _count;
     public object? GetValue() => Value();
 
-    public void Next(int[] value)
-    {
-        foreach (var item in value)
-        {
-            _sum += item;
-        }
-        _count += value.Length;
-    }
-}
-
-public record DoubleAvg(int ColumnIndex) : AggregateValue<double, double>
-{
-    private double _sum = 0;
-    private int _count = 0;
-    public double Value() => _sum / _count;
-    public object? GetValue() => Value();
-
-    public void Next(double[] value)
+    public void Next(T[] value)
     {
         foreach (var item in value)
         {

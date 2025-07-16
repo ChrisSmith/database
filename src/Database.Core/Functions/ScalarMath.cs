@@ -8,54 +8,13 @@ public interface IFunction
     public DataType ReturnType { get; }
 }
 
-// Left refers to the left column, so multiply one left is left_col * const value
-
-public interface ScalarMathOneLeft<T> : IFunction
+public interface IScalarMathTwo<T> : IFunction
     where T : INumber<T>
 {
-    public int LeftIndex { get; }
-
-    public T Value { get; }
-
-    T[] Execute(T[] left);
-}
-
-public interface ScalarMathOneRight<T> : IFunction
-    where T : INumber<T>
-{
-    public T Value { get; }
-
-    public int RightIndex { get; }
-
-    T[] Execute(T[] right);
-}
-
-public interface ScalarMathTwo<T> : IFunction
-    where T : INumber<T>
-{
-    public int LeftIndex { get; }
-
-    public int RightIndex { get; }
-
     T[] Execute(T[] left, T[] right);
 }
 
-public record SumOne<T>(int LeftIndex, T Value, DataType ReturnType) : ScalarMathOneLeft<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = values[i] + Value;
-        }
-
-        return result;
-    }
-}
-
-public record SumTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : ScalarMathTwo<T>
+public record SumTwo<T>(DataType ReturnType) : IScalarMathTwo<T>
     where T : INumber<T>
 {
     public T[] Execute(T[] left, T[] right)
@@ -70,7 +29,7 @@ public record SumTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : Sc
     }
 }
 
-public record MultiplyTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : ScalarMathTwo<T>
+public record MultiplyTwo<T>(DataType ReturnType) : IScalarMathTwo<T>
     where T : INumber<T>
 {
     public T[] Execute(T[] left, T[] right)
@@ -84,49 +43,7 @@ public record MultiplyTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType)
     }
 }
 
-public record MultiplyOne<T>(int LeftIndex, T Value, DataType ReturnType) : ScalarMathOneLeft<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = values[i] * Value;
-        }
-        return result;
-    }
-}
-
-public record MinusOneRight<T>(int RightIndex, T Value, DataType ReturnType) : ScalarMathOneRight<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = Value - values[i];
-        }
-        return result;
-    }
-}
-
-public record MinusOneLeft<T>(int LeftIndex, T Value, DataType ReturnType) : ScalarMathOneLeft<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = values[i] - Value;
-        }
-        return result;
-    }
-}
-
-public record MinusTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : ScalarMathTwo<T>
+public record MinusTwo<T>(DataType ReturnType) : IScalarMathTwo<T>
     where T : INumber<T>
 {
     public T[] Execute(T[] left, T[] right)
@@ -140,35 +57,7 @@ public record MinusTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : 
     }
 }
 
-public record DivideOneRight<T>(int RightIndex, T Value, DataType ReturnType) : ScalarMathOneRight<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = Value / values[i];
-        }
-        return result;
-    }
-}
-
-public record DivideOneLeft<T>(int LeftIndex, T Value, DataType ReturnType) : ScalarMathOneLeft<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = values[i] / Value;
-        }
-        return result;
-    }
-}
-
-public record DivideTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : ScalarMathTwo<T>
+public record DivideTwo<T>(DataType ReturnType) : IScalarMathTwo<T>
     where T : INumber<T>
 {
     public T[] Execute(T[] left, T[] right)
@@ -182,35 +71,7 @@ public record DivideTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) :
     }
 }
 
-public record ModuloOneRight<T>(int RightIndex, T Value, DataType ReturnType) : ScalarMathOneRight<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = Value % values[i];
-        }
-        return result;
-    }
-}
-
-public record ModuloOneLeft<T>(int LeftIndex, T Value, DataType ReturnType) : ScalarMathOneLeft<T>
-    where T : INumber<T>
-{
-    public T[] Execute(T[] values)
-    {
-        var result = new T[values.Length];
-        for (var i = 0; i < values.Length; i++)
-        {
-            result[i] = values[i] % Value;
-        }
-        return result;
-    }
-}
-
-public record ModuloTwo<T>(int LeftIndex, int RightIndex, DataType ReturnType) : ScalarMathTwo<T>
+public record ModuloTwo<T>(DataType ReturnType) : IScalarMathTwo<T>
     where T : INumber<T>
 {
     public T[] Execute(T[] left, T[] right)

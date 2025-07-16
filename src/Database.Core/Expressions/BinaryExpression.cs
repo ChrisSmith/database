@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Database.Core.Functions;
 
 namespace Database.Core.Expressions;
 

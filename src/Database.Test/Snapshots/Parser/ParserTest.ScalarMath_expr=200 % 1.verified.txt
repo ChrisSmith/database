@@ -5,12 +5,12 @@
       {
         Operator: PERCENT,
         Left: {
-          Literal: 200.0,
+          Literal: 200,
           BoundIndex: -1,
           Alias: 
         },
         Right: {
-          Literal: 1.0,
+          Literal: 1,
           BoundIndex: -1,
           Alias: 
         },

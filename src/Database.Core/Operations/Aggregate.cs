@@ -4,9 +4,11 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Aggregate(IOperation Source, List<AggregateValue> Expressions) : IOperation
+public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOperation
 {
     private bool _done = false;
+
+    private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
     public RowGroup? Next()
     {
@@ -15,36 +17,18 @@ public record Aggregate(IOperation Source, List<AggregateValue> Expressions) : I
             return null;
         }
 
+        var aggregates = Expressions
+            .Where(e => e.BoundFunction is IAggregateFunction)
+            .ToList();
+
         var rowGroup = Source.Next();
         while (rowGroup != null)
         {
-            foreach (var expression in Expressions)
+            foreach (var expression in aggregates)
             {
-                var column = rowGroup.Columns[expression.ColumnIndex];
+                var aggregate = (IAggregateFunction)expression.BoundFunction!;
 
-                switch (expression)
-                {
-                    case AggregateValue<double?, int> agg when column is Column<double?> c:
-                        agg.Next(c.Values);
-                        break;
-                    case AggregateValue<double, int> agg when column is Column<double> c:
-                        agg.Next(c.Values);
-                        break;
-                    case AggregateValue<int?, int> agg when column is Column<int?> c:
-                        agg.Next(c.Values);
-                        break;
-                    case AggregateValue<int, int> agg when column is Column<int> c:
-                        agg.Next(c.Values);
-                        break;
-                    case AggregateValue<int, double> agg when column is Column<int> c:
-                        agg.Next(c.Values);
-                        break;
-                    case AggregateValue<string, int> agg when column is Column<string> c:
-                        agg.Next(c.Values);
-                        break;
-                    default:
-                        throw new NotImplementedException($"Unsupported aggregate type {expression.GetType().FullName}");
-                }
+                _interpreter.ExecuteAggregate(aggregate, rowGroup);
             }
             rowGroup = Source.Next();
         }
@@ -53,7 +37,7 @@ public record Aggregate(IOperation Source, List<AggregateValue> Expressions) : I
         for (var i = 0; i < Expressions.Count; i++)
         {
             var expression = Expressions[i];
-            var value = expression.GetValue();
+            var value = ((IAggregateFunction)expression.BoundFunction!).GetValue();
 
             var columnType = value!.GetType();
             var values = Array.CreateInstance(columnType, 1);
@@ -61,7 +45,7 @@ public record Aggregate(IOperation Source, List<AggregateValue> Expressions) : I
 
             var type = typeof(Column<>).MakeGenericType(columnType);
             var column = type.GetConstructors().Single().Invoke([
-                $"{i}.{columnType}",
+                expression.Alias,
                 i,
                 values
             ]);
