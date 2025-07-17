@@ -161,16 +161,15 @@ public class ExecutionTest
     [TestCase("Id <= 99")]
     [TestCase("100 > Id")]
     [TestCase("99 >= Id")]
-
+    [TestCase("Id > 99899")]
+    [TestCase("Id > 100000 - 101")]
+    [TestCase("99899 < Id")]
+    [TestCase("100000 - 101 < Id")]
     // Don't pass yet
-    [TestCase("Id > 9900")]
-    [TestCase("Id > 10000 - 100")]
-    [TestCase("9900 > Id")]
-    [TestCase("10000 - 100 < Id")]
     // [TestCase("Id between 0 and 100")]
     public void Where(string expr)
     {
         var result = Query($"SELECT Id FROM table where {expr};").AsRowList();
-        result.Select(r => r.Values.Single()).Should().HaveCount(100);
+        result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
     }
 }
