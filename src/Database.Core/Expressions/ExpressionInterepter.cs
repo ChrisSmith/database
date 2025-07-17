@@ -82,10 +82,13 @@ public class ExpressionInterpreter
         return (IColumn)column;
     }
 
-    public void ExecuteAggregate(IAggregateFunction fun, RowGroup rowGroup)
+    public void ExecuteAggregate(FunctionExpression expr, IAggregateFunction fun, RowGroup rowGroup)
     {
-        // TODO fix
-        var column = rowGroup.Columns.First();
+        if (expr.Args.Length != 1)
+        {
+            throw new ExpressionEvaluationException($"expected aggregate function {fun.GetType().Name} to have 1 argument got {expr.Args}");
+        }
+        var column = Execute(expr.Args[0], rowGroup);
 
         switch (fun)
         {

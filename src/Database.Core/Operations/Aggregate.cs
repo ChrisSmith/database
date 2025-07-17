@@ -27,8 +27,9 @@ public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOpe
             foreach (var expression in aggregates)
             {
                 var aggregate = (IAggregateFunction)expression.BoundFunction!;
+                var aggFunctionExpr = (FunctionExpression)expression;
 
-                _interpreter.ExecuteAggregate(aggregate, rowGroup);
+                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup);
             }
             rowGroup = Source.Next();
         }

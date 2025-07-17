@@ -68,7 +68,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
             .Any(e => e is FunctionExpression)
            )
         {
-            var aggregates = BindAggregateExpressions(table, select.SelectList.Expressions);
+            table = BindAggregateExpressions(table, select.SelectList.Expressions);
             source = new Aggregate(source, select.SelectList.Expressions);
         }
 
@@ -84,12 +84,14 @@ public class QueryPlanner(Catalog.Catalog catalog)
         return new QueryPlan(projection);
     }
 
-    private List<IAggregateFunction> BindAggregateExpressions(TableSchema table, List<IExpression> expressions)
+    private TableSchema BindAggregateExpressions(TableSchema table, List<IExpression> expressions)
     {
-        var result = new List<IAggregateFunction>();
+        var columns = new List<ColumnSchema>();
+
         for (var i = 0; i < expressions.Count; i++)
         {
             var expr = expressions[i];
+            expr.BoundIndex = i;
             BindExpression(expr, table);
 
             var expression = expressions[i];
@@ -98,9 +100,11 @@ public class QueryPlanner(Catalog.Catalog catalog)
                 throw new QueryPlanException($"expression '{expression}' is not an aggregate function");
             }
             // TODO some in the grouping will be columns to hold constant
+
+            columns.Add(new ColumnSchema((ColumnId)(-1), expr.Alias, expr.BoundFunction!.ReturnType, expr.BoundFunction!.ReturnType.ClrTypeFromDataType()));
         }
 
-        return result;
+        return new TableSchema((TableId)(-1), "temp", columns, "memory");
     }
 
     private void BindExpression(IExpression expression, TableSchema table)
@@ -195,7 +199,19 @@ public class QueryPlanner(Catalog.Catalog catalog)
         {
             var expr = selectSelectList.Expressions[i];
             columnsNames.Add(expr.Alias);
-            columnsIndexes.Add(expr.BoundIndex == -1 ? i : expr.BoundIndex);
+
+            if (expr.BoundIndex == -1)
+            {
+                // TODO why does anything fall into this?
+                var index = table.Columns.FindIndex(c => c.Name == expr.Alias);
+                if (index == -1)
+                {
+                    throw new QueryPlanException($"Column '{expr.Alias}' does not exist on table '{table.Name}'");
+                }
+                expr.BoundIndex = index;
+            }
+
+            columnsIndexes.Add(expr.BoundIndex);
         }
 
         return (columnsNames, columnsIndexes);
