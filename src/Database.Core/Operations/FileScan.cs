@@ -1,11 +1,7 @@
-using System.Data;
 using System.IO.MemoryMappedFiles;
-using Database.Core.Catalog;
 using Database.Core.Execution;
 using Parquet;
 using Parquet.Schema;
-using BindingFlags = System.Reflection.BindingFlags;
-using static Database.Core.Catalog.DataTypeExtensions;
 
 namespace Database.Core.Operations;
 
@@ -14,9 +10,15 @@ public record FileScan(string Path) : IOperation
     private ParquetReader? _reader = null;
     private int _group = -1;
     private DataField[] _dataFields;
+    private bool _done = false;
 
     public RowGroup? Next()
     {
+        if (_done)
+        {
+            return null;
+        }
+
         if (_reader == null)
         {
             // Is this a good idea or a bad one?
@@ -33,6 +35,7 @@ public record FileScan(string Path) : IOperation
         _group++;
         if (_group >= _reader.RowGroupCount)
         {
+            _done = true;
             return null;
         }
 
