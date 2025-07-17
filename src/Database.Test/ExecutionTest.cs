@@ -172,4 +172,26 @@ public class ExecutionTest
         var result = Query($"SELECT Id FROM table where {expr};").AsRowList();
         result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
     }
+
+    [TestCase("select Id from table")]
+    [TestCase("select Id / 2 as foo from table")]
+    [TestCase("select 1 + 1 from table")]
+    [TestCase("select Id + 1 from table")]
+    [TestCase("select Id + 1 as foo from table")]
+    [TestCase("select count(Id), sum(Id) from table")]
+    [TestCase("select sum(Id) from table")]
+    [TestCase("select sum(Id) as foo from table")]
+    [TestCase("select CategoricalInt from table")]
+    [TestCase("select distinct CategoricalInt from table")]
+    // Not working yet
+    // [TestCase("select count(Id) + sum(Id) from table")]
+    // [TestCase("select Id + 1 + 2 from table")]
+    // [TestCase("select Id + 1 + 2 as foo from table")]
+    // [TestCase("select Id as foo from table")]
+    // [TestCase("select sum(Id) / 2.0 as foo from table")]
+    public void ValidateQueryDoesntCrash(string query)
+    {
+        var result = Query(query + ";").AsRowList();
+        result.Should().HaveCountGreaterOrEqualTo(1);
+    }
 }
