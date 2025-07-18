@@ -91,6 +91,10 @@ public class ExecutionTest
     [TestCase("Id / 1", ExpectedResult = 10)]
     [TestCase("Id / 2", ExpectedResult = 5)]
     [TestCase("Id / 8", ExpectedResult = 1)]
+    [TestCase("Id + 1 + 1", ExpectedResult = 12)]
+    [TestCase("Id + 1 * 3", ExpectedResult = 13)]
+    [TestCase("0 + 1 * 3", ExpectedResult = 3)]
+    [TestCase("0 + 1 * 6 / 2", ExpectedResult = 3)]
     // [TestCase("Id / 8.0", ExpectedResult = 1.25)] // This doesn't work yet because we don't have upcasts
     public object Select_Expressions(string expr)
     {
@@ -183,10 +187,10 @@ public class ExecutionTest
     [TestCase("select sum(Id) as foo from table")]
     [TestCase("select CategoricalInt from table")]
     [TestCase("select distinct CategoricalInt from table")]
+    [TestCase("select Id + 1 + 2 from table")]
+    [TestCase("select Id + 1 + 2 as foo from table")]
     // Not working yet
     // [TestCase("select count(Id) + sum(Id) from table")]
-    // [TestCase("select Id + 1 + 2 from table")]
-    // [TestCase("select Id + 1 + 2 as foo from table")]
     // [TestCase("select Id as foo from table")]
     // [TestCase("select sum(Id) / 2.0 as foo from table")]
     public void ValidateQueryDoesntCrash(string query)
