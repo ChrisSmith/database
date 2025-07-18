@@ -27,31 +27,44 @@ public class QueryPlanner(Catalog.Catalog catalog)
 
         IOperation source = new FileScan(table.Location);
 
+
         // If any projections require the computation of a new column, do it prior to the filters/aggregations
         // so that we can filter/aggregate on them too
-        var binaryExpr = select.SelectList.Expressions
-            .Where(e => e is BinaryExpression)
-            .ToList();
+        var columns = new List<ColumnSchema>(table.Columns);
+        var expressions = select.SelectList.Expressions;
+        var expressionsForEval = new List<IExpression>(expressions.Count);
 
-        if (binaryExpr.Count != 0) // or FunctionExpression args any BinaryExpression
+        for (var i = 0; i < expressions.Count; i++)
         {
-            var columns = new List<ColumnSchema>(table.Columns);
-            foreach (var expr in binaryExpr)
+            var expr = expressions[i];
+            BindExpression(expr, table);
+
+            if (expr is ColumnExpression c && c.Alias == c.Column)
             {
-                expr.BoundIndex = columns.Count;
-
-                if (expr is BinaryExpression { Alias: "" } b)
-                {
-                    expr.Alias = b.Operator.ToString(); // TODO literal of the expression
-                }
-
-                BindExpression(expr, table);
-                columns.Add(new ColumnSchema((ColumnId)(-1), expr.Alias, expr.BoundFunction!.ReturnType, expr.BoundFunction!.ReturnType.ClrTypeFromDataType()));
+                // If this is a basic column expression without an alias, no need to add a new column to the projection
+                // just use the source directly
+                expr.BoundIndex = i;
+                continue;
             }
 
-            table = new TableSchema((TableId)(-1), "temp", columns, "memory");
-            source = new ProjectionBinaryEval(table, source, binaryExpr);
+            if (ExpressionContainsAggregate(expr))
+            {
+                // At this point we can't materialize the aggregate, so skip it
+                continue;
+            }
+
+            expr.BoundIndex = columns.Count;
+
+            if (expr is BinaryExpression { Alias: "" } b)
+            {
+                expr.Alias = b.Operator.ToString(); // TODO literal of the expression
+            }
+
+            columns.Add(new ColumnSchema((ColumnId)(-1), expr.Alias, expr.BoundFunction!.ReturnType, expr.BoundFunction!.ReturnType.ClrTypeFromDataType()));
+            expressionsForEval.Add(expr);
         }
+        table = new TableSchema((TableId)(-1), "temp", columns, "memory");
+        source = new ProjectionBinaryEval(table, source, expressionsForEval);
 
         if (select.Where != null)
         {
@@ -64,17 +77,14 @@ public class QueryPlanner(Catalog.Catalog catalog)
             source = new Filter(source, select.Where);
         }
 
-        if (select.SelectList.Expressions
-            .Any(e => e is FunctionExpression)
-           )
+        if (expressions.Any(ExpressionContainsAggregate))
         {
-            table = BindAggregateExpressions(table, select.SelectList.Expressions);
-            source = new Aggregate(source, select.SelectList.Expressions);
+            table = BindAggregateExpressions(table, expressions);
+            source = new Aggregate(source, expressions);
+            expressions = RemoveAggregatesFromExpressions(expressions);
         }
 
-        var (names, indexes) = Columns(select.SelectList, table);
-        var projection = new Projection(names, indexes, source);
-
+        var projection = new Projection(table, source, expressions);
         if (select.SelectList.Distinct)
         {
             var distinct = new Distinct(projection);
@@ -82,6 +92,83 @@ public class QueryPlanner(Catalog.Catalog catalog)
         }
 
         return new QueryPlan(projection);
+    }
+
+    private List<IExpression> RemoveAggregatesFromExpressions(List<IExpression> expressions)
+    {
+        // If an expression contains both an aggregate and binary expression, we must run the binary
+        // expressions after computing the aggregates
+        // So the table fed into the projection will be the result from the aggregation
+        // rewrite the expressions to reference the resulting column instead of the agg function
+        // Ie. count(Id) + 4 -> col[count] + 4
+
+        IExpression ReplaceAggregate(IExpression expr)
+        {
+            if (expr is FunctionExpression f)
+            {
+                var boundFn = f.BoundFunction;
+                if (boundFn is IAggregateFunction)
+                {
+                    return new ColumnExpression(f.Alias)
+                    {
+                        Alias = f.Alias,
+                        BoundFunction = new SelectFunction(f.BoundIndex, f.BoundDataType!.Value),
+                        BoundDataType = f.BoundDataType!.Value,
+                    };
+                }
+
+                var args = new IExpression[f.Args.Length];
+                for (var i = 0; i < args.Length; i++)
+                {
+                    args[i] = ReplaceAggregate(f.Args[i]);
+                }
+
+                return f with
+                {
+                    BoundFunction = boundFn,
+                    Args = args,
+                };
+            }
+
+            if (expr is ColumnExpression or IntegerLiteral or DoubleLiteral or StringLiteral or BoolLiteral or NullLiteral)
+            {
+                return expr;
+            }
+
+            throw new QueryPlanException($"Expression {expr} is not supported when aggregates are present.");
+        }
+
+        var result = new List<IExpression>(expressions.Count);
+        for (var i = 0; i < expressions.Count; i++)
+        {
+            // TODO I probably need to rebind some positional information?
+            result.Add(ReplaceAggregate(expressions[i]));
+        }
+
+        return result;
+    }
+
+    private bool ExpressionContainsAggregate(IExpression expr)
+    {
+        // TODO need a generic way to traverse the tree, would clean this up a bit
+        // return expr.Children.Any(ExpressionContainsAggregate)
+
+        if (expr.BoundFunction is IAggregateFunction)
+        {
+            return true;
+        }
+        if (expr is BinaryExpression be)
+        {
+            return ExpressionContainsAggregate(be.Left) || ExpressionContainsAggregate(be.Right);
+        }
+        if (expr is FunctionExpression fn)
+        {
+            if (fn.Args.Any(ExpressionContainsAggregate))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private TableSchema BindAggregateExpressions(TableSchema table, List<IExpression> expressions)
@@ -188,33 +275,6 @@ public class QueryPlanner(Catalog.Catalog catalog)
         }
 
         throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");
-    }
-
-    private (List<string> names, List<int> indexes) Columns(SelectListStatement selectSelectList, TableSchema table)
-    {
-        var columnsNames = new List<string>();
-        var columnsIndexes = new List<int>();
-
-        for (var i = 0; i < selectSelectList.Expressions.Count; i++)
-        {
-            var expr = selectSelectList.Expressions[i];
-            columnsNames.Add(expr.Alias);
-
-            if (expr.BoundIndex == -1)
-            {
-                // TODO why does anything fall into this?
-                var index = table.Columns.FindIndex(c => c.Name == expr.Alias);
-                if (index == -1)
-                {
-                    throw new QueryPlanException($"Column '{expr.Alias}' does not exist on table '{table.Name}'");
-                }
-                expr.BoundIndex = index;
-            }
-
-            columnsIndexes.Add(expr.BoundIndex);
-        }
-
-        return (columnsNames, columnsIndexes);
     }
 
     private (string, int, DataType?) FindColumnIndex(TableSchema table, IExpression exp)

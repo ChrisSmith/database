@@ -5,6 +5,7 @@ namespace Database.Core.Expressions;
 
 public interface IExpression
 {
+    // Index of the expression in its output from the prior operator
     public int BoundIndex { get; set; }
 
     public DataType? BoundDataType { get; set; }

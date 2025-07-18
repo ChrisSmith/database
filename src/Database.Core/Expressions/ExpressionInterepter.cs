@@ -12,7 +12,18 @@ public class ExpressionInterpreter
         {
             var left = Execute(be.Left, rowGroup);
             var right = Execute(be.Right, rowGroup);
-            return Execute(be.BoundFunction!, left, right);
+            return Execute(exp, be.BoundFunction!, left, right);
+        }
+
+        if (exp is FunctionExpression fe)
+        {
+            var args = new IColumn[fe.Args.Length];
+            for (var i = 0; i < fe.Args.Length; i++)
+            {
+                args[i] = Execute(fe.Args[i], rowGroup);
+            }
+
+            return Execute(fe.BoundFunction!, args);
         }
 
         if (exp.BoundFunction is SelectFunction select)
@@ -30,7 +41,7 @@ public class ExpressionInterpreter
     }
 
     // Assumes the expression has already been bound
-    public IColumn Execute(IFunction fun, IColumn left, IColumn right)
+    public IColumn Execute(IExpression expr, IFunction fun, IColumn left, IColumn right)
     {
         var type = typeof(Column<>).MakeGenericType(fun.ReturnType.ClrTypeFromDataType());
 
@@ -74,12 +85,30 @@ public class ExpressionInterpreter
         }
 
         var column = type.GetConstructors().Single().Invoke([
-            "foo",
-            -1,
+            expr.Alias,
+            expr.BoundIndex,
             outputArray
         ]);
 
         return (IColumn)column;
+    }
+
+    public IColumn Execute(IFunction fun, IColumn[] args)
+    {
+        var type = typeof(Column<>).MakeGenericType(fun.ReturnType.ClrTypeFromDataType());
+
+        // TODO need generic Invoke capability on IFunction?
+        throw new NotImplementedException();
+
+        // var outputArray = null!;
+        //
+        // var column = type.GetConstructors().Single().Invoke([
+        //     "foo",
+        //     -1,
+        //     outputArray
+        // ]);
+        //
+        // return (IColumn)column;
     }
 
     public void ExecuteAggregate(FunctionExpression expr, IAggregateFunction fun, RowGroup rowGroup)

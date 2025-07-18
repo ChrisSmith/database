@@ -7,6 +7,7 @@ public record SelectFunction(int Index, DataType ReturnType) : IFunction
 {
     public IColumn SelectColumn(RowGroup rowGroup)
     {
+        // TODO copy w/ new alias / bound index on the IColumn
         return rowGroup.Columns[Index];
     }
 }

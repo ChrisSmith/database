@@ -1,10 +1,13 @@
 using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Expressions;
 
 namespace Database.Core.Operations;
 
-public record Projection(List<string> Columns, List<int> ColumnIndexes, IOperation Source) : IOperation
+public record Projection(TableSchema Schema, IOperation Source, List<IExpression> Expressions) : IOperation
 {
+    private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
+
     public RowGroup? Next()
     {
         var rowGroup = Source.Next();
@@ -13,19 +16,19 @@ public record Projection(List<string> Columns, List<int> ColumnIndexes, IOperati
             return null;
         }
 
-        var newColumns = new List<IColumn>(Columns.Count);
+        var newColumns = new List<IColumn>(Expressions.Count);
 
-        for (var i = 0; i < Columns.Count; i++)
+        for (var i = 0; i < Expressions.Count; i++)
         {
-            var columnIdx = ColumnIndexes[i];
-            var columnName = Columns[i];
-            var oldColumn = rowGroup.Columns[columnIdx];
+            var expr = Expressions[i];
+            var fun = expr.BoundFunction!;
+            var type = typeof(Column<>).MakeGenericType(fun.ReturnType.ClrTypeFromDataType());
 
-            var type = typeof(Column<>).MakeGenericType(oldColumn.Type);
+            var columnRes = _interpreter.Execute(expr, rowGroup);
             var column = type.GetConstructors().Single().Invoke([
-                columnName,
+                expr.Alias,
                 i,
-                oldColumn.ValuesArray
+                columnRes.ValuesArray
             ]);
             newColumns.Add((IColumn)column);
         }
