@@ -47,12 +47,26 @@ public record FileScan(string Path) : IOperation
         {
             var field = _dataFields[i];
             var column = rg.ReadColumnAsync(field).GetAwaiter().GetResult();
+            var targetType = field.ClrType;
+            if (targetType == typeof(decimal))
+            {
+                targetType = typeof(double);
+            }
 
-            var type = typeof(Column<>).MakeGenericType(field.ClrType);
+            var copy = Array.CreateInstance(targetType, column.Data.Length);
+            if (column.Field.IsNullable)
+            {
+                for (var j = 0; j < column.Data.Length; j++)
+                {
+                    copy.SetValue(Convert.ChangeType(column.Data.GetValue(j), targetType), j);
+                }
+            }
+
+            var type = typeof(Column<>).MakeGenericType(targetType);
             var obj = type.GetConstructors().Single().Invoke([
                 field.Name,
                 i,
-                column.Data
+                copy
             ]);
 
             columnValues.Add((IColumn)obj);

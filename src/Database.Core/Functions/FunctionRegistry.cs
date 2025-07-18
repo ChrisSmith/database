@@ -14,6 +14,8 @@ public class FunctionRegistry
         _funcs.Add("count", new("count", 1, new()
         {
             { DataType.Int, typeof(Count<int>)},
+            { DataType.Long, typeof(Count<long>)},
+            { DataType.Float, typeof(Count<float>)},
             { DataType.Double, typeof(Count<double>)},
             { DataType.String, typeof(StringCount)},
         }));
@@ -21,12 +23,16 @@ public class FunctionRegistry
         _funcs.Add("sum", new("sum", 1, new()
         {
             { DataType.Int, typeof(Sum<int>)},
+            { DataType.Long, typeof(Sum<long>)},
+            { DataType.Float, typeof(Sum<float>)},
             { DataType.Double, typeof(Sum<double>)},
         }));
 
         _funcs.Add("avg", new("avg", 1, new()
         {
             { DataType.Int, typeof(Avg<int>)},
+            { DataType.Long, typeof(Avg<long>)},
+            { DataType.Float, typeof(Avg<float>)},
             { DataType.Double, typeof(Avg<double>)},
         }));
 

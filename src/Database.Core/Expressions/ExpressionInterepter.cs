@@ -121,7 +121,13 @@ public class ExpressionInterpreter
 
         switch (fun)
         {
-            case IAggregateFunction<double, int> agg when column is Column<double> c:
+            case IAggregateFunction<int, double> agg when column is Column<int> c:
+                agg.Next(c.Values);
+                break;
+            case IAggregateFunction<long, double> agg when column is Column<long> c:
+                agg.Next(c.Values);
+                break;
+            case IAggregateFunction<float, double> agg when column is Column<float> c:
                 agg.Next(c.Values);
                 break;
             case IAggregateFunction<int?, int> agg when column is Column<int?> c:
@@ -130,14 +136,23 @@ public class ExpressionInterpreter
             case IAggregateFunction<int, int> agg when column is Column<int> c:
                 agg.Next(c.Values);
                 break;
-            case IAggregateFunction<int, double> agg when column is Column<int> c:
+            case IAggregateFunction<long, int> agg when column is Column<long> c:
+                agg.Next(c.Values);
+                break;
+            case IAggregateFunction<float, int> agg when column is Column<float> c:
                 agg.Next(c.Values);
                 break;
             case IAggregateFunction<string, int> agg when column is Column<string> c:
                 agg.Next(c.Values);
                 break;
+            case IAggregateFunction<double, int> agg when column is Column<double> c:
+                agg.Next(c.Values);
+                break;
+            case IAggregateFunction<double, double> agg when column is Column<double> c:
+                agg.Next(c.Values);
+                break;
             default:
-                throw new ExpressionEvaluationException($"aggregate function {fun.GetType().Name} not implemented");
+                throw new ExpressionEvaluationException($"aggregate function {fun.GetType().Name} not implemented for col {column.Type} of return {fun.ReturnType}");
         }
     }
 }

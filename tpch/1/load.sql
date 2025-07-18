@@ -1,0 +1,9 @@
+COPY customer FROM '/Users/chris/src/database/tpch/1/customer.parquet' (FORMAT 'parquet');
+COPY lineitem FROM '/Users/chris/src/database/tpch/1/lineitem.parquet' (FORMAT 'parquet');
+COPY nation FROM '/Users/chris/src/database/tpch/1/nation.parquet' (FORMAT 'parquet');
+COPY orders FROM '/Users/chris/src/database/tpch/1/orders.parquet' (FORMAT 'parquet');
+COPY part FROM '/Users/chris/src/database/tpch/1/part.parquet' (FORMAT 'parquet');
+COPY partsupp FROM '/Users/chris/src/database/tpch/1/partsupp.parquet' (FORMAT 'parquet');
+COPY region FROM '/Users/chris/src/database/tpch/1/region.parquet' (FORMAT 'parquet');
+COPY supplier FROM '/Users/chris/src/database/tpch/1/supplier.parquet' (FORMAT 'parquet');
+COPY test FROM '/Users/chris/src/database/tpch/1/test.parquet' (FORMAT 'parquet');
