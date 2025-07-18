@@ -193,8 +193,10 @@ public class ExecutionTest
     [TestCase("select Id + 1 + 2 as foo from table")]
     [TestCase("select Id as foo from table")]
     // Not working yet
+    // The easiest way to support this is probably query re-writing with aliases
+    // That is likely also required to support expression de-duplication
     // [TestCase("select count(Id) + sum(Id) from table")]
-    // [TestCase("select sum(Id) / 2.0 as foo from table")]
+    // [TestCase("select sum(Id) / 2 as foo from table")]
     public void ValidateQueryDoesntCrash(string query)
     {
         var result = Query(query + ";").AsRowList();

@@ -130,6 +130,15 @@ public class QueryPlanner(Catalog.Catalog catalog)
                 };
             }
 
+            if (expr is BinaryExpression b)
+            {
+                return b with
+                {
+                    Left = ReplaceAggregate(b.Left),
+                    Right = ReplaceAggregate(b.Right),
+                };
+            }
+
             if (expr is ColumnExpression or IntegerLiteral or DoubleLiteral or StringLiteral or BoolLiteral or NullLiteral)
             {
                 return expr;
@@ -182,7 +191,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
             BindExpression(expr, table);
 
             var expression = expressions[i];
-            if (expression.BoundFunction is not IAggregateFunction function)
+            if (!ExpressionContainsAggregate(expr))
             {
                 throw new QueryPlanException($"expression '{expression}' is not an aggregate function");
             }
