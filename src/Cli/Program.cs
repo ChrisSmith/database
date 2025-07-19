@@ -20,6 +20,14 @@ if (File.Exists(historyPath))
 }
 Directory.CreateDirectory(cacheDir);
 
+if (args.Length > 0)
+{
+    var query = args[0];
+    EvalQuery(query, planner);
+    return;
+}
+
+
 while (true)
 {
     try
@@ -42,62 +50,12 @@ while (true)
         }
         File.WriteAllLines(historyPath, previousLines);
 
-        var sw = Stopwatch.StartNew();
-
-        var scanner = new Scanner(query);
-        var tokens = scanner.ScanTokens();
-        var parser = new Parser(tokens);
-        var statement = parser.Parse();
-
-        var plan = planner.CreatePlan(statement);
-
-        var it = new Interpreter();
-        var result = it.Execute(plan).ToList();
-        sw.Stop();
-
-        PrintTable(result);
-
-        var numRows = result.Sum(r => r.Columns[0].Length);
-        Console.WriteLine($"{numRows} rows in {sw.ElapsedMilliseconds:N}ms");
+        EvalQuery(query, planner);
     }
     catch (Exception ex)
     {
         Console.WriteLine("Error: " + ex.Message);
         Console.WriteLine(ex);
-    }
-}
-
-void PrintTable(List<RowGroup> result)
-{
-    var rg = result[0];
-    var columnHeader = string.Join(", ", rg.Columns.Select(c => c.Name));
-    Console.WriteLine(columnHeader);
-
-    var max = Math.Min(10, rg.Columns[0].Length);
-
-    for (var row = 0; row < max; row++)
-    {
-        for (var col = 0; col < rg.Columns.Count; col++)
-        {
-            switch (rg.Columns[col])
-            {
-                case Column<int> c:
-                    Console.Write(c.Values[row]);
-                    break;
-                case Column<double> c:
-                    Console.Write(c.Values[row]);
-                    break;
-                case Column<string> c:
-                    Console.Write(c.Values[row]);
-                    break;
-            }
-
-            if (col < rg.Columns.Count - 1)
-            {
-                Console.Write(", ");
-            }
-        }
-        Console.WriteLine();
     }
 }
 
@@ -225,6 +183,60 @@ string ReadLineWithHistory(List<string> previousLines)
         }
     }
     return new string(input.ToArray());
+}
+
+void EvalQuery(string query, QueryPlanner queryPlanner)
+{
+    var stopwatch = Stopwatch.StartNew();
+    var scanner = new Scanner(query);
+    var tokens = scanner.ScanTokens();
+    var parser = new Parser(tokens);
+    var statement = parser.Parse();
+
+    var plan = queryPlanner.CreatePlan(statement);
+
+    var it = new Interpreter();
+    var result = it.Execute(plan).ToList();
+    stopwatch.Stop();
+
+    PrintTable(result);
+
+    var numRows = result.Sum(r => r.Columns[0].Length);
+    Console.WriteLine($"{numRows} rows in {stopwatch.ElapsedMilliseconds:N}ms");
+}
+
+void PrintTable(List<RowGroup> result)
+{
+    var rg = result[0];
+    var columnHeader = string.Join(", ", rg.Columns.Select(c => c.Name));
+    Console.WriteLine(columnHeader);
+
+    var max = Math.Min(10, rg.Columns[0].Length);
+
+    for (var row = 0; row < max; row++)
+    {
+        for (var col = 0; col < rg.Columns.Count; col++)
+        {
+            switch (rg.Columns[col])
+            {
+                case Column<int> c:
+                    Console.Write(c.Values[row]);
+                    break;
+                case Column<double> c:
+                    Console.Write(c.Values[row]);
+                    break;
+                case Column<string> c:
+                    Console.Write(c.Values[row]);
+                    break;
+            }
+
+            if (col < rg.Columns.Count - 1)
+            {
+                Console.Write(", ");
+            }
+        }
+        Console.WriteLine();
+    }
 }
 
 

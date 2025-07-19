@@ -1,4 +1,5 @@
 using System.IO.MemoryMappedFiles;
+using System.Reflection;
 using Database.Core.Execution;
 using Parquet;
 using Parquet.Schema;
@@ -11,6 +12,8 @@ public record FileScan(string Path) : IOperation
     private int _group = -1;
     private DataField[] _dataFields;
     private bool _done = false;
+
+    private Dictionary<Type, ConstructorInfo> _typeCache = new();
 
     public RowGroup? Next()
     {
@@ -53,20 +56,67 @@ public record FileScan(string Path) : IOperation
                 targetType = typeof(double);
             }
 
-            var copy = Array.CreateInstance(targetType, column.Data.Length);
-            if (column.Field.IsNullable)
+            Array finalCopy = column.Data;
+            if (column.Field.IsNullable && targetType != typeof(string))
             {
-                for (var j = 0; j < column.Data.Length; j++)
+                if (column.Data is decimal?[] dec)
                 {
-                    copy.SetValue(Convert.ChangeType(column.Data.GetValue(j), targetType), j);
+                    var copy = new double[column.Data.Length];
+                    for (var j = 0; j < column.Data.Length && j < dec.Length; j++)
+                    {
+                        copy[j] = (double)dec[j]!;
+                    }
+                    finalCopy = copy;
+                }
+                else if (column.Data is long?[] decl)
+                {
+                    var copy = new long[column.Data.Length];
+                    for (var j = 0; j < column.Data.Length && j < decl.Length; j++)
+                    {
+                        copy[j] = (long)decl[j]!;
+                    }
+                    finalCopy = copy;
+                }
+                else if (column.Data is int?[] deci)
+                {
+                    var copy = new int[column.Data.Length];
+                    for (var j = 0; j < column.Data.Length && j < deci.Length; j++)
+                    {
+                        copy[j] = (int)deci[j]!;
+                    }
+                    finalCopy = copy;
+                }
+                else if (column.Data is DateTime?[] decdt)
+                {
+                    var copy = new DateTime[column.Data.Length];
+                    for (var j = 0; j < column.Data.Length && j < decdt.Length; j++)
+                    {
+                        copy[j] = (DateTime)decdt[j]!;
+                    }
+                    finalCopy = copy;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                    finalCopy = Array.CreateInstance(targetType, column.Data.Length);
+                    for (var j = 0; j < column.Data.Length; j++)
+                    {
+                        finalCopy.SetValue(Convert.ChangeType(column.Data.GetValue(j), targetType), j);
+                    }
                 }
             }
 
-            var type = typeof(Column<>).MakeGenericType(targetType);
-            var obj = type.GetConstructors().Single().Invoke([
+            if (!_typeCache.TryGetValue(targetType, out var ctor))
+            {
+                var cachedType = typeof(Column<>).MakeGenericType(targetType);
+                ctor = cachedType.GetConstructors().Single();
+                _typeCache[targetType] = ctor;
+            }
+
+            var obj = ctor.Invoke([
                 field.Name,
                 i,
-                copy
+                finalCopy
             ]);
 
             columnValues.Add((IColumn)obj);
