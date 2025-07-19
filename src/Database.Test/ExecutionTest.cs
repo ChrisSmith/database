@@ -9,23 +9,12 @@ namespace Database.Test;
 
 public class ExecutionTest
 {
-    private Catalog _catalog;
-
+    private Catalog _catalog = new();
 
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
-        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var dataPath = Path.Combine(homeDir, "src/database/data.parquet");
-        _catalog = new Catalog();
-        _catalog.Tables.Add(new TableSchema((TableId)1, "table", new List<ColumnSchema>
-        {
-            new((ColumnId)1, "Id", DataType.Int, typeof(int)),
-            new((ColumnId)2, "Unordered", DataType.Int, typeof(int)),
-            new((ColumnId)3, "Name", DataType.String, typeof(string)),
-            new((ColumnId)4, "CategoricalInt", DataType.Int, typeof(int)),
-            new((ColumnId)5, "CategoricalString", DataType.String, typeof(string)),
-        }, dataPath));
+        TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 
     private List<RowGroup> Query(string query)

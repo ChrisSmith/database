@@ -5,18 +5,7 @@ using Database.Core.Execution;
 using Database.Core.Planner;
 
 var catalog = new Catalog();
-
-var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-var dataPath = Path.Combine(homeDir, "src/database/data.parquet");
-
-catalog.Tables.Add(new TableSchema((TableId)1, "table", new List<ColumnSchema>
-{
-    new((ColumnId)1, "Id", DataType.Int, typeof(int)),
-    new((ColumnId)2, "Unordered", DataType.Int, typeof(int)),
-    new((ColumnId)3, "Name", DataType.String, typeof(string)),
-    new((ColumnId)4, "CategoricalInt", DataType.Int, typeof(int)),
-    new((ColumnId)5, "CategoricalString", DataType.String, typeof(string)),
-}, dataPath));
+TestDatasets.AddTestDatasetsToCatalog(catalog);
 
 var planner = new QueryPlanner(catalog);
 

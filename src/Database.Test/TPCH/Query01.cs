@@ -13,31 +13,8 @@ public class Query01
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
-        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var dataPath = Path.Combine(homeDir, "src/database/tpch/1");
         _catalog = new Catalog();
-
-        var tableName = "lineitem";
-        var colId = 0;
-        _catalog.Tables.Add(new TableSchema((TableId)1, tableName, new List<ColumnSchema>
-        {
-            new((ColumnId)colId++, "l_orderkey", DataType.Long, typeof(long)),
-            new((ColumnId)colId++, "l_partkey", DataType.Int, typeof(int)),
-            new((ColumnId)colId++, "l_suppkey", DataType.Int, typeof(int)),
-            new((ColumnId)colId++, "l_linenumber", DataType.Int, typeof(int)),
-            new((ColumnId)colId++, "l_quantity", DataType.Double, typeof(double)),
-            new((ColumnId)colId++, "l_extendedprice", DataType.Double, typeof(double)),
-            new((ColumnId)colId++, "l_discount", DataType.Double, typeof(double)),
-            new((ColumnId)colId++, "l_tax", DataType.Double, typeof(double)),
-            new((ColumnId)colId++, "l_returnflag", DataType.String, typeof(string)),
-            new((ColumnId)colId++, "l_linestatus", DataType.String, typeof(string)),
-            new((ColumnId)colId++, "l_shipdate", DataType.Date, typeof(DateTime)),
-            new((ColumnId)colId++, "l_commitdate", DataType.Date, typeof(DateTime)),
-            new((ColumnId)colId++, "l_receiptdate", DataType.Date, typeof(DateTime)),
-            new((ColumnId)colId++, "l_shipinstruct", DataType.String, typeof(string)),
-            new((ColumnId)colId++, "l_shipmode", DataType.String, typeof(string)),
-            new((ColumnId)colId++, "l_comment", DataType.String, typeof(string)),
-        }, Path.Join(dataPath, $"{tableName}.parquet")));
+        TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 
     private List<RowGroup> Query(string query)
