@@ -283,6 +283,12 @@ public class QueryPlanner(Catalog.Catalog catalog)
             return _functions.BindFunction(fn.Name, fn.Args, table);
         }
 
+        if (expression is StarExpression)
+        {
+            // TODO this is a bit of a hack
+            return new LiteralFunction(-1, 1, DataType.Int);
+        }
+
         throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");
     }
 
