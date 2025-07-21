@@ -280,6 +280,28 @@ public class Parser
                 return new DateTimeLiteral(date);
             }
 
+            if (ident.Lexeme == "interval")
+            {
+                var token = Consume(STRING, "Expected string literal for interval literal expression");
+                var unit = Consume(IDENTIFIER, "Expected unit for interval literal expression");
+
+                var value = int.Parse((string)token.Literal!);
+                var ts = unit.Lexeme.ToLower() switch
+                {
+                    // egh not great. I wonder what the spec says about this
+                    "year" => TimeSpan.FromDays(value * 365),
+                    "month" => TimeSpan.FromDays(value * 30),
+                    "week" => TimeSpan.FromDays(value * 7),
+                    "day" => TimeSpan.FromDays(value),
+                    "hour" => TimeSpan.FromHours(value),
+                    "minute" => TimeSpan.FromMinutes(value),
+                    "second" => TimeSpan.FromSeconds(value),
+                    _ => throw new ParseException(unit, $"Unknown interval unit: {unit.Lexeme}")
+                };
+
+                return new IntervalLiteral(ts);
+            }
+
 
             // Column
             var column = ident.Lexeme;

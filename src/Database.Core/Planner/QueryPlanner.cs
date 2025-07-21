@@ -27,11 +27,25 @@ public class QueryPlanner(Catalog.Catalog catalog)
 
         IOperation source = new FileScan(table.Location);
 
+        // Constant folding
+        var expressions = select.SelectList.Expressions;
+        for (var i = 0; i < expressions.Count; i++)
+        {
+            expressions[i] = FoldConstantExpressions(expressions[i]);
+        }
+
+        if (select.Where != null)
+        {
+            select = select with
+            {
+                Where = FoldConstantExpressions(select.Where),
+            };
+        }
+
 
         // If any projections require the computation of a new column, do it prior to the filters/aggregations
         // so that we can filter/aggregate on them too
         var columns = new List<ColumnSchema>(table.Columns);
-        var expressions = select.SelectList.Expressions;
         var expressionsForEval = new List<IExpression>(expressions.Count);
 
         for (var i = 0; i < expressions.Count; i++)
@@ -246,6 +260,11 @@ public class QueryPlanner(Catalog.Catalog catalog)
             return new LiteralFunction(-1, dt.Literal, DataType.DateTime);
         }
 
+        if (expression is IntervalLiteral il)
+        {
+            return new LiteralFunction(-1, il.Literal, DataType.Interval);
+        }
+
         if (expression is ColumnExpression column)
         {
             var (_, index, colType) = FindColumnIndex(table, column);
@@ -330,6 +349,73 @@ public class QueryPlanner(Catalog.Catalog catalog)
             return (b.Alias, b.BoundIndex, b.BoundDataType); // function is bound to is position
         }
         throw new QueryPlanException($"Unsupported expression type '{exp.GetType().Name}'");
+    }
+
+    private IExpression FoldConstantExpressions(IExpression expr)
+    {
+        if (expr is BinaryExpression b)
+        {
+            var left = FoldConstantExpressions(b.Left);
+            var right = FoldConstantExpressions(b.Right);
+
+            if (left is IntegerLiteral li && right is IntegerLiteral ri)
+            {
+                var result = b.Operator switch
+                {
+                    PLUS => li.Literal + ri.Literal,
+                    MINUS => li.Literal - ri.Literal,
+                    STAR => li.Literal * ri.Literal,
+                    SLASH => li.Literal / ri.Literal,
+                    PERCENT => li.Literal % ri.Literal,
+                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
+                };
+                return new IntegerLiteral(result);
+            }
+            if (left is DoubleLiteral ld && right is DoubleLiteral rd)
+            {
+                var result = b.Operator switch
+                {
+                    PLUS => ld.Literal + rd.Literal,
+                    MINUS => ld.Literal - rd.Literal,
+                    STAR => ld.Literal * rd.Literal,
+                    SLASH => ld.Literal / rd.Literal,
+                    PERCENT => ld.Literal % ld.Literal,
+                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
+                };
+                return new DoubleLiteral(result);
+            }
+            if (left is DateTimeLiteral ldt && right is IntervalLiteral ril)
+            {
+                var result = b.Operator switch
+                {
+                    PLUS => ldt.Literal + ril.Literal,
+                    MINUS => ldt.Literal - ril.Literal,
+                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
+                };
+                return new DateTimeLiteral(result);
+            }
+
+            return b with
+            {
+                Left = left,
+                Right = right,
+            };
+        }
+
+        if (expr is FunctionExpression f)
+        {
+            var args = new List<IExpression>(f.Args.Length);
+            foreach (var arg in f.Args)
+            {
+                args.Add(FoldConstantExpressions(arg));
+            }
+            return f with
+            {
+                Args = args.ToArray(),
+            };
+        }
+
+        return expr;
     }
 }
 

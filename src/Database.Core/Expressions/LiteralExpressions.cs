@@ -44,3 +44,9 @@ public record DateTimeLiteral(DateTime Literal) : BaseExpression
 {
 
 }
+
+[DebuggerDisplay("{Literal}")]
+public record IntervalLiteral(TimeSpan Literal) : BaseExpression
+{
+
+}

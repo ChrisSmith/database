@@ -44,18 +44,16 @@ public class Query01
                 avg(l_extendedprice) as avg_price,
                 avg(l_discount) as avg_disc,
                 -- should be 1, but need automatic casts
+                sum(l_extendedprice*(1.0-l_discount)*(1.0+l_tax)) as sum_charge,
                 sum(l_extendedprice*(1.0-l_discount)) as sum_disc_price
             from lineitem
-            where l_shipdate <= date '1998-12-01' -- - interval '[DELTA]' day
+            where l_shipdate <= date '1998-12-01' - interval '30' day
         ;";
         // TODO support groupings
-        //
-        // sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
-        // TODO support comments
         // l_returnflag,
         // l_linestatus,
-
         //     --            group by l_returnflag, l_linestatus
+        // TODO support sorting
         // --            order by l_returnflag, l_linestatus;
 
         var result = Query(query).AsRowList();
