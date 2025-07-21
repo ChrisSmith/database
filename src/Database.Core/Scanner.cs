@@ -59,7 +59,22 @@ public class Scanner
             case ')': AddToken(RIGHT_PAREN); break;
             case ',': AddToken(COMMA); break;
             case '.': AddToken(DOT); break;
-            case '-': AddToken(MINUS); break;
+            case '-':
+            {
+                if (Match('-'))
+                {
+                    // comment
+                    while (Peek() != '\n' && !IsAtEnd())
+                    {
+                        Advance();
+                    }
+                }
+                else
+                {
+                    AddToken(MINUS);
+                }
+                break;
+            }
             case '+': AddToken(PLUS); break;
             case ';': AddToken(SEMICOLON); break;
             case '*': AddToken(STAR); break;

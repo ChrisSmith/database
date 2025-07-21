@@ -238,7 +238,6 @@ public class Parser
         return value;
     }
 
-
     /**
      * A single literal, column, switch or function invocation
      */
@@ -283,12 +282,17 @@ public class Parser
             return new ColumnExpression(column, table) { Alias = column };
         }
 
+        if (Match(LEFT_PAREN))
+        {
+            var inner = ParseExpr();
+            // The grouping doesn't need a separate expr type, as the order
+            // change happens at tree construction, instead of runtime
+            Consume(RIGHT_PAREN, "Expected ')'");
+            return inner;
+        }
+
         throw new ParseException(Peek(), "Expected expression");
     }
-
-
-
-
 
     private IExpression[] ParseFunctionArguments()
     {

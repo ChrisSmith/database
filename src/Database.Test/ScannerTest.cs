@@ -98,4 +98,20 @@ public class ScannerTest
         var ex = Assert.Throws<ParseException>(() => scanner.ScanTokens());
         ex!.Message.Should().Be("[1:13] Error: Unterminated string.");
     }
+
+    [Test]
+    public Task Comments()
+    {
+        var scanner = new Scanner(@"
+SELECT
+    Id
+    -- comment
+    , Foo -- comment blah blah
+    -- comment
+FROM table;
+-- comment
+");
+        var tokens = scanner.ScanTokens();
+        return Verify(tokens, Settings);
+    }
 }

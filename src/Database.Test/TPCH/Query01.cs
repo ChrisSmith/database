@@ -42,11 +42,13 @@ public class Query01
 
                 avg(l_quantity) as avg_qty,
                 avg(l_extendedprice) as avg_price,
-                avg(l_discount) as avg_disc
+                avg(l_discount) as avg_disc,
+                -- should be 1, but need automatic casts
+                sum(l_extendedprice*(1.0-l_discount)) as sum_disc_price
             from lineitem
         ;";
         // TODO support groupings
-        // sum(l_extendedprice*(1-l_discount)) as sum_disc_price,
+        //
         // sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
         // TODO support comments
         // l_returnflag,

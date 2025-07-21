@@ -1,0 +1,50 @@
+﻿[
+  {
+    TokenType: SELECT,
+    Lexeme: SELECT,
+    Line: 2,
+    Column: 1
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: Id,
+    Line: 3,
+    Column: 5
+  },
+  {
+    TokenType: COMMA,
+    Lexeme: ,,
+    Line: 5,
+    Column: 5
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: Foo,
+    Line: 5,
+    Column: 7
+  },
+  {
+    TokenType: FROM,
+    Lexeme: FROM,
+    Line: 7,
+    Column: 1
+  },
+  {
+    TokenType: IDENTIFIER,
+    Lexeme: table,
+    Line: 7,
+    Column: 6
+  },
+  {
+    TokenType: SEMICOLON,
+    Lexeme: ;,
+    Line: 7,
+    Column: 11
+  },
+  {
+    TokenType: EOF,
+    Lexeme: ,
+    Line: 9,
+    Column: 1
+  }
+]
