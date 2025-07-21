@@ -91,11 +91,31 @@ public class QueryPlanner(Catalog.Catalog catalog)
             source = new Filter(source, select.Where);
         }
 
-        if (expressions.Any(ExpressionContainsAggregate))
+        // grouping
+        var groupingExprs = select.Group?.Expressions ?? [];
+        if (groupingExprs.Count > 0)
         {
-            table = BindAggregateExpressions(table, expressions);
-            source = new Aggregate(source, expressions);
-            expressions = RemoveAggregatesFromExpressions(expressions);
+            for (var i = 0; i < groupingExprs.Count; i++)
+            {
+                var expr = groupingExprs[i];
+                BindExpression(expr, table);
+            }
+        }
+
+        if (expressions.Any(ExpressionContainsAggregate) || groupingExprs.Count > 0)
+        {
+            table = BindAggregateExpressions(table, expressions, groupingExprs);
+
+            if (groupingExprs.Count > 0)
+            {
+                source = new HashAggregate(source, expressions, groupingExprs);
+                expressions = RemoveAggregatesFromExpressions(expressions);
+            }
+            else
+            {
+                source = new Aggregate(source, expressions);
+                expressions = RemoveAggregatesFromExpressions(expressions);
+            }
         }
 
         var projection = new Projection(table, source, expressions);
@@ -194,7 +214,11 @@ public class QueryPlanner(Catalog.Catalog catalog)
         return false;
     }
 
-    private TableSchema BindAggregateExpressions(TableSchema table, List<IExpression> expressions)
+    private TableSchema BindAggregateExpressions(
+        TableSchema table,
+        List<IExpression> expressions,
+        List<IExpression> groupingExpressions
+        )
     {
         var columns = new List<ColumnSchema>();
 
@@ -204,10 +228,34 @@ public class QueryPlanner(Catalog.Catalog catalog)
             expr.BoundIndex = i;
             BindExpression(expr, table);
 
-            var expression = expressions[i];
             if (!ExpressionContainsAggregate(expr))
             {
-                throw new QueryPlanException($"expression '{expression}' is not an aggregate function");
+                // If its an alias, see if its a grouping
+                // If it is, update the bound index of the column
+                var isGrouping = false;
+                for (var j = 0; j < groupingExpressions.Count; j++)
+                {
+                    var gExpr = groupingExpressions[j];
+                    if (gExpr.Alias == expr.Alias)
+                    {
+                        // TODO need to be recursive for everything in this expression?
+                        // need to bind to a separate schema?
+                        if (expr.BoundFunction is SelectFunction s)
+                        {
+                            expr.BoundFunction = s with
+                            {
+                                Index = j
+                            };
+                        }
+                        isGrouping = true;
+                        break;
+                    }
+                }
+
+                if (!isGrouping)
+                {
+                    throw new QueryPlanException($"expression '{expr}' is not an aggregate function");
+                }
             }
             // TODO some in the grouping will be columns to hold constant
 

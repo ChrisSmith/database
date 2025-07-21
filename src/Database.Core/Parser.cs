@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 using Database.Core.Expressions;
 using static Database.Core.TokenType;
 
@@ -25,7 +26,7 @@ public class Parser
 
         if (!IsAtEnd())
         {
-            throw new ParseException(Peek(), "Only one statement is allowed");
+            throw new ParseException(Peek(), "Unexpected token. Expected statement to be terminated");
         }
         return stmt;
     }
@@ -38,6 +39,7 @@ public class Parser
             var from = ParseFromStatement();
 
             IExpression? where = null;
+            GroupByStatement? group = null;
             IStatement? order = null;
 
             if (Match(WHERE))
@@ -45,15 +47,45 @@ public class Parser
                 where = ParseWhereStatement();
             }
 
+            if (Match(GROUP))
+            {
+                group = ParseGroupByStatement();
+            }
+
             if (Match(ORDER))
             {
                 order = ParseOrderByStatement();
             }
 
-            return new SelectStatement(selectList, from, where, order);
+            return new SelectStatement(selectList, from, where, group, order);
         }
 
         throw new ParseException(Peek(), "Expected statement");
+    }
+
+    private GroupByStatement ParseGroupByStatement()
+    {
+        Consume(BY, "Expected BY after GROUP");
+
+        var expressions = new List<IExpression> { };
+        while (!IsAtEnd())
+        {
+            expressions.Add(ParseExpr());
+
+            if (Match(COMMA))
+            {
+                continue;
+            }
+            if (Check(HAVING, WINDOW, ORDER, LIMIT, UNION, INTERSECT, EXCEPT, SEMICOLON))
+            {
+                break;
+            }
+
+            throw new ParseException(Peek(), "Expected group by to terminate with one of [" +
+                                             "having, window, order, limit, union, intersect, except, semicolon]");
+        }
+
+        return new GroupByStatement(expressions);
     }
 
     private IStatement ParseOrderByStatement()
@@ -407,6 +439,24 @@ public class Parser
             return Advance();
         }
         throw new ParseException(Peek(), message);
+    }
+
+    private bool Check(params TokenType[] tokenTypes)
+    {
+        if (IsAtEnd())
+        {
+            return false;
+        }
+
+        var token = Peek();
+        foreach (var tokenType in tokenTypes)
+        {
+            if (token.TokenType == tokenType)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

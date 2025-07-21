@@ -21,16 +21,25 @@ public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOpe
             .Where(e => e.BoundFunction is IAggregateFunction)
             .ToList();
 
+        var states = new List<IAggregateState>(aggregates.Count);
+        for (var i = 0; i < aggregates.Count; i++)
+        {
+            var func = (IAggregateFunction)aggregates[i].BoundFunction!;
+            states.Add(func.Initialize());
+        }
+
         var rowGroup = Source.Next();
         while (rowGroup != null)
         {
-            foreach (var expression in aggregates)
+            for (var i = 0; i < aggregates.Count; i++)
             {
+                var expression = aggregates[i];
                 var aggregate = (IAggregateFunction)expression.BoundFunction!;
                 var aggFunctionExpr = (FunctionExpression)expression;
 
-                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup);
+                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, states[i]);
             }
+
             rowGroup = Source.Next();
         }
 
@@ -38,7 +47,8 @@ public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOpe
         for (var i = 0; i < Expressions.Count; i++)
         {
             var expression = Expressions[i];
-            var value = ((IAggregateFunction)expression.BoundFunction!).GetValue();
+            var state = states[i];
+            var value = ((IAggregateFunction)expression.BoundFunction!).GetValue(state);
 
             var columnType = value!.GetType();
             var values = Array.CreateInstance(columnType, 1);

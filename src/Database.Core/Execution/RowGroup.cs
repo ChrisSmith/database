@@ -1,5 +1,3 @@
-using Database.Core.Catalog;
-
 namespace Database.Core.Execution;
 
 public record RowGroup(List<IColumn> Columns)
@@ -26,6 +24,61 @@ public record RowGroup(List<IColumn> Columns)
             }
         }
         return rows;
+    }
+
+    public static RowGroup FromRows(List<Row> rows)
+    {
+        var firstRow = rows[0];
+        var numCol = firstRow.Values.Count;
+        var columns = new List<IColumn>(numCol);
+        for (var i = 0; i < numCol; i++)
+        {
+            var columnType = firstRow.Values[i]!.GetType();
+            columns.Add(IColumn.CreateColumn(columnType, $"col{i}", i, rows.Count));
+            var values = (Array)columns[i].ValuesArray;
+
+            for (var j = 0; j < rows.Count; j++)
+            {
+                var row = rows[j];
+                values.SetValue(row.Values[i], j);
+            }
+        }
+        return new RowGroup(columns);
+    }
+
+    // TODO add a version that takes a list of indexes
+
+    public RowGroup EmptyWithSchema()
+    {
+        var newColumns = new List<IColumn>(Columns.Count);
+        for (var i = 0; i < Columns.Count; i++)
+        {
+            var orgColumn = Columns[i];
+            var columnType = orgColumn.Type;
+
+            var values = Array.CreateInstance(columnType, 1);
+            var type = typeof(Column<>).MakeGenericType(columnType);
+            var column = (IColumn)type.GetConstructors().Single().Invoke([
+                orgColumn.Name,
+                i,
+                values
+            ]);
+
+            newColumns.Add(column);
+        }
+        return new RowGroup(newColumns);
+    }
+
+    public void SingleRowInto(int index, RowGroup into)
+    {
+        for (var i = 0; i < Columns.Count; i++)
+        {
+            var orgColumn = Columns[i];
+            var rowValue = orgColumn[index];
+
+            var values = (Array)into.Columns[i].ValuesArray;
+            values.SetValue(rowValue, 0);
+        }
     }
 }
 

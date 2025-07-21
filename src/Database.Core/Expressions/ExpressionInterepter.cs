@@ -119,7 +119,7 @@ public class ExpressionInterpreter
         // return (IColumn)column;
     }
 
-    public void ExecuteAggregate(FunctionExpression expr, IAggregateFunction fun, RowGroup rowGroup)
+    public void ExecuteAggregate(FunctionExpression expr, IAggregateFunction fun, RowGroup rowGroup, IAggregateState state)
     {
         if (expr.Args.Length != 1)
         {
@@ -127,41 +127,7 @@ public class ExpressionInterpreter
         }
         var column = Execute(expr.Args[0], rowGroup);
 
-        switch (fun)
-        {
-            case IAggregateFunction<int, double> agg when column is Column<int> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<long, double> agg when column is Column<long> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<float, double> agg when column is Column<float> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<int?, int> agg when column is Column<int?> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<int, int> agg when column is Column<int> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<long, int> agg when column is Column<long> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<float, int> agg when column is Column<float> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<string, int> agg when column is Column<string> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<double, int> agg when column is Column<double> c:
-                agg.Next(c.Values);
-                break;
-            case IAggregateFunction<double, double> agg when column is Column<double> c:
-                agg.Next(c.Values);
-                break;
-            default:
-                throw new ExpressionEvaluationException($"aggregate function {fun.GetType().Name} not implemented for col {column.Type} of return {fun.ReturnType}");
-        }
+        fun.InvokeNext(column.ValuesArray, state);
     }
 }
 

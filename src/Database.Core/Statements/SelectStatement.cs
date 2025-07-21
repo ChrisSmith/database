@@ -6,4 +6,5 @@ internal record SelectStatement(
     SelectListStatement SelectList,
     FromStatement From,
     IExpression? Where,
+    GroupByStatement? Group,
     IStatement? Order) : IStatement;

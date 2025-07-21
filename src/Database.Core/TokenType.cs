@@ -12,6 +12,7 @@ public enum TokenType
     FROM,
     AS,
     WHERE,
+    GROUP,
     AND,
     OR,
     HAVING,
@@ -44,6 +45,8 @@ public enum TokenType
     IDENTIFIER,
     STRING,
     NUMBER,
-
+    UNION,
+    INTERSECT,
+    EXCEPT,
     EOF,
 }

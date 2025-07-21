@@ -36,6 +36,8 @@ public class Query01
     {
         var query = @"
             select
+                l_returnflag,
+                l_linestatus,
                 count(*) as count_order,
                 sum(l_quantity) as sum_qty,
                 sum(l_extendedprice) as sum_base_price,
@@ -48,11 +50,8 @@ public class Query01
                 sum(l_extendedprice*(1.0-l_discount)) as sum_disc_price
             from lineitem
             where l_shipdate <= date '1998-12-01' - interval '30' day
+            group by l_returnflag, l_linestatus
         ;";
-        // TODO support groupings
-        // l_returnflag,
-        // l_linestatus,
-        //     --            group by l_returnflag, l_linestatus
         // TODO support sorting
         // --            order by l_returnflag, l_linestatus;
 
