@@ -26,7 +26,7 @@ public record RowGroup(List<IColumn> Columns)
         return rows;
     }
 
-    public static RowGroup FromRows(List<Row> rows)
+    public static RowGroup FromRows(IReadOnlyList<Row> rows)
     {
         var firstRow = rows[0];
         var numCol = firstRow.Values.Count;

@@ -118,6 +118,11 @@ public class QueryPlanner(Catalog.Catalog catalog)
             }
         }
 
+        if (select.Order != null)
+        {
+            source = new SortOperator(source, select.Order.Expressions);
+        }
+
         var projection = new Projection(table, source, expressions);
         if (select.SelectList.Distinct)
         {

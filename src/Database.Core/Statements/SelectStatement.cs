@@ -7,4 +7,4 @@ internal record SelectStatement(
     FromStatement From,
     IExpression? Where,
     GroupByStatement? Group,
-    IStatement? Order) : IStatement;
+    OrderByStatement? Order) : IStatement;

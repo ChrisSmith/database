@@ -40,7 +40,7 @@ public class Parser
 
             IExpression? where = null;
             GroupByStatement? group = null;
-            IStatement? order = null;
+            OrderByStatement? order = null;
 
             if (Match(WHERE))
             {
@@ -88,13 +88,27 @@ public class Parser
         return new GroupByStatement(expressions);
     }
 
-    private IStatement ParseOrderByStatement()
+    private OrderByStatement ParseOrderByStatement()
     {
         Consume(BY, "Expected BY");
-        // TODO identifier list
-        var identifier = Consume(IDENTIFIER, "Expected column name");
+        var expressions = new List<OrderingExpression> { };
+        while (!IsAtEnd())
+        {
+            expressions.Add(ParseOrderingExpr());
 
-        throw new NotImplementedException();
+            if (Match(COMMA))
+            {
+                continue;
+            }
+            if (Check(LIMIT, SEMICOLON))
+            {
+                break;
+            }
+
+            throw new ParseException(Peek(), "Expected order by to terminate with one of [limit, semicolon]");
+        }
+
+        return new OrderByStatement(expressions);
     }
 
     private IExpression ParseWhereStatement()
@@ -179,6 +193,31 @@ public class Parser
         }
 
         return expr;
+    }
+
+    private OrderingExpression ParseOrderingExpr()
+    {
+        var expr = ParseExpr();
+        var ascending = true;
+        if (Match(ASC)) { }
+        else if (Match(DESC))
+        {
+            ascending = false;
+        }
+
+        if (Match(NULLS))
+        {
+            if (Match(FIRST))
+            {
+                // TODO store this
+            }
+            else
+            {
+                Consume(LAST, "Expected either FIRST or LAST after NULLS");
+            }
+        }
+
+        return new OrderingExpression(expr, ascending);
     }
 
     private IExpression ParseExpr()

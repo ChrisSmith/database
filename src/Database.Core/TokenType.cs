@@ -48,5 +48,8 @@ public enum TokenType
     UNION,
     INTERSECT,
     EXCEPT,
+    NULLS,
+    FIRST,
+    LAST,
     EOF,
 }
