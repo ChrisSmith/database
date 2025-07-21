@@ -271,6 +271,16 @@ public class Parser
                 return new FunctionExpression(ident.Lexeme, arguments);
             }
 
+            if (ident.Lexeme == "date")
+            {
+                var token = Consume(STRING, "Expected string literal for date literal expression");
+                // var date = DateOnly.Parse((string)token.Literal!);
+                // return new DateLiteral(date);
+                var date = DateTime.Parse((string)token.Literal!);
+                return new DateTimeLiteral(date);
+            }
+
+
             // Column
             var column = ident.Lexeme;
             string? table = null;

@@ -32,3 +32,15 @@ public record NullLiteral() : BaseExpression
 {
 
 }
+
+[DebuggerDisplay("{Literal}")]
+public record DateLiteral(DateOnly Literal) : BaseExpression
+{
+
+}
+
+[DebuggerDisplay("{Literal}")]
+public record DateTimeLiteral(DateTime Literal) : BaseExpression
+{
+
+}

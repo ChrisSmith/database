@@ -8,6 +8,8 @@ public enum DataType
     Float,
     Double,
     Date,
+    DateTime,
+    Interval,
     Bool,
 }
 
@@ -35,9 +37,17 @@ public static class DataTypeExtensions
         {
             return DataType.Double;
         }
-        if (clrType == typeof(DateTime))
+        if (clrType == typeof(DateOnly))
         {
             return DataType.Date;
+        }
+        if (clrType == typeof(DateTime))
+        {
+            return DataType.DateTime;
+        }
+        if (clrType == typeof(TimeSpan))
+        {
+            return DataType.Interval;
         }
         if (clrType == typeof(bool))
         {
@@ -56,7 +66,9 @@ public static class DataTypeExtensions
             case DataType.Long: return typeof(long);
             case DataType.Float: return typeof(float);
             case DataType.Double: return typeof(double);
-            case DataType.Date: return typeof(DateTime);
+            case DataType.Date: return typeof(DateOnly);
+            case DataType.DateTime: return typeof(DateTime);
+            case DataType.Interval: return typeof(TimeSpan);
             case DataType.Bool: return typeof(bool);
             default: throw new Exception($"No type mapping available from {dataType} to {typeof(DataType).FullName}");
         }

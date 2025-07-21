@@ -236,6 +236,16 @@ public class QueryPlanner(Catalog.Catalog catalog)
             return new LiteralFunction(-1, b.Literal, DataType.Bool);
         }
 
+        if (expression is DateLiteral d)
+        {
+            return new LiteralFunction(-1, d.Literal, DataType.Date);
+        }
+
+        if (expression is DateTimeLiteral dt)
+        {
+            return new LiteralFunction(-1, dt.Literal, DataType.DateTime);
+        }
+
         if (expression is ColumnExpression column)
         {
             var (_, index, colType) = FindColumnIndex(table, column);

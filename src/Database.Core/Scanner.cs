@@ -60,21 +60,21 @@ public class Scanner
             case ',': AddToken(COMMA); break;
             case '.': AddToken(DOT); break;
             case '-':
-            {
-                if (Match('-'))
                 {
-                    // comment
-                    while (Peek() != '\n' && !IsAtEnd())
+                    if (Match('-'))
                     {
-                        Advance();
+                        // comment
+                        while (Peek() != '\n' && !IsAtEnd())
+                        {
+                            Advance();
+                        }
                     }
+                    else
+                    {
+                        AddToken(MINUS);
+                    }
+                    break;
                 }
-                else
-                {
-                    AddToken(MINUS);
-                }
-                break;
-            }
             case '+': AddToken(PLUS); break;
             case ';': AddToken(SEMICOLON); break;
             case '*': AddToken(STAR); break;
@@ -96,7 +96,8 @@ public class Scanner
                 _column = 1;
                 break;
 
-            case '"': ParseString(); break;
+            case '"': ParseString('"'); break;
+            case '\'': ParseString('\''); break;
 
             default:
 
@@ -223,9 +224,9 @@ public class Scanner
     {
         return c >= '0' && c <= '9';
     }
-    private void ParseString()
+    private void ParseString(char quote = '"')
     {
-        while (Peek() != '"' && !IsAtEnd())
+        while (Peek() != quote && !IsAtEnd())
         {
             if (Peek() == '\n')
             {

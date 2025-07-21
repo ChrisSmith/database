@@ -42,6 +42,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(EqualTwo<long>) },
             { DataType.Float, typeof(EqualTwo<float>) },
             { DataType.Double, typeof(EqualTwo<double>) },
+            { DataType.Date, typeof(EqualTwoDateOnly) },
+            { DataType.DateTime, typeof(EqualTwoDateTime) },
         }));
         _funcs.Add(">", new(">", 2, new()
         {
@@ -49,6 +51,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(GreaterThanTwo<long>) },
             { DataType.Float, typeof(GreaterThanTwo<float>) },
             { DataType.Double, typeof(GreaterThanTwo<double>) },
+            { DataType.Date, typeof(GreaterThanTwoDateOnly) },
+            { DataType.DateTime, typeof(GreaterThanTwoDateTime) },
         }));
         _funcs.Add(">=", new(">=", 2, new()
         {
@@ -56,6 +60,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(GreaterThanEqualTwo<long>) },
             { DataType.Float, typeof(GreaterThanEqualTwo<float>) },
             { DataType.Double, typeof(GreaterThanEqualTwo<double>) },
+            { DataType.Date, typeof(GreaterThanEqualTwoDateOnly) },
+            { DataType.DateTime, typeof(GreaterThanEqualTwoDateTime) },
         }));
         _funcs.Add("<", new("<", 2, new()
         {
@@ -63,6 +69,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(LessThanTwo<long>) },
             { DataType.Float, typeof(LessThanTwo<float>) },
             { DataType.Double, typeof(LessThanTwo<double>) },
+            { DataType.Date, typeof(LessThanTwoDateOnly) },
+            { DataType.DateTime, typeof(LessThanTwoDateTime) },
         }));
         _funcs.Add("<=", new("<=", 2, new()
         {
@@ -70,6 +78,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(LessThanEqualTwo<long>) },
             { DataType.Float, typeof(LessThanEqualTwo<float>) },
             { DataType.Double, typeof(LessThanEqualTwo<double>) },
+            { DataType.Date, typeof(LessThanEqualTwoDateOnly) },
+            { DataType.DateTime, typeof(LessThanEqualTwoDateTime) },
         }));
         _funcs.Add("*", new("*", 2, new()
         {

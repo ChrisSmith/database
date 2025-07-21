@@ -79,6 +79,14 @@ public class ExpressionInterpreter
         {
             outputArray = fd.Ok((double[])left.ValuesArray, (double[])right.ValuesArray);
         }
+        else if (fun is IFilterFunctionTwo<DateTime> dt)
+        {
+            outputArray = dt.Ok((DateTime[])left.ValuesArray, (DateTime[])right.ValuesArray);
+        }
+        else if (fun is IFilterFunctionTwo<DateOnly> dto)
+        {
+            outputArray = dto.Ok((DateOnly[])left.ValuesArray, (DateOnly[])right.ValuesArray);
+        }
         else
         {
             throw new NotImplementedException($"Function {fun.GetType().Name} not implemented");

@@ -46,6 +46,7 @@ public class Query01
                 -- should be 1, but need automatic casts
                 sum(l_extendedprice*(1.0-l_discount)) as sum_disc_price
             from lineitem
+            where l_shipdate <= date '1998-12-01' -- - interval '[DELTA]' day
         ;";
         // TODO support groupings
         //
@@ -54,7 +55,6 @@ public class Query01
         // l_returnflag,
         // l_linestatus,
 
-        // --            where l_shipdate <= date '1998-12-01' - interval '[DELTA]' day (3)
         //     --            group by l_returnflag, l_linestatus
         // --            order by l_returnflag, l_linestatus;
 
@@ -62,6 +62,7 @@ public class Query01
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
+    // Null value handling is weird. Either we're losing it in the write from duckdb, or we're parsing it unconditionally?
     // Misc performance ideas
     // Reference local copy of parquet.net
     // Skip decoding unused columns, 1,000ms
