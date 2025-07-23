@@ -47,40 +47,6 @@ public record RowGroup(List<IColumn> Columns)
     }
 
     // TODO add a version that takes a list of indexes
-
-    public RowGroup EmptyWithSchema()
-    {
-        var newColumns = new List<IColumn>(Columns.Count);
-        for (var i = 0; i < Columns.Count; i++)
-        {
-            var orgColumn = Columns[i];
-            var columnType = orgColumn.Type;
-
-            var values = Array.CreateInstance(columnType, 1);
-
-            var column = ColumnHelper.CreateColumn(
-                columnType,
-                orgColumn.Name,
-                i,
-                values
-            );
-
-            newColumns.Add(column);
-        }
-        return new RowGroup(newColumns);
-    }
-
-    public void SingleRowInto(int index, RowGroup into)
-    {
-        for (var i = 0; i < Columns.Count; i++)
-        {
-            var orgColumn = Columns[i];
-            var rowValue = orgColumn[index];
-
-            var values = (Array)into.Columns[i].ValuesArray;
-            values.SetValue(rowValue, 0);
-        }
-    }
 }
 
 public static class RowGroupExtensions

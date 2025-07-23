@@ -26,6 +26,8 @@ public interface IColumn
             values
         );
     }
+
+    public void SetValues(Array source, bool[] mask);
 }
 
 public record Column<T>(string Name, int Index, T[] Values) : IColumn
@@ -36,6 +38,20 @@ public record Column<T>(string Name, int Index, T[] Values) : IColumn
 
     public object? this[int index] => Values[index];
     public Array ValuesArray => Values;
+
+    public void SetValues(Array source, bool[] mask)
+    {
+        var sourceArray = (T[])source;
+        var idx = 0;
+        for(var i = 0; i < source.Length; i++)
+        {
+            if (mask[i])
+            {
+                Values[idx] = sourceArray[i];
+                idx++;
+            }
+        }
+    }
 }
 
 public static class ColumnHelper

@@ -53,23 +53,14 @@ public record Filter(IOperation Source, IExpression Expression) : IOperation
             {
                 var columnType = columns[i].Type;
                 var values = Array.CreateInstance(columnType, count);
-
-                int keepIdx = 0;
-                for (var row = 0; row < next.NumRows; row++)
-                {
-                    if (keep[row])
-                    {
-                        values.SetValue(Convert.ChangeType(next.Columns[i][row], columnType), keepIdx);
-                        keepIdx++;
-                    }
-                }
-
                 var column = ColumnHelper.CreateColumn(
                     columnType,
                     columns[i].Name,
                     i,
                     values
                 );
+
+                column.SetValues(next.Columns[i].ValuesArray, keep);
                 result.Columns.Add(column);
             }
 
