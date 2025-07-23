@@ -45,9 +45,16 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
                 }
             }
 
+            // This is by aggregate column
+            var stateArray = new List<IAggregateState[]>(aggregates.Count);
+            for (var i = 0; i < aggregates.Count; i++)
+            {
+                var fun = (IAggregateFunction)aggregates[i].BoundFunction!;
+                stateArray.Add(fun.InitializeArray(rowGroup.NumRows));
+            }
 
-            var singleRowRg = rowGroup.EmptyWithSchema();
-            // For each row, compute the aggregates in isolation, then add to the global hashToAggState
+            // For each row, get the list of aggregate states and put them into
+            // a row oriented list. This means the same state can be in the list multiple times
             for (var i = 0; i < groupingKeys.Count; i++)
             {
                 var groupingKey = groupingKeys[i];
@@ -59,20 +66,25 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
                         var aggregate = (IAggregateFunction)aggregates[a].BoundFunction!;
                         states.Add(aggregate.Initialize());
                     }
-
                     hashToAggState[groupingKey] = states;
                 }
 
                 for (var a = 0; a < aggregates.Count; a++)
                 {
-                    var expression = aggregates[a];
-                    var aggregate = (IAggregateFunction)expression.BoundFunction!;
-                    var aggFunctionExpr = (FunctionExpression)expression;
-                    var state = states[a];
-
-                    rowGroup.SingleRowInto(i, singleRowRg);
-                    _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, singleRowRg, state);
+                    stateArray[a][i] = states[a];
                 }
+            }
+
+            // Update all aggregate states. Since these are pointers to the global states,
+            // they're updating the global stats too
+            for (var a = 0; a < aggregates.Count; a++)
+            {
+                var expression = aggregates[a];
+                var aggregate = (IAggregateFunction)expression.BoundFunction!;
+                var aggFunctionExpr = (FunctionExpression)expression;
+                var state = stateArray[a];
+
+                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, state);
             }
 
             rowGroup = Source.Next();
@@ -91,14 +103,8 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
             var fun = expression.BoundFunction!;
             var dataType = fun.ReturnType.ClrTypeFromDataType();
             var valuesArray = Array.CreateInstance(dataType, resRows.Count);
-            var columnType = typeof(Column<>).MakeGenericType(dataType);
-
-            var column = columnType.GetConstructors().Single().Invoke([
-                expression.Alias,
-                i,
-                valuesArray
-            ]);
-            result.Columns.Add((IColumn)column);
+            var column = ColumnHelper.CreateColumn(dataType, expression.Alias, i, valuesArray);
+            result.Columns.Add(column);
         }
 
         // Fill in the rowgroup with the aggregate results

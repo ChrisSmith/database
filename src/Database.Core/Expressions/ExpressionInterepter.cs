@@ -115,7 +115,7 @@ public class ExpressionInterpreter
         // return (IColumn)column;
     }
 
-    public void ExecuteAggregate(FunctionExpression expr, IAggregateFunction fun, RowGroup rowGroup, IAggregateState state)
+    public void ExecuteAggregate(FunctionExpression expr, IAggregateFunction fun, RowGroup rowGroup, IAggregateState[] state)
     {
         if (expr.Args.Length != 1)
         {

@@ -7,16 +7,18 @@ public interface IAggregateFunction : IFunction
 {
     IAggregateState Initialize();
 
+    IAggregateState[] InitializeArray(int size);
+
     object? GetValue(object state);
 
-    void InvokeNext(object values, IAggregateState state);
+    void InvokeNext(object values, IAggregateState[] state);
 }
 /**
  * Operator on the entire column, one row at a time
  */
 public interface IAggregateFunction<In, State, Out> : IAggregateFunction
 {
-    void Next(In[] value, State state);
+    void Next(In[] value, State[] state);
 
     Out Value(State state);
 }
@@ -29,9 +31,9 @@ public record Count<In> : IAggregateFunction<In, CountAggregateState, int>
     public int Value(CountAggregateState state) => state.Count;
     public object? GetValue(object state) => Value((CountAggregateState)state);
 
-    public void InvokeNext(object values, IAggregateState state)
+    public void InvokeNext(object values, IAggregateState[] state)
     {
-        Next((In[])values, (CountAggregateState)state);
+        Next((In[])values, (CountAggregateState[])state);
     }
 
     public IAggregateState Initialize()
@@ -39,9 +41,17 @@ public record Count<In> : IAggregateFunction<In, CountAggregateState, int>
         return new CountAggregateState();
     }
 
-    public void Next(In[] value, CountAggregateState state)
+    public IAggregateState[] InitializeArray(int size)
     {
-        state.Count += value.Length;
+        return new CountAggregateState[size];
+    }
+
+    public void Next(In[] value, CountAggregateState[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            state[i].Count += 1;
+        }
     }
 }
 
@@ -50,6 +60,7 @@ public record StringCount : IAggregateFunction<string?, CountAggregateState, int
     public DataType ReturnType => DataType.String;
 
     public int Value(CountAggregateState state) => state.Count;
+
     public object? GetValue(object state) => Value((CountAggregateState)state);
 
     public IAggregateState Initialize()
@@ -57,18 +68,24 @@ public record StringCount : IAggregateFunction<string?, CountAggregateState, int
         return new CountAggregateState();
     }
 
-    public void InvokeNext(object values, IAggregateState state)
+    public IAggregateState[] InitializeArray(int size)
     {
-        Next((string?[])values, (CountAggregateState)state);
+        return new CountAggregateState[size];
     }
 
-    public void Next(string?[] value, CountAggregateState state)
+    public void InvokeNext(object values, IAggregateState[] state)
     {
-        foreach (var item in value)
+        Next((string?[])values, (CountAggregateState[])state);
+    }
+
+    public void Next(string?[] value, CountAggregateState[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
         {
+            var item = value[i];
             if (item != null)
             {
-                state.Count += 1;
+                state[i].Count += 1;
             }
         }
     }
@@ -78,6 +95,7 @@ public record Sum<T>(DataType ReturnType) : IAggregateFunction<T, SumAggregateSt
     where T : INumber<T>
 {
     public T Value(SumAggregateState<T> state) => state.Sum;
+
     public object? GetValue(object state) => Value((SumAggregateState<T>)state);
 
     public IAggregateState Initialize()
@@ -85,16 +103,22 @@ public record Sum<T>(DataType ReturnType) : IAggregateFunction<T, SumAggregateSt
         return new SumAggregateState<T>();
     }
 
-    public void InvokeNext(object values, IAggregateState state)
+    public IAggregateState[] InitializeArray(int size)
     {
-        Next((T[])values, (SumAggregateState<T>)state);
+        return new SumAggregateState<T>[size];
     }
 
-    public void Next(T[] value, SumAggregateState<T> state)
+    public void InvokeNext(object values, IAggregateState[] state)
     {
-        foreach (var item in value)
+        Next((T[])values, (SumAggregateState<T>[])state);
+    }
+
+    public void Next(T[] value, SumAggregateState<T>[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
         {
-            state.Sum += item;
+            var item = value[i];
+            state[i].Sum += item;
         }
     }
 }
@@ -149,6 +173,7 @@ public record Avg<T> : IAggregateFunction<T, AvgState<T>, double>
     public DataType ReturnType => DataType.Double;
 
     public double Value(AvgState<T> state) => state.Value();
+
     public object? GetValue(object state) => Value((AvgState<T>)state);
 
     public IAggregateState Initialize()
@@ -156,17 +181,25 @@ public record Avg<T> : IAggregateFunction<T, AvgState<T>, double>
         return new AvgState<T>();
     }
 
-    public void InvokeNext(object values, IAggregateState state)
+    public IAggregateState[] InitializeArray(int size)
     {
-        Next((T[])values, (AvgState<T>)state);
+        // ReSharper disable once CoVariantArrayConversion
+        return new AvgState<T>[size];
     }
 
-    public void Next(T[] value, AvgState<T> state)
+
+    public void InvokeNext(object values, IAggregateState[] state)
     {
-        foreach (var item in value)
+        Next((T[])values, (AvgState<T>[])state);
+    }
+
+    public void Next(T[] value, AvgState<T>[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
         {
-            state.Sum += item;
+            var item = value[i];
+            state[i].Sum += item;
+            state[i].Count += 1;
         }
-        state.Count += value.Length;
     }
 }

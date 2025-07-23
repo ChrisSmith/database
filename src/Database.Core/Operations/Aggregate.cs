@@ -21,11 +21,13 @@ public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOpe
             .Where(e => e.BoundFunction is IAggregateFunction)
             .ToList();
 
-        var states = new List<IAggregateState>(aggregates.Count);
+        var states = new List<IAggregateState[]>(aggregates.Count);
         for (var i = 0; i < aggregates.Count; i++)
         {
             var func = (IAggregateFunction)aggregates[i].BoundFunction!;
-            states.Add(func.Initialize());
+            var arr = func.InitializeArray(1);
+            arr[0] = func.Initialize();
+            states.Add(arr);
         }
 
         var rowGroup = Source.Next();
@@ -37,7 +39,15 @@ public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOpe
                 var aggregate = (IAggregateFunction)expression.BoundFunction!;
                 var aggFunctionExpr = (FunctionExpression)expression;
 
-                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, states[i]);
+                // We have the same state for each row
+                // TODO Consider an optimized version for aggregates with no groupings
+                var stateArray = aggregate.InitializeArray(rowGroup.NumRows);
+                for (var j = 0; j < rowGroup.NumRows; j++)
+                {
+                    stateArray[j] = states[i][0];
+                }
+
+                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, stateArray);
             }
 
             rowGroup = Source.Next();
@@ -47,20 +57,15 @@ public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOpe
         for (var i = 0; i < Expressions.Count; i++)
         {
             var expression = Expressions[i];
-            var state = states[i];
+            var state = states[i][0];
             var value = ((IAggregateFunction)expression.BoundFunction!).GetValue(state);
 
             var columnType = value!.GetType();
             var values = Array.CreateInstance(columnType, 1);
             values.SetValue(Convert.ChangeType(value, columnType), 0);
 
-            var type = typeof(Column<>).MakeGenericType(columnType);
-            var column = type.GetConstructors().Single().Invoke([
-                expression.Alias,
-                i,
-                values
-            ]);
-            result.Columns.Add((IColumn)column);
+            var column = ColumnHelper.CreateColumn(columnType, expression.Alias, i, values);
+            result.Columns.Add(column);
         }
 
         _done = true;
