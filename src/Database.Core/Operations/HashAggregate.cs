@@ -32,7 +32,7 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
             var groupingKeys = new List<Row>(rowGroup.NumRows);
             for (var i = 0; i < rowGroup.NumRows; i++)
             {
-                groupingKeys.Add(new Row(new List<object?>()));
+                groupingKeys.Add(new Row(new List<object?>(GroupingExpressions.Count)));
             }
 
             for (var g = 0; g < GroupingExpressions.Count; g++)
@@ -112,7 +112,7 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
         {
             var expression = Expressions[i];
             var column = result.Columns[i];
-            var values = (Array)column.ValuesArray;
+            var values = column.ValuesArray;
 
             if (expression.BoundFunction is IAggregateFunction aggFn)
             {
@@ -128,7 +128,7 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
             else
             {
                 var columnRes = _interpreter.Execute(expression, groupedRowGroup);
-                Array.Copy((Array)columnRes.ValuesArray, values, columnRes.Length);
+                Array.Copy(columnRes.ValuesArray, values, columnRes.Length);
             }
         }
 

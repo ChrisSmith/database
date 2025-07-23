@@ -43,7 +43,7 @@ public record Column<T>(string Name, int Index, T[] Values) : IColumn
     {
         var sourceArray = (T[])source;
         var idx = 0;
-        for(var i = 0; i < source.Length; i++)
+        for (var i = 0; i < source.Length; i++)
         {
             if (mask[i])
             {
