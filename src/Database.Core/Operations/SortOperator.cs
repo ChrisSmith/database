@@ -39,8 +39,8 @@ public class SortOperator(IOperation source, List<OrderingExpression> orderExpre
             for (var i = 0; i < indexes.Count; i++)
             {
                 var index = indexes[i];
-                var xVal = (IComparable) x.Values[index]!;
-                var yVal = (IComparable) y.Values[index]!;
+                var xVal = (IComparable)x.Values[index]!;
+                var yVal = (IComparable)y.Values[index]!;
 
                 var res = xVal.CompareTo(yVal);
                 if (res != 0)

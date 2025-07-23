@@ -23,13 +23,12 @@ public record LiteralFunction(int Index, object Value, DataType ReturnType) : IF
             outputArray.SetValue(Value, i);
         }
 
-        var columnType = typeof(Column<>).MakeGenericType(type);
-
-        var column = (IColumn)columnType.GetConstructors().Single().Invoke([
+        var column = ColumnHelper.CreateColumn(
+            type,
             "foo",
             Index,
-            outputArray
-        ]);
+            outputArray);
+
         return column;
     }
 }

@@ -13,8 +13,6 @@ public record FileScan(string Path) : IOperation
     private DataField[] _dataFields;
     private bool _done = false;
 
-    private Dictionary<Type, ConstructorInfo> _typeCache = new();
-
     public RowGroup? Next()
     {
         if (_done)
@@ -106,20 +104,9 @@ public record FileScan(string Path) : IOperation
                 }
             }
 
-            if (!_typeCache.TryGetValue(targetType, out var ctor))
-            {
-                var cachedType = typeof(Column<>).MakeGenericType(targetType);
-                ctor = cachedType.GetConstructors().Single();
-                _typeCache[targetType] = ctor;
-            }
+            var obj = ColumnHelper.CreateColumn(targetType, field.Name, i, finalCopy);
 
-            var obj = ctor.Invoke([
-                field.Name,
-                i,
-                finalCopy
-            ]);
-
-            columnValues.Add((IColumn)obj);
+            columnValues.Add(obj);
         }
 
         return new RowGroup(columnValues);

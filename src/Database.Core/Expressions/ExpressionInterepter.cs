@@ -43,9 +43,7 @@ public class ExpressionInterpreter
     // Assumes the expression has already been bound
     public IColumn Execute(IExpression expr, IFunction fun, IColumn left, IColumn right)
     {
-        var type = typeof(Column<>).MakeGenericType(fun.ReturnType.ClrTypeFromDataType());
-
-        object outputArray = null;
+        Array outputArray = null;
 
         if (fun is IScalarMathTwo<int> sti)
         {
@@ -92,19 +90,17 @@ public class ExpressionInterpreter
             throw new NotImplementedException($"Function {fun.GetType().Name} not implemented");
         }
 
-        var column = type.GetConstructors().Single().Invoke([
+        var column = ColumnHelper.CreateColumn(
+            fun.ReturnType.ClrTypeFromDataType(),
             expr.Alias,
             expr.BoundIndex,
             outputArray
-        ]);
-
-        return (IColumn)column;
+            );
+        return column;
     }
 
     public IColumn Execute(IFunction fun, IColumn[] args)
     {
-        var type = typeof(Column<>).MakeGenericType(fun.ReturnType.ClrTypeFromDataType());
-
         // TODO need generic Invoke capability on IFunction?
         throw new NotImplementedException();
 

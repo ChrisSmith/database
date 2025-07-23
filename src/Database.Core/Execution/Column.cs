@@ -1,3 +1,4 @@
+using System.Reflection;
 using Database.Core.Catalog;
 
 namespace Database.Core.Execution;
@@ -46,4 +47,26 @@ public record Column<T>(string Name, int Index, T[] Values) : IColumn
 
     public object? this[int index] => Values[index];
     public object ValuesArray => Values;
+}
+
+public static class ColumnHelper
+{
+    // TODO make thread safe
+    private static readonly Dictionary<Type, ConstructorInfo> _typeCache = new();
+
+    public static IColumn CreateColumn(Type targetType, string name, int index, Array values)
+    {
+        if (!_typeCache.TryGetValue(targetType, out var ctor))
+        {
+            var cachedType = typeof(Column<>).MakeGenericType(targetType);
+            ctor = cachedType.GetConstructors().Single();
+            _typeCache[targetType] = ctor;
+        }
+
+        return (IColumn)ctor.Invoke([
+            name,
+            index,
+            values
+        ]);
+    }
 }
