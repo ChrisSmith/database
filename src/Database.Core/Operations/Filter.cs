@@ -64,13 +64,13 @@ public record Filter(IOperation Source, IExpression Expression) : IOperation
                     }
                 }
 
-                var type = typeof(Column<>).MakeGenericType(columnType);
-                var column = type.GetConstructors().Single().Invoke([
+                var column = ColumnHelper.CreateColumn(
+                    columnType,
                     columns[i].Name,
                     i,
                     values
-                ]);
-                result.Columns.Add((IColumn)column);
+                );
+                result.Columns.Add(column);
             }
 
             return result;

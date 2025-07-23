@@ -52,13 +52,13 @@ public record Distinct(IOperation Source) : IOperation
                 values.SetValue(Convert.ChangeType(row.Values[i], columnType), j);
             }
 
-            var type = typeof(Column<>).MakeGenericType(columnType);
-            var column = type.GetConstructors().Single().Invoke([
+            var column = ColumnHelper.CreateColumn(
+                columnType,
                 $"{i}.{columnType}",
                 i,
                 values
-            ]);
-            result.Columns.Add((IColumn)column);
+            );
+            result.Columns.Add(column);
         }
 
         // How do we determine the chunk size now?

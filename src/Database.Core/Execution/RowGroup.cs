@@ -57,12 +57,13 @@ public record RowGroup(List<IColumn> Columns)
             var columnType = orgColumn.Type;
 
             var values = Array.CreateInstance(columnType, 1);
-            var type = typeof(Column<>).MakeGenericType(columnType);
-            var column = (IColumn)type.GetConstructors().Single().Invoke([
+
+            var column = ColumnHelper.CreateColumn(
+                columnType,
                 orgColumn.Name,
                 i,
                 values
-            ]);
+            );
 
             newColumns.Add(column);
         }

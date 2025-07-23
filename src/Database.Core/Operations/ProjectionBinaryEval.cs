@@ -28,16 +28,16 @@ public class ProjectionBinaryEval(TableSchema Schema, IOperation Source, List<IE
         {
             var expr = expressions[i];
             var fun = expr.BoundFunction!;
-            var type = typeof(Column<>).MakeGenericType(fun.ReturnType.ClrTypeFromDataType());
 
             var columnRes = _interpreter.Execute(expr, next);
 
             var columnInSchema = Schema.Columns[nonExpressionColumns + i];
-            var column = type.GetConstructors().Single().Invoke([
+            var column = ColumnHelper.CreateColumn(
+                fun.ReturnType.ClrTypeFromDataType(),
                 columnInSchema.Name,
                 i,
                 columnRes.ValuesArray
-            ]);
+            );
             newColumns.Add((IColumn)column);
         }
 

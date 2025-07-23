@@ -22,15 +22,15 @@ public record Projection(TableSchema Schema, IOperation Source, List<IExpression
         {
             var expr = Expressions[i];
             var fun = expr.BoundFunction!;
-            var type = typeof(Column<>).MakeGenericType(fun.ReturnType.ClrTypeFromDataType());
 
             var columnRes = _interpreter.Execute(expr, rowGroup);
-            var column = type.GetConstructors().Single().Invoke([
+            var column = ColumnHelper.CreateColumn(
+                fun.ReturnType.ClrTypeFromDataType(),
                 expr.Alias,
                 i,
                 columnRes.ValuesArray
-            ]);
-            newColumns.Add((IColumn)column);
+            );
+            newColumns.Add(column);
         }
 
         var newRowGroup = new RowGroup(newColumns);
