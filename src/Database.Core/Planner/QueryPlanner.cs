@@ -75,10 +75,24 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                 expr.Alias = b.Operator.ToString(); // TODO literal of the expression
             }
 
-            columns.Add(new ColumnSchema((ColumnId)(-1), expr.Alias, expr.BoundFunction!.ReturnType, expr.BoundFunction!.ReturnType.ClrTypeFromDataType()));
+            columns.Add(new ColumnSchema(
+                (ColumnId)(-1),
+                expr.Alias,
+                expr.BoundFunction!.ReturnType,
+                expr.BoundFunction!.ReturnType.ClrTypeFromDataType(),
+                expr.BoundIndex)
+            );
             expressionsForEval.Add(expr);
         }
-        table = new TableSchema((TableId)(-1), "temp", columns, "memory");
+        table = new TableSchema(
+            (TableId)(-1),
+            "temp",
+            columns,
+            "memory",
+            -1,
+            -1,
+            new List<RowGroupMeta>()
+            );
         source = new ProjectionBinaryEval(table, source, expressionsForEval);
 
         if (select.Where != null)
@@ -265,10 +279,22 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             }
             // TODO some in the grouping will be columns to hold constant
 
-            columns.Add(new ColumnSchema((ColumnId)(-1), expr.Alias, expr.BoundFunction!.ReturnType, expr.BoundFunction!.ReturnType.ClrTypeFromDataType()));
+            columns.Add(new ColumnSchema(
+                (ColumnId)(-1),
+                expr.Alias,
+                expr.BoundFunction!.ReturnType,
+                expr.BoundFunction!.ReturnType.ClrTypeFromDataType(),
+                expr.BoundIndex));
         }
 
-        return new TableSchema((TableId)(-1), "temp", columns, "memory");
+        return new TableSchema(
+            (TableId)(-1),
+            "temp",
+            columns,
+            "memory",
+            -1,
+            -1,
+            new List<RowGroupMeta>());
     }
 
     private void BindExpression(IExpression expression, TableSchema table)
