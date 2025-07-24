@@ -1,4 +1,5 @@
 using Database.Core;
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Planner;
@@ -25,7 +26,8 @@ public class Query01
         var statement = parser.Parse();
 
         var it = new Interpreter();
-        var planner = new QueryPlanner(_catalog);
+        var bufferPool = new ParquetPool();
+        var planner = new QueryPlanner(_catalog, bufferPool);
         var plan = planner.CreatePlan(statement);
         var result = it.Execute(plan).ToList();
         return result;

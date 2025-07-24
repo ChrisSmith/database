@@ -1,3 +1,4 @@
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 using Database.Core.Functions;
@@ -6,7 +7,7 @@ using static Database.Core.TokenType;
 
 namespace Database.Core.Planner;
 
-public class QueryPlanner(Catalog.Catalog catalog)
+public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 {
     private FunctionRegistry _functions = new();
 
@@ -25,7 +26,7 @@ public class QueryPlanner(Catalog.Catalog catalog)
             throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
         }
 
-        IOperation source = new FileScan(table.Location);
+        IOperation source = new FileScan(bufferPool, table.Location);
 
         // Constant folding
         var expressions = select.SelectList.Expressions;

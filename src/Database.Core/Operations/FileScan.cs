@@ -1,12 +1,11 @@
-using System.IO.MemoryMappedFiles;
-using System.Reflection;
+using Database.Core.BufferPool;
 using Database.Core.Execution;
 using Parquet;
 using Parquet.Schema;
 
 namespace Database.Core.Operations;
 
-public record FileScan(string Path) : IOperation
+public record FileScan(ParquetPool BufferPool, string Path) : IOperation
 {
     private ParquetReader? _reader = null;
     private int _group = -1;
@@ -22,15 +21,9 @@ public record FileScan(string Path) : IOperation
 
         if (_reader == null)
         {
-            // Is this a good idea or a bad one?
-            // memory mapping the file takes ~10ms off the runtime (10%) of my simple test query
-            // Once we have a page manager maybe we can do this ourselves?
-            var file = MemoryMappedFile.CreateFromFile(Path);
-            _reader = ParquetReader.CreateAsync(file.CreateViewStream()).GetAwaiter().GetResult();
-
-            // Do we want to pass the expected schema from the catalog here and ensure it matches?
-            var schema = _reader.Schema;
-            _dataFields = schema.GetDataFields();
+            var handle = BufferPool.OpenFile(Path);
+            _reader = handle.Reader;
+            _dataFields = handle.DataFields;
         }
 
         _group++;

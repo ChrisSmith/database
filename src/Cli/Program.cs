@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Database.Core;
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Planner;
@@ -7,7 +8,8 @@ using Database.Core.Planner;
 var catalog = new Catalog();
 TestDatasets.AddTestDatasetsToCatalog(catalog);
 
-var planner = new QueryPlanner(catalog);
+var bufferPool = new ParquetPool();
+var planner = new QueryPlanner(catalog, bufferPool);
 
 var previousLines = new List<string>();
 
