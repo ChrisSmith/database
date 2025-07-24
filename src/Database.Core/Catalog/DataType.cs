@@ -37,6 +37,11 @@ public static class DataTypeExtensions
         {
             return DataType.Double;
         }
+        if (clrType == typeof(decimal))
+        {
+            // TODO need to support decimal types natively
+            return DataType.Double;
+        }
         if (clrType == typeof(DateOnly))
         {
             return DataType.Date;

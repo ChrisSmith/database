@@ -10,7 +10,7 @@ namespace Database.Test;
 
 public class ExecutionTest
 {
-    private Catalog _catalog = new();
+    private Catalog _catalog = new(new ParquetPool());
 
     [OneTimeSetUp]
     public void OneTimeSetup()

@@ -5,10 +5,10 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Planner;
 
-var catalog = new Catalog();
+var bufferPool = new ParquetPool();
+var catalog = new Catalog(bufferPool);
 TestDatasets.AddTestDatasetsToCatalog(catalog);
 
-var bufferPool = new ParquetPool();
 var planner = new QueryPlanner(catalog, bufferPool);
 
 var previousLines = new List<string>();

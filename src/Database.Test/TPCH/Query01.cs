@@ -14,7 +14,7 @@ public class Query01
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
-        _catalog = new Catalog();
+        _catalog = new Catalog(new ParquetPool());
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 
