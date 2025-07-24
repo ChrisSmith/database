@@ -11,7 +11,7 @@ public interface IColumn
 
     int Length { get; }
 
-    object? this[int index] { get; }
+    object? this[long index] { get; }
 
     Array ValuesArray { get; }
 
@@ -36,7 +36,7 @@ public record Column<T>(string Name, int Index, T[] Values) : IColumn
 
     public int Length => Values.Length;
 
-    public object? this[int index] => Values[index];
+    public object? this[long index] => Values[index];
     public Array ValuesArray => Values;
 
     public void SetValues(Array source, bool[] mask)
