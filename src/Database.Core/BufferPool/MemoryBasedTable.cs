@@ -18,7 +18,7 @@ public class MemoryBasedTable(MemoryStorage storage)
         return new RowGroupRef(--_nextRowGroup);
     }
 
-    public ColumnRef AddColumnToSchema(string name, DataType type)
+    public ColumnSchema AddColumnToSchema(string name, DataType type)
     {
         var columnId = NumColumns;
         var columnRef = new ColumnRef(storage, -1, columnId);
@@ -30,7 +30,7 @@ public class MemoryBasedTable(MemoryStorage storage)
             type.ClrTypeFromDataType(),
             -1); // TODO remove all these extra indexes
         _schema.Add(newColumn);
-        return columnRef;
+        return newColumn;
     }
 
     public ColumnSchema GetColumnSchema(ColumnRef columnRef)

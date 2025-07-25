@@ -8,7 +8,7 @@ public record TableSchema(
     IStorageLocation Storage,
     TableId Id,
     string Name,
-    List<ColumnSchema> Columns,
+    IReadOnlyList<ColumnSchema> Columns,
     string Location,
     long NumRows,
     int NumRowGroups,

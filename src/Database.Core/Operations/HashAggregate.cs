@@ -5,7 +5,7 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record HashAggregate(IOperation Source, List<IExpression> Expressions, List<IExpression> GroupingExpressions) : IOperation
+public record HashAggregate(IOperation Source, IReadOnlyList<BaseExpression> Expressions, List<BaseExpression> GroupingExpressions) : IOperation
 {
     private bool _done = false;
 

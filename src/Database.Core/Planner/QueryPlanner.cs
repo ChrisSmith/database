@@ -1,16 +1,17 @@
+using System.Diagnostics.Contracts;
+using System.Net;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 using Database.Core.Operations;
-using static Database.Core.TokenType;
 
 namespace Database.Core.Planner;
 
 public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 {
-    private FunctionRegistry _functions = new();
+    private ExpressionBinder _binder = new(bufferPool, new FunctionRegistry());
 
     public QueryPlan CreatePlan(IStatement statement)
     {
@@ -27,94 +28,22 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
         }
 
-        var activeColumns = table.Columns.Select(c => c).ToList();
+        IReadOnlyList<ColumnSchema> inputColumns = table.Columns.Select(c => c).ToList();
 
         IOperation source = new FileScan(bufferPool, table.Location, catalog);
 
-        // Constant folding
-        var expressions = select.SelectList.Expressions;
-        for (var i = 0; i < expressions.Count; i++)
-        {
-            expressions[i] = FoldConstantExpressions(expressions[i]);
-        }
+        select = ConstantFolding.Fold(select);
 
-        if (select.Where != null)
-        {
-            select = select with
-            {
-                Where = FoldConstantExpressions(select.Where),
-            };
-        }
-
-        // If any projections require the computation of a new column, do it prior to the filters/aggregations
-        // so that we can filter/aggregate on them too
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
-        var expressionsForEval = new List<IExpression>(expressions.Count);
 
-        for (var i = 0; i < expressions.Count; i++)
-        {
-            var expr = expressions[i];
-            BindExpression(expr, activeColumns);
+        var expressions = _binder.Bind(select.SelectList.Expressions, inputColumns);
 
-            if (expr is ColumnExpression c && c.Alias == c.Column)
-            {
-                // If this is a basic column expression without an alias,
-                // we can reference the source directly
-                continue;
-            }
-
-            if (ExpressionContainsAggregate(expr))
-            {
-                // At this point we can't materialize the aggregate, so skip it
-                continue;
-            }
-
-            if (expr is BinaryExpression { Alias: "" } b)
-            {
-                expr.Alias = b.Operator.ToString(); // TODO literal of the expression
-            }
-
-            var columnRef = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
-            expr.BoundOutputColumn = columnRef;
-
-            // columns.Add(newColumn);
-            expressionsForEval.Add(expr);
-        }
-
-        source = new ProjectionBinaryEval(bufferPool, source, expressionsForEval);
-
-        // TODO the projection and filter here are schema changes
-        // This causes the outputs of their operations to change location
-        // How should I reflect that in the data model?
-        // At a minimum I need to take the bindings for the expressions passed into the
-        // things like projection, groupby and rebind them to their in memory copies
-        // One option would be to make the expressions immutable
+        (source, expressions, inputColumns) = MaterializeAdditionalColumns(memTable, inputColumns, expressions, source);
 
         if (select.Where != null)
         {
-            BindExpression(select.Where, activeColumns);
-            if (select.Where.BoundFunction is not BoolFunction predicate)
-            {
-                // TODO cast values to "truthy"
-                throw new QueryPlanException($"Filter expression '{select.Where}' is not a boolean expression");
-            }
-
-            var outputFromFilter = new List<ColumnRef>(activeColumns.Count + expressionsForEval.Count);
-            for (var i = 0; i < activeColumns.Count; i++)
-            {
-                var existingColumn = activeColumns[i];
-                var newColumnRef = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
-                outputFromFilter.Add(newColumnRef);
-            }
-            for (var i = 0; i < expressionsForEval.Count; i++)
-            {
-                var existingColumn = memTable.GetColumnSchema(expressionsForEval[i].BoundOutputColumn);
-                var newColumnRef = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
-                outputFromFilter.Add(newColumnRef);
-            }
-
-            source = new Filter(bufferPool, memTable, source, select.Where, outputFromFilter);
+            (source, expressions, inputColumns) = FilterTable(select.Where, source, inputColumns, expressions);
         }
 
         // grouping
@@ -124,7 +53,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             for (var i = 0; i < groupingExprs.Count; i++)
             {
                 var expr = groupingExprs[i];
-                BindExpression(expr, activeColumns);
+                _binder.Bind(expr, inputColumns);
             }
         }
 
@@ -133,7 +62,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             BindAggregateExpressions(
                 memRef,
                 memTable,
-                activeColumns,
+                inputColumns,
                 expressions,
                 groupingExprs);
 
@@ -154,6 +83,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             source = new SortOperator(source, select.Order.Expressions);
         }
 
+
         var projection = new Projection(bufferPool, source, expressions);
         if (select.SelectList.Distinct)
         {
@@ -164,7 +94,115 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         return new QueryPlan(projection);
     }
 
-    private List<IExpression> RemoveAggregatesFromExpressions(List<IExpression> expressions)
+    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) MaterializeAdditionalColumns(
+        MemoryBasedTable memTable,
+        IReadOnlyList<ColumnSchema> inputColumns,
+        IReadOnlyList<BaseExpression> expressions,
+        IOperation source)
+    {
+        // If any projections require the computation of a new column, do it prior to the filters/aggregations
+        // so that we can filter/aggregate on them too
+        var outputColumns = new List<ColumnSchema>(inputColumns);
+        var outputExpressions = new List<BaseExpression>(inputColumns.Count);
+        var expressionsForEval = new List<BaseExpression>(expressions.Count);
+
+        for (var i = 0; i < expressions.Count; i++)
+        {
+            var expr = _binder.Bind(expressions[i], inputColumns);
+            if (expr is ColumnExpression c && c.Alias == c.Column)
+            {
+                // If this is a basic column expression without an alias,
+                // we can reference the source directly
+                outputExpressions.Add(expr);
+                continue;
+            }
+
+            if (ExpressionContainsAggregate(expr))
+            {
+                // At this point we can't materialize the aggregate, so skip it
+                outputExpressions.Add(expr);
+                continue;
+            }
+
+            var column = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            expr = expr with
+            {
+                BoundOutputColumn = column.ColumnRef,
+            };
+
+            expressionsForEval.Add(expr);
+            outputExpressions.Add(expr);
+            outputColumns.Add(column);
+        }
+
+        if (expressionsForEval.Count == 0)
+        {
+            return (source, outputExpressions, inputColumns);
+        }
+
+        var op = new ProjectionBinaryEval(bufferPool, source, expressionsForEval);
+        return (op, outputExpressions, outputColumns);
+    }
+
+    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) FilterTable(BaseExpression where, IOperation source,
+        IReadOnlyList<ColumnSchema> inputColumns, IReadOnlyList<BaseExpression> expressions)
+    {
+        var whereExpr = _binder.Bind(where, inputColumns);
+        if (whereExpr.BoundFunction is not BoolFunction predicate)
+        {
+            // TODO cast values to "truthy"
+            throw new QueryPlanException($"Filter expression '{where}' is not a boolean expression");
+        }
+
+        var memRef = bufferPool.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        var outputColumns = new List<ColumnSchema>(inputColumns.Count);
+        var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
+        for (var i = 0; i < inputColumns.Count; i++)
+        {
+            var existingColumn = inputColumns[i];
+            var newColumn = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
+            outputColumns.Add(newColumn);
+            outputColumnsRefs.Add(newColumn.ColumnRef);
+        }
+
+        var outputExpressions = new List<BaseExpression>(expressions.Count);
+        foreach (var expr in expressions)
+        {
+            var orgOutputColumn = expr.BoundOutputColumn;
+            if (orgOutputColumn == default)
+            {
+                outputExpressions.Add(expr);
+                continue;
+            }
+
+            var columnIndex = -1;
+            for (var j = 0; j < inputColumns.Count; j++)
+            {
+                if (inputColumns[j].ColumnRef == orgOutputColumn)
+                {
+                    columnIndex = j;
+                    break;
+                }
+            }
+            if (columnIndex == -1)
+            {
+                outputExpressions.Add(expr);
+            }
+
+            var outputCol = outputColumns[columnIndex];
+            outputExpressions.Add(expr with
+            {
+                BoundOutputColumn = outputCol.ColumnRef,
+            });
+        }
+
+        var op = new Filter(bufferPool, memTable, source, whereExpr, outputColumnsRefs);
+        return (op, outputExpressions, outputColumns);
+    }
+
+    private List<BaseExpression> RemoveAggregatesFromExpressions(IReadOnlyList<BaseExpression> expressions)
     {
         // If an expression contains both an aggregate and binary expression, we must run the binary
         // expressions after computing the aggregates
@@ -172,7 +210,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         // rewrite the expressions to reference the resulting column instead of the agg function
         // Ie. count(Id) + 4 -> col[count] + 4
 
-        IExpression ReplaceAggregate(IExpression expr)
+        BaseExpression ReplaceAggregate(BaseExpression expr)
         {
             if (expr is FunctionExpression f)
             {
@@ -187,7 +225,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                     };
                 }
 
-                var args = new IExpression[f.Args.Length];
+                var args = new BaseExpression[f.Args.Length];
                 for (var i = 0; i < args.Length; i++)
                 {
                     args[i] = ReplaceAggregate(f.Args[i]);
@@ -217,7 +255,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             throw new QueryPlanException($"Expression {expr} is not supported when aggregates are present.");
         }
 
-        var result = new List<IExpression>(expressions.Count);
+        var result = new List<BaseExpression>(expressions.Count);
         for (var i = 0; i < expressions.Count; i++)
         {
             // TODO I probably need to rebind some positional information?
@@ -227,7 +265,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         return result;
     }
 
-    private bool ExpressionContainsAggregate(IExpression expr)
+    private bool ExpressionContainsAggregate(BaseExpression expr)
     {
         // TODO need a generic way to traverse the tree, would clean this up a bit
         // return expr.Children.Any(ExpressionContainsAggregate)
@@ -253,16 +291,15 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
     private void BindAggregateExpressions(
         MemoryStorage memRef,
         MemoryBasedTable memTable,
-        List<ColumnSchema> allColumns,
-        List<IExpression> expressions,
-        List<IExpression> groupingExpressions
+        IReadOnlyList<ColumnSchema> allColumns,
+        IReadOnlyList<BaseExpression> expressions,
+        List<BaseExpression> groupingExpressions
         )
     {
         for (var i = 0; i < expressions.Count; i++)
         {
             var expr = expressions[i];
-            // expr.BoundIndex = i;
-            BindExpression(expr, allColumns);
+            //BindExpression(expr, allColumns);
 
             if (!ExpressionContainsAggregate(expr))
             {
@@ -297,209 +334,6 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
             memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
         }
-    }
-
-    private void BindExpression(IExpression expression, List<ColumnSchema> columns)
-    {
-        expression.BoundFunction = FunctionForExpression(expression, columns);
-        expression.BoundDataType = expression.BoundFunction.ReturnType;
-    }
-
-    private IFunction FunctionForExpression(IExpression expression, List<ColumnSchema> columns)
-    {
-        if (expression.BoundFunction != null)
-        {
-            return expression.BoundFunction;
-        }
-
-        if (expression is IntegerLiteral numInt)
-        {
-            return new LiteralFunction(-1, numInt.Literal, DataType.Int);
-        }
-
-        if (expression is DoubleLiteral num)
-        {
-            return new LiteralFunction(-1, num.Literal, DataType.Double);
-        }
-
-        if (expression is StringLiteral str)
-        {
-            return new LiteralFunction(-1, str.Literal, DataType.String);
-        }
-
-        if (expression is BoolLiteral b)
-        {
-            return new LiteralFunction(-1, b.Literal, DataType.Bool);
-        }
-
-        if (expression is DateLiteral d)
-        {
-            return new LiteralFunction(-1, d.Literal, DataType.Date);
-        }
-
-        if (expression is DateTimeLiteral dt)
-        {
-            return new LiteralFunction(-1, dt.Literal, DataType.DateTime);
-        }
-
-        if (expression is IntervalLiteral il)
-        {
-            return new LiteralFunction(-1, il.Literal, DataType.Interval);
-        }
-
-        if (expression is ColumnExpression column)
-        {
-            var (_, index, colType) = FindColumnIndex(columns, column);
-            return new SelectFunction(index, colType!.Value, bufferPool);
-        }
-
-        if (expression is BinaryExpression be)
-        {
-            BindExpression(be.Left, columns);
-            BindExpression(be.Right, columns);
-
-            var left = be.Left;
-            var right = be.Right;
-
-            if (left.BoundDataType == null || left.BoundDataType != right.BoundDataType)
-            {
-                // TODO automatic type casts?
-                throw new QueryPlanException(
-                    $"left and right expression types do not match. got {left.BoundDataType} != {right.BoundDataType}");
-            }
-
-            var args = new[] { left, right };
-            return (be.Operator) switch
-            {
-                EQUAL => _functions.BindFunction("=", args),
-                GREATER => _functions.BindFunction(">", args),
-                GREATER_EQUAL => _functions.BindFunction(">=", args),
-                LESS => _functions.BindFunction("<", args),
-                LESS_EQUAL => _functions.BindFunction("<=", args),
-                STAR => _functions.BindFunction("*", args),
-                PLUS => _functions.BindFunction("+", args),
-                MINUS => _functions.BindFunction("-", args),
-                SLASH => _functions.BindFunction("/", args),
-                PERCENT => _functions.BindFunction("%", args),
-                _ => throw new QueryPlanException($"operator '{be.Operator}' not setup for binding yet"),
-            };
-        }
-
-        if (expression is FunctionExpression fn)
-        {
-            foreach (var arg in fn.Args)
-            {
-                BindExpression(arg, columns);
-            }
-            return _functions.BindFunction(fn.Name, fn.Args);
-        }
-
-        if (expression is StarExpression)
-        {
-            // TODO this is a bit of a hack
-            return new LiteralFunction(-1, 1, DataType.Int);
-        }
-
-        throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");
-    }
-
-    private (string, ColumnRef, DataType?) FindColumnIndex(List<ColumnSchema> columns, IExpression exp)
-    {
-        if (exp.BoundOutputColumn != default)
-        {
-            return (exp.Alias, exp.BoundOutputColumn, exp.BoundDataType);
-        }
-
-        // TODO we need to actually handle * and alias
-        if (exp is ColumnExpression column)
-        {
-            var colIdx = columns.FindIndex(c => c.Name == column.Column);
-            if (colIdx == -1)
-            {
-                throw new QueryPlanException($"Column '{column.Column}' does not exist on table");
-            }
-
-            var columnRef = columns[colIdx].ColumnRef;
-            return (column.Column, columnRef, columns[colIdx].DataType);
-        }
-        if (exp is FunctionExpression fun)
-        {
-            // Might need to eagerly bind functions so we have the datatypes
-            return (fun.Name, default, null); // function is bound to is position
-        }
-        if (exp is BinaryExpression b)
-        {
-            // probably want the literal text of the expression here to name the column
-            return (b.Alias, b.BoundOutputColumn, b.BoundDataType); // function is bound to is position
-        }
-        throw new QueryPlanException($"Unsupported expression type '{exp.GetType().Name}'");
-    }
-
-    private IExpression FoldConstantExpressions(IExpression expr)
-    {
-        if (expr is BinaryExpression b)
-        {
-            var left = FoldConstantExpressions(b.Left);
-            var right = FoldConstantExpressions(b.Right);
-
-            if (left is IntegerLiteral li && right is IntegerLiteral ri)
-            {
-                var result = b.Operator switch
-                {
-                    PLUS => li.Literal + ri.Literal,
-                    MINUS => li.Literal - ri.Literal,
-                    STAR => li.Literal * ri.Literal,
-                    SLASH => li.Literal / ri.Literal,
-                    PERCENT => li.Literal % ri.Literal,
-                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
-                };
-                return new IntegerLiteral(result);
-            }
-            if (left is DoubleLiteral ld && right is DoubleLiteral rd)
-            {
-                var result = b.Operator switch
-                {
-                    PLUS => ld.Literal + rd.Literal,
-                    MINUS => ld.Literal - rd.Literal,
-                    STAR => ld.Literal * rd.Literal,
-                    SLASH => ld.Literal / rd.Literal,
-                    PERCENT => ld.Literal % ld.Literal,
-                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
-                };
-                return new DoubleLiteral(result);
-            }
-            if (left is DateTimeLiteral ldt && right is IntervalLiteral ril)
-            {
-                var result = b.Operator switch
-                {
-                    PLUS => ldt.Literal + ril.Literal,
-                    MINUS => ldt.Literal - ril.Literal,
-                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
-                };
-                return new DateTimeLiteral(result);
-            }
-
-            return b with
-            {
-                Left = left,
-                Right = right,
-            };
-        }
-
-        if (expr is FunctionExpression f)
-        {
-            var args = new List<IExpression>(f.Args.Length);
-            foreach (var arg in f.Args)
-            {
-                args.Add(FoldConstantExpressions(arg));
-            }
-            return f with
-            {
-                Args = args.ToArray(),
-            };
-        }
-
-        return expr;
     }
 }
 

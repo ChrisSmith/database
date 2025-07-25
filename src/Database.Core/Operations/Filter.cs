@@ -9,7 +9,7 @@ public record Filter(
     ParquetPool BufferPool,
     MemoryBasedTable MemoryTable,
     IOperation Source,
-    IExpression Expression,
+    BaseExpression Expression,
     List<ColumnRef> OutputColumns
     ) : IOperation
 {
@@ -90,7 +90,6 @@ public record Filter(
                 var column = ColumnHelper.CreateColumn(
                     columnType,
                     sourceColumn.Name,
-                    i,
                     values);
                 column.SetValues(sourceColumn.ValuesArray, keep);
 

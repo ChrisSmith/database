@@ -17,10 +17,10 @@ public class ParquetPoolTests
         table.AddColumnToSchema("bar", DataType.String);
 
         var colRef1 = new ColumnRef(memRef, 0, 0);
-        table.PutColumn(colRef1, ColumnHelper.CreateColumn(typeof(int), "foo", 0, new int[] { 1, 2, 3 }));
+        table.PutColumn(colRef1, ColumnHelper.CreateColumn(typeof(int), "foo", new int[] { 1, 2, 3 }));
 
         var colRef2 = new ColumnRef(memRef, 0, 1);
-        table.PutColumn(colRef2, ColumnHelper.CreateColumn(typeof(string), "bar", 1, new string[] { "one", "two", "three" }));
+        table.PutColumn(colRef2, ColumnHelper.CreateColumn(typeof(string), "bar", new string[] { "one", "two", "three" }));
 
         var column = table.GetColumn(colRef1);
         column.Name.Should().Be("foo");

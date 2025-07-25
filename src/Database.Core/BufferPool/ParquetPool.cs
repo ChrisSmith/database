@@ -67,6 +67,7 @@ public class ParquetPool
         }
     }
 
+    // TODO add some descritive info in here for debugging, like a name, how it was created
     public MemoryStorage OpenMemoryTable()
     {
         var id = (TableId)(--_nextMemoryTableId);
@@ -106,7 +107,7 @@ public class ParquetPool
         var field = handle.DataFields[columnRef.Column];
         var parquetCol = reader.ReadColumnAsync(field).GetAwaiter().GetResult();
         var (targetType, finalCopy) = TypeConversion.RemoveNullablesHack(parquetCol, field);
-        var columnObj = ColumnHelper.CreateColumn(targetType, field.Name, columnRef.Column, finalCopy);
+        var columnObj = ColumnHelper.CreateColumn(targetType, field.Name, finalCopy);
         _columnCache.Add(columnRef, columnObj);
         return columnObj;
     }

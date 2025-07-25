@@ -41,7 +41,7 @@ public record RowGroup(
         for (var i = 0; i < numCol; i++)
         {
             var columnType = firstRow.Values[i]!.GetType();
-            columns.Add(IColumn.CreateColumn(columnType, $"col{i}", i, rows.Count));
+            columns.Add(IColumn.CreateColumn(columnType, $"col{i}", rows.Count));
             var values = (Array)columns[i].ValuesArray;
 
             for (var j = 0; j < rows.Count; j++)

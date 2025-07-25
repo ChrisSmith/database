@@ -6,13 +6,13 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public class ProjectionBinaryEval(ParquetPool BufferPool, IOperation Source, List<IExpression> expressions) : IOperation
+public class ProjectionBinaryEval(ParquetPool bufferPool, IOperation source, List<BaseExpression> expressions) : IOperation
 {
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
     public RowGroup? Next()
     {
-        var next = Source.Next();
+        var next = source.Next();
         if (next is null)
         {
             return null;
@@ -30,12 +30,11 @@ public class ProjectionBinaryEval(ParquetPool BufferPool, IOperation Source, Lis
             var column = ColumnHelper.CreateColumn(
                 fun.ReturnType.ClrTypeFromDataType(),
                 expr.Alias,
-                i,
                 columnRes.ValuesArray
             );
 
             var columnRef = expr.BoundOutputColumn;
-            BufferPool.WriteColumn(columnRef, column, rowGroup);
+            bufferPool.WriteColumn(columnRef, column, rowGroup);
             newColumns.Add(columnRef);
         }
 

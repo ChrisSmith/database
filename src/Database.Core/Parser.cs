@@ -38,7 +38,7 @@ public class Parser
             var selectList = ParseSelectListStatement();
             var from = ParseFromStatement();
 
-            IExpression? where = null;
+            BaseExpression? where = null;
             GroupByStatement? group = null;
             OrderByStatement? order = null;
 
@@ -67,7 +67,7 @@ public class Parser
     {
         Consume(BY, "Expected BY after GROUP");
 
-        var expressions = new List<IExpression> { };
+        var expressions = new List<BaseExpression> { };
         while (!IsAtEnd())
         {
             expressions.Add(ParseExpr());
@@ -111,7 +111,7 @@ public class Parser
         return new OrderByStatement(expressions);
     }
 
-    private IExpression ParseWhereStatement()
+    private BaseExpression ParseWhereStatement()
     {
         return ParseExpr();
     }
@@ -143,7 +143,7 @@ public class Parser
             isDistinct = Match(DISTINCT);
         }
 
-        var expressions = new List<IExpression> { };
+        var expressions = new List<BaseExpression> { };
         while (!IsAtEnd())
         {
             expressions.Add(ParseSelectExpression());
@@ -166,7 +166,7 @@ public class Parser
     // select * from table
     // select * from table where
 
-    private IExpression ParseSelectExpression()
+    private BaseExpression ParseSelectExpression()
     {
         if (Match(STAR))
         {
@@ -189,7 +189,7 @@ public class Parser
         if (Match(AS))
         {
             var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
-            expr.Alias = alias;
+            return expr with { Alias = alias };
         }
 
         return expr;
@@ -220,7 +220,7 @@ public class Parser
         return new OrderingExpression(expr, ascending);
     }
 
-    private IExpression ParseExpr()
+    private BaseExpression ParseExpr()
     {
         var expr = ParseOr();
 
@@ -237,7 +237,7 @@ public class Parser
         return expr;
     }
 
-    private IExpression ParseOr()
+    private BaseExpression ParseOr()
     {
         var and = ParseAnd();
         if (Match(OR, out var token))
@@ -249,7 +249,7 @@ public class Parser
         return and;
     }
 
-    private IExpression ParseAnd()
+    private BaseExpression ParseAnd()
     {
         var not = ParseNot();
         if (Match(AND, out var token))
@@ -261,7 +261,7 @@ public class Parser
         return not;
     }
 
-    private IExpression ParseNot()
+    private BaseExpression ParseNot()
     {
         var equality = ParseEquality();
         if (Match(NOT, out var token))
@@ -273,7 +273,7 @@ public class Parser
         return equality;
     }
 
-    private IExpression ParseEquality()
+    private BaseExpression ParseEquality()
     {
         var plus = ParsePlusMinus();
         if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, BETWEEN))
@@ -285,7 +285,7 @@ public class Parser
         return plus;
     }
 
-    private IExpression ParsePlusMinus()
+    private BaseExpression ParsePlusMinus()
     {
         var plus = ParseMultiplication();
         if (Match(out var token, PLUS, MINUS))
@@ -297,7 +297,7 @@ public class Parser
         return plus;
     }
 
-    private IExpression ParseMultiplication()
+    private BaseExpression ParseMultiplication()
     {
         var value = SingleParseExpr();
         if (Match(out var token, STAR, SLASH, PERCENT))
@@ -312,7 +312,7 @@ public class Parser
     /**
      * A single literal, column, switch or function invocation
      */
-    private IExpression SingleParseExpr()
+    private BaseExpression SingleParseExpr()
     {
         // https://www.sqlite.org/syntax/expr.html
 
@@ -397,7 +397,7 @@ public class Parser
         throw new ParseException(Peek(), "Expected expression");
     }
 
-    private IExpression[] ParseFunctionArguments()
+    private BaseExpression[] ParseFunctionArguments()
     {
         // https://www.sqlite.org/syntax/function-arguments.html
         // TODO distinct + order by
@@ -413,7 +413,7 @@ public class Parser
             return [new StarExpression()];
         }
 
-        var arguments = new List<IExpression>();
+        var arguments = new List<BaseExpression>();
         do
         {
             arguments.Add(ParseExpr());

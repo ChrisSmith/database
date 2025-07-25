@@ -16,7 +16,7 @@ public record SelectFunction(ColumnRef ColumnRef, DataType ReturnType, ParquetPo
     }
 }
 
-public record LiteralFunction(int Index, object Value, DataType ReturnType) : IFunction
+public record LiteralFunction(object Value, DataType ReturnType) : IFunction
 {
     public IColumn MaterializeColumn(int length)
     {
@@ -30,7 +30,6 @@ public record LiteralFunction(int Index, object Value, DataType ReturnType) : IF
         var column = ColumnHelper.CreateColumn(
             type,
             "foo",
-            Index,
             outputArray);
 
         return column;

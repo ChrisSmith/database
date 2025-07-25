@@ -4,7 +4,7 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOperation
+public record Aggregate(IOperation Source, IReadOnlyList<BaseExpression> Expressions) : IOperation
 {
     private bool _done = false;
 

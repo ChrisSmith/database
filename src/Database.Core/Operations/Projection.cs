@@ -6,7 +6,7 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Projection(ParquetPool BufferPool, IOperation Source, List<IExpression> Expressions) : IOperation
+public record Projection(ParquetPool BufferPool, IOperation Source, IReadOnlyList<BaseExpression> Expressions) : IOperation
 {
     private ExpressionInterpreter _interpreter = new();
 
@@ -39,7 +39,6 @@ public record Projection(ParquetPool BufferPool, IOperation Source, List<IExpres
             var column = ColumnHelper.CreateColumn(
                 fun.ReturnType.ClrTypeFromDataType(),
                 expr.Alias,
-                i,
                 columnRes.ValuesArray
             );
             var columnRef = expr.BoundOutputColumn;
