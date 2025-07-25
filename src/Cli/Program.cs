@@ -197,7 +197,7 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
 
     var plan = queryPlanner.CreatePlan(statement);
 
-    var it = new Interpreter();
+    var it = new Interpreter(bufferPool);
     var result = it.Execute(plan).ToList();
     stopwatch.Stop();
 
@@ -207,7 +207,7 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
     Console.WriteLine($"{numRows} rows in {stopwatch.ElapsedMilliseconds:N}ms");
 }
 
-void PrintTable(List<RowGroup> result)
+void PrintTable(List<MaterializedRowGroup> result)
 {
     var rg = result[0];
     var columnHeader = string.Join(", ", rg.Columns.Select(c => c.Name));

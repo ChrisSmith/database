@@ -12,6 +12,8 @@ public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOpe
 
     public RowGroup? Next()
     {
+        throw new NotImplementedException();
+        /**
         if (_done)
         {
             return null;
@@ -70,5 +72,6 @@ public record Aggregate(IOperation Source, List<IExpression> Expressions) : IOpe
 
         _done = true;
         return result;
+        **/
     }
 }

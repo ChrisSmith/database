@@ -1,4 +1,5 @@
 using Database.Core.BufferPool;
+using Database.Core.Catalog;
 using Database.Core.Execution;
 using FluentAssertions;
 
@@ -10,8 +11,10 @@ public class ParquetPoolTests
     public void WriteToMemoryTable()
     {
         var pool = new ParquetPool();
-        var memRef = pool.OpenMemoryTable(2);
+        var memRef = pool.OpenMemoryTable();
         var table = pool.GetMemoryTable(memRef.TableId);
+        table.AddColumnToSchema("foo", DataType.Int);
+        table.AddColumnToSchema("bar", DataType.String);
 
         var colRef1 = new ColumnRef(memRef, 0, 0);
         table.PutColumn(colRef1, ColumnHelper.CreateColumn(typeof(int), "foo", 0, new int[] { 1, 2, 3 }));

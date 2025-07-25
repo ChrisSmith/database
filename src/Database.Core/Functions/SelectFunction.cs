@@ -1,14 +1,18 @@
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 
 namespace Database.Core.Functions;
 
-public record SelectFunction(int Index, DataType ReturnType) : IFunction
+public record SelectFunction(ColumnRef ColumnRef, DataType ReturnType, ParquetPool BufferPool) : IFunction
 {
     public IColumn SelectColumn(RowGroup rowGroup)
     {
-        // TODO copy w/ new alias / bound index on the IColumn
-        return rowGroup.Columns[Index];
+        var column = BufferPool.GetColumn(ColumnRef with
+        {
+            RowGroup = rowGroup.RowGroupRef.RowGroup,
+        });
+        return column;
     }
 }
 

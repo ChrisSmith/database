@@ -1,4 +1,5 @@
 using Database.Core.BufferPool;
+using Database.Core.Execution;
 using Parquet.Schema;
 
 namespace Database.Core.Catalog;
@@ -15,6 +16,7 @@ public record Catalog(ParquetPool BufferPool)
         var handle = BufferPool.OpenFile(path);
         var reader = handle.Reader;
         var meta = reader.Metadata ?? throw new Exception("No metadata");
+        var tableRef = new ParquetStorage(handle);
 
         var numColumns = handle.DataFields.Length;
         var schema = new List<ColumnSchema>(numColumns);
@@ -23,7 +25,9 @@ public record Catalog(ParquetPool BufferPool)
             var field = handle.DataFields[i];
             var columnId = (ColumnId)(++_nextColumnId);
 
+            var columnRef = new ColumnRef(tableRef, -1, i);
             schema.Add(new ColumnSchema(
+                columnRef,
                 columnId,
                 field.Name,
                 field.ClrType.DataTypeFromClrType(),
@@ -47,6 +51,7 @@ public record Catalog(ParquetPool BufferPool)
         }
 
         var table = new TableSchema(
+            tableRef,
             id,
             name,
             schema,
@@ -56,5 +61,15 @@ public record Catalog(ParquetPool BufferPool)
             rowGroups
             );
         Tables.Add(table);
+    }
+
+    public TableSchema GetTable(TableId id)
+    {
+        return Tables.First(table => table.Id == id);
+    }
+
+    public TableSchema GetTableByPath(string path)
+    {
+        return Tables.First(table => table.Location == path);
     }
 }

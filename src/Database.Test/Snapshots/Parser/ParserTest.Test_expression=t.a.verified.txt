@@ -5,7 +5,6 @@
       {
         Column: a,
         Table: t,
-        BoundIndex: -1,
         Alias: a
       }
     ]

@@ -10,4 +10,4 @@ public record struct ParquetStorage(ParquetFileHandle Handle) : IStorageLocation
 
 public record struct ColumnRef(IStorageLocation Storage, int RowGroup, int Column);
 
-public record struct RowRef(ColumnRef ColumnRef, long Row);
+public record struct RowGroupRef(int RowGroup);

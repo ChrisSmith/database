@@ -67,11 +67,12 @@ public class ParquetPool
         }
     }
 
-    public MemoryStorage OpenMemoryTable(int numColumns)
+    public MemoryStorage OpenMemoryTable()
     {
         var id = (TableId)(--_nextMemoryTableId);
-        _memoryTables.Add(id, new MemoryBasedTable(numColumns));
-        return new MemoryStorage(id);
+        var storage = new MemoryStorage(id);
+        _memoryTables.Add(id, new MemoryBasedTable(storage));
+        return storage;
     }
 
     public MemoryBasedTable GetMemoryTable(TableId id)
@@ -81,20 +82,23 @@ public class ParquetPool
 
     public IColumn GetColumn(ColumnRef columnRef)
     {
-        if (_columnCache.TryGetValue(columnRef, out var column))
-        {
-            return column;
-        }
-
         if (columnRef.Storage is MemoryStorage storage)
         {
             var table = _memoryTables[storage.TableId];
             return table.GetColumn(columnRef);
         }
 
+        if (_columnCache.TryGetValue(columnRef, out var column))
+        {
+            return column;
+        }
         if (columnRef.Storage is not ParquetStorage parquet)
         {
             throw new Exception($"unexpected storage type {columnRef.Storage.GetType().Name} for column ref");
+        }
+        if (columnRef.RowGroup < 0)
+        {
+            throw new Exception($"row group cannot be negative for parquet storage. {columnRef}");
         }
 
         var handle = parquet.Handle;
@@ -107,11 +111,28 @@ public class ParquetPool
         return columnObj;
     }
 
-    public T GetValue<T>(RowRef rowRef)
+    public void WriteColumn(ColumnRef columnRef, IColumn column, int rowGroup)
     {
-        var column = GetColumn(rowRef.ColumnRef);
-        return (T)column[rowRef.Row]!;
+        if (columnRef == default)
+        {
+            throw new Exception("Column reference not set");
+        }
+        if (columnRef.Storage is not MemoryStorage memRef)
+        {
+            throw new Exception($"Column reference expected to be memory storage but got {columnRef.Storage}");
+        }
+        var table = GetMemoryTable(memRef.TableId);
+        table.PutColumn(columnRef with
+        {
+            RowGroup = rowGroup,
+        }, column);
     }
+
+    // public T GetValue<T>(RowRef rowRef)
+    // {
+    //     var column = GetColumn(rowRef.ColumnRef);
+    //     return (T)column[rowRef.Row]!;
+    // }
 
     private RefCounter<ParquetFileHandle> OpenReader(string path)
     {

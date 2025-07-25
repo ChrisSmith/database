@@ -1,3 +1,4 @@
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
@@ -5,7 +6,7 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public class ProjectionBinaryEval(TableSchema Schema, IOperation Source, List<IExpression> expressions) : IOperation
+public class ProjectionBinaryEval(ParquetPool BufferPool, IOperation Source, List<IExpression> expressions) : IOperation
 {
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
@@ -16,13 +17,9 @@ public class ProjectionBinaryEval(TableSchema Schema, IOperation Source, List<IE
         {
             return null;
         }
-        var newColumns = new List<IColumn>(Schema.Columns.Count);
-        var nonExpressionColumns = Schema.Columns.Count - expressions.Count;
-        for (var i = 0; i < nonExpressionColumns; i++)
-        {
-            var column = next.Columns[i];
-            newColumns.Add(column);
-        }
+
+        var newColumns = new List<ColumnRef>(next.Columns);
+        var rowGroup = next.RowGroupRef.RowGroup;
 
         for (var i = 0; i < expressions.Count; i++)
         {
@@ -30,18 +27,22 @@ public class ProjectionBinaryEval(TableSchema Schema, IOperation Source, List<IE
             var fun = expr.BoundFunction!;
 
             var columnRes = _interpreter.Execute(expr, next);
-
-            var columnInSchema = Schema.Columns[nonExpressionColumns + i];
             var column = ColumnHelper.CreateColumn(
                 fun.ReturnType.ClrTypeFromDataType(),
-                columnInSchema.Name,
+                expr.Alias,
                 i,
                 columnRes.ValuesArray
             );
-            newColumns.Add((IColumn)column);
+
+            var columnRef = expr.BoundOutputColumn;
+            BufferPool.WriteColumn(columnRef, column, rowGroup);
+            newColumns.Add(columnRef);
         }
 
-        var newRowGroup = new RowGroup(newColumns);
-        return newRowGroup;
+        return new RowGroup(
+            next.NumRows,
+            next.RowGroupRef,
+            newColumns
+        );
     }
 }

@@ -93,7 +93,7 @@ public class ExpressionInterpreter
         var column = ColumnHelper.CreateColumn(
             fun.ReturnType.ClrTypeFromDataType(),
             expr.Alias,
-            expr.BoundIndex,
+            expr.BoundOutputColumn.Column,
             outputArray
             );
         return column;

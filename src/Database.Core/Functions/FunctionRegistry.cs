@@ -118,7 +118,7 @@ public class FunctionRegistry
         }));
     }
 
-    public IFunction BindFunction(string name, IExpression[] args, TableSchema table)
+    public IFunction BindFunction(string name, IExpression[] args)
     {
         if (!_funcs.TryGetValue(name, out var func))
         {

@@ -1,12 +1,14 @@
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
+using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Projection(TableSchema Schema, IOperation Source, List<IExpression> Expressions) : IOperation
+public record Projection(ParquetPool BufferPool, IOperation Source, List<IExpression> Expressions) : IOperation
 {
-    private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
+    private ExpressionInterpreter _interpreter = new();
 
     public RowGroup? Next()
     {
@@ -16,13 +18,23 @@ public record Projection(TableSchema Schema, IOperation Source, List<IExpression
             return null;
         }
 
-        var newColumns = new List<IColumn>(Expressions.Count);
+        var newColumns = new List<ColumnRef>(Expressions.Count);
+        var group = rowGroup.RowGroupRef.RowGroup;
 
         for (var i = 0; i < Expressions.Count; i++)
         {
             var expr = Expressions[i];
             var fun = expr.BoundFunction!;
 
+            // Select function references existing data, return a pointer to it
+            if (fun is SelectFunction sel)
+            {
+                newColumns.Add(sel.ColumnRef);
+                continue;
+            }
+
+            // Other functions will need to be materialized
+            // Drop them into the buffer pool
             var columnRes = _interpreter.Execute(expr, rowGroup);
             var column = ColumnHelper.CreateColumn(
                 fun.ReturnType.ClrTypeFromDataType(),
@@ -30,10 +42,15 @@ public record Projection(TableSchema Schema, IOperation Source, List<IExpression
                 i,
                 columnRes.ValuesArray
             );
-            newColumns.Add(column);
+            var columnRef = expr.BoundOutputColumn;
+            BufferPool.WriteColumn(columnRef, column, group);
+            newColumns.Add(columnRef);
         }
 
-        var newRowGroup = new RowGroup(newColumns);
-        return newRowGroup;
+        return new RowGroup(
+            rowGroup.NumRows,
+            rowGroup.RowGroupRef,
+            newColumns
+            );
     }
 }

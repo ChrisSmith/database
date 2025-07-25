@@ -18,15 +18,15 @@ public class ExecutionTest
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 
-    private List<RowGroup> Query(string query)
+    private List<MaterializedRowGroup> Query(string query)
     {
         var scanner = new Scanner(query);
         var tokens = scanner.ScanTokens();
         var parser = new Parser(tokens);
         var statement = parser.Parse();
 
-        var it = new Interpreter();
         var bufferPool = new ParquetPool();
+        var it = new Interpreter(bufferPool);
         var planner = new QueryPlanner(_catalog, bufferPool);
         var plan = planner.CreatePlan(statement);
         var result = it.Execute(plan).ToList();

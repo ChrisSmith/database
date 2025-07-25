@@ -8,6 +8,8 @@ public record Distinct(IOperation Source) : IOperation
 
     public RowGroup? Next()
     {
+        throw new NotImplementedException();
+        /**
         var rowGroup = Source.Next();
         if (rowGroup == null)
         {
@@ -40,7 +42,7 @@ public record Distinct(IOperation Source) : IOperation
 
         var uniqueList = _unique.ToList();
 
-        var result = new RowGroup(new List<IColumn>(numColumns));
+        var result = new RowGroup(new List<RowRef>(numColumns));
         for (var i = 0; i < numColumns; i++)
         {
             var columnType = columns[i].Type;
@@ -63,5 +65,6 @@ public record Distinct(IOperation Source) : IOperation
 
         // How do we determine the chunk size now?
         return result;
+        **/
     }
 }

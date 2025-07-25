@@ -13,6 +13,8 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
 
     public RowGroup? Next()
     {
+        throw new NotFiniteNumberException();
+        /**
         if (_done)
         {
             return null;
@@ -96,7 +98,7 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
 
         var aggIdx = 0;
         // create empty rowgroup we'll fill in below
-        var result = new RowGroup(new List<IColumn>(Expressions.Count));
+        var result = new RowGroup(new List<RowRef>(Expressions.Count));
         for (var i = 0; i < Expressions.Count; i++)
         {
             var expression = Expressions[i];
@@ -134,5 +136,6 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
 
         _done = true;
         return result;
+        **/
     }
 }

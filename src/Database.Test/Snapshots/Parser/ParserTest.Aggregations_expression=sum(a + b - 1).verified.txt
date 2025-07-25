@@ -9,29 +9,23 @@
             Operator: PLUS,
             Left: {
               Column: a,
-              BoundIndex: -1,
               Alias: a
             },
             Right: {
               Operator: STAR,
               Left: {
                 Column: b,
-                BoundIndex: -1,
                 Alias: b
               },
               Right: {
                 Literal: 1,
-                BoundIndex: -1,
                 Alias: 
               },
-              BoundIndex: -1,
               Alias: 
             },
-            BoundIndex: -1,
             Alias: 
           }
         ],
-        BoundIndex: -1,
         Alias: 
       }
     ]

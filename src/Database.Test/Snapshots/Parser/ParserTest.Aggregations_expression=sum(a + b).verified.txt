@@ -9,19 +9,15 @@
             Operator: PLUS,
             Left: {
               Column: a,
-              BoundIndex: -1,
               Alias: a
             },
             Right: {
               Column: b,
-              BoundIndex: -1,
               Alias: b
             },
-            BoundIndex: -1,
             Alias: 
           }
         ],
-        BoundIndex: -1,
         Alias: 
       }
     ]
