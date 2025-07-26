@@ -13,11 +13,7 @@ public record HashAggregate(
     MemoryBasedTable GroupingTable,
     List<BaseExpression> OutputExpressions, // grouping columns + aggregates
     List<ColumnSchema> OutputColumns,
-    List<ColumnRef> OutputColumnRefs,
-    MemoryBasedTable OutputTable2,
-    List<BaseExpression> OutputExpressions2, // projection expressions
-    List<ColumnSchema> OutputColumns2,
-    List<ColumnRef> OutputColumnRefs2
+    List<ColumnRef> OutputColumnRefs
     ) : IOperation
 {
     private bool _done = false;
@@ -110,44 +106,9 @@ public record HashAggregate(
         var resRows = hashToAggState.ToList();
         var groupedRowGroup = FromRows(resRows);
 
-        var outputRowGroup = OutputTable2.AddRowGroup();
-
-        var aggIdx = 0;
-
-        // TODO I think I can remove the projection here entirely now
-        for (var i = 0; i < OutputExpressions2.Count; i++)
-        {
-            var expression = OutputExpressions2[i];
-            var columnSchema = OutputColumns2[i];
-            var column = IColumn.CreateColumn(columnSchema.ClrType, columnSchema.Name, resRows.Count);
-            var values = column.ValuesArray;
-
-            if (expression.BoundFunction is IAggregateFunction aggFn)
-            {
-                for (var j = 0; j < resRows.Count; j++)
-                {
-                    var (key, states) = resRows[j];
-                    var state = states[aggIdx];
-                    var value = aggFn.GetValue(state);
-                    values.SetValue(value, j);
-                }
-                aggIdx++;
-            }
-            else
-            {
-                var columnRes = _interpreter.Execute(expression, groupedRowGroup);
-                Array.Copy(columnRes.ValuesArray, values, columnRes.Length);
-            }
-
-            BufferPool.WriteColumn(columnSchema.ColumnRef, column, outputRowGroup.RowGroup);
-        }
-
         _done = true;
 
-        return new RowGroup(
-            groupedRowGroup.NumRows,
-            outputRowGroup,
-            OutputColumnRefs2);
+        return groupedRowGroup;
     }
 
     private RowGroup FromRows(List<KeyValuePair<Row, List<IAggregateState>>> resRows)

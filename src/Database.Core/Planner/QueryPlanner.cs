@@ -1,4 +1,3 @@
-using System.Diagnostics.Contracts;
 using System.Net;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
@@ -40,13 +39,6 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         if (expressions.Any(ExpressionContainsAggregate) || groupingExprs.Count > 0)
         {
-            BindAggregateExpressions(
-                memRef,
-                memTable,
-                inputColumns,
-                expressions,
-                groupingExprs);
-
             if (groupingExprs.Count > 0)
             {
                 (source, expressions, inputColumns) = CreateHashAggregate(source, inputColumns, expressions, groupingExprs);
@@ -190,42 +182,18 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumns.Add(newColumn);
         }
 
-
-        // Transformation 2. Expressions
-        expressions = RemoveAggregatesFromExpressions(expressions);
-        expressions = _binder.Bind(expressions, outputColumns);
-
-        var memRef2 = bufferPool.OpenMemoryTable();
-        var memTable2 = bufferPool.GetMemoryTable(memRef2.TableId);
-
-        var outputExpressions2 = new List<BaseExpression>(expressions.Count);
-        var outputColumns2 = new List<ColumnSchema>(expressions.Count);
-        for (var i = 0; i < expressions.Count; i++)
-        {
-            var expr = expressions[i];
-            var newColumn = memTable2.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
-
-            outputExpressions2.Add(expr with
-            {
-                BoundOutputColumn = newColumn.ColumnRef,
-            });
-            outputColumns2.Add(newColumn);
-        }
-
         var op = new HashAggregate(
             bufferPool,
             source,
             memTable1,
             outputExpressions,
             outputColumns,
-            outputColumns.Select(c => c.ColumnRef).ToList(),
+            outputColumns.Select(c => c.ColumnRef).ToList());
 
-            memTable2,
-            outputExpressions2,
-            outputColumns2,
-            outputColumns2.Select(c => c.ColumnRef).ToList());
+        expressions = RemoveAggregatesFromExpressions(expressions);
+        expressions = _binder.Bind(expressions, outputColumns);
 
-        return (op, outputExpressions2, outputColumns2);
+        return (op, expressions, outputColumns);
     }
 
     private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateSort(
@@ -304,9 +272,10 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         var op = new Aggregate(bufferPool, memTable, source, outputExpressions, outputColumnRefs);
 
-        outputExpressions = RemoveAggregatesFromExpressions(outputExpressions);
+        expressions = RemoveAggregatesFromExpressions(expressions);
+        expressions = _binder.Bind(expressions, outputColumns);
 
-        return (op, outputExpressions, outputColumns);
+        return (op, expressions, outputColumns);
     }
 
     private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) MaterializeProjection(
@@ -501,57 +470,6 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             }
         }
         return false;
-    }
-
-    // TODO I feel like I can remove this now
-    [Pure]
-    private void BindAggregateExpressions(
-        MemoryStorage memRef,
-        MemoryBasedTable memTable,
-        IReadOnlyList<ColumnSchema> allColumns,
-        IReadOnlyList<BaseExpression> expressions,
-        IReadOnlyList<BaseExpression> groupingExpressions
-        )
-    {
-        for (var i = 0; i < expressions.Count; i++)
-        {
-            var expr = _binder.Bind(expressions[i], allColumns);
-
-            if (!ExpressionContainsAggregate(expr))
-            {
-                // If its an alias, see if its a grouping
-                // If it is, update the bound index of the column
-                var isGrouping = false;
-                for (var j = 0; j < groupingExpressions.Count; j++)
-                {
-                    var gExpr = groupingExpressions[j];
-                    if (gExpr.Alias == expr.Alias)
-                    {
-                        // TODO need to be recursive for everything in this expression?
-                        // need to bind to a separate schema?
-                        if (expr.BoundFunction is SelectFunction s)
-                        {
-                            expr = expr with
-                            {
-                                BoundFunction = s with
-                                {
-                                    // ColumnRef =
-                                }
-                            };
-                        }
-                        isGrouping = true;
-                        break;
-                    }
-                }
-
-                if (!isGrouping)
-                {
-                    throw new QueryPlanException($"expression '{expr}' is not an aggregate function");
-                }
-            }
-            // TODO some in the grouping will be columns to hold constant
-            // var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
-        }
     }
 }
 

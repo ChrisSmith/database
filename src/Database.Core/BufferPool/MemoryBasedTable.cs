@@ -23,6 +23,12 @@ public class MemoryBasedTable(MemoryStorage storage)
 
     public ColumnSchema AddColumnToSchema(string name, DataType type)
     {
+        if (name == "")
+        {
+            // TODO this currently breaks because I'm not generating unique column names
+            // throw new Exception("Column name cannot be empty");
+        }
+
         var columnId = NumColumns;
         var columnRef = new ColumnRef(storage, -1, columnId);
         var newColumn = new ColumnSchema(
