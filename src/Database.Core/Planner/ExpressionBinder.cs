@@ -13,13 +13,14 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
     [Pure]
     public IReadOnlyList<BaseExpression> Bind(
         IReadOnlyList<BaseExpression> expressions,
-        IReadOnlyList<ColumnSchema> columns
+        IReadOnlyList<ColumnSchema> columns,
+        bool ignoreMissingColumns = false
     )
     {
         var result = new List<BaseExpression>(expressions.Count);
         foreach (var expr in expressions)
         {
-            result.Add(Bind(expr, columns));
+            result.Add(Bind(expr, columns, ignoreMissingColumns));
         }
         return result;
     }
@@ -27,10 +28,11 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
     [Pure]
     public BaseExpression Bind(
         BaseExpression expression,
-        IReadOnlyList<ColumnSchema> columns
+        IReadOnlyList<ColumnSchema> columns,
+        bool ignoreMissingColumns = false
         )
     {
-        var fun = FunctionForExpression(expression, columns);
+        var fun = FunctionForExpression(expression, columns, ignoreMissingColumns);
         var alias = expression.Alias;
         if (expression is BinaryExpression b && alias == "")
         {
@@ -48,8 +50,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         {
             return be with
             {
-                Left = Bind(be.Left, columns),
-                Right = Bind(be.Right, columns),
+                Left = Bind(be.Left, columns, ignoreMissingColumns),
+                Right = Bind(be.Right, columns, ignoreMissingColumns),
             };
         }
 
@@ -58,7 +60,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             var boundArgs = new BaseExpression[fn.Args.Length];
             for (var i = 0; i < fn.Args.Length; i++)
             {
-                boundArgs[i] = Bind(fn.Args[i], columns);
+                boundArgs[i] = Bind(fn.Args[i], columns, ignoreMissingColumns);
             }
 
             return fn with
@@ -71,9 +73,10 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
     }
 
     [Pure]
-    public IFunction FunctionForExpression(
+    private IFunction FunctionForExpression(
         BaseExpression expression,
-        IReadOnlyList<ColumnSchema> columns
+        IReadOnlyList<ColumnSchema> columns,
+        bool ignoreMissingColumns
         )
     {
         if (expression is IntegerLiteral numInt)
@@ -113,14 +116,14 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
 
         if (expression is ColumnExpression column)
         {
-            var (_, columnRef, colType) = FindColumnIndex(columns, column);
+            var (_, columnRef, colType) = FindColumnIndex(columns, column, ignoreMissingColumns);
             return new SelectFunction(columnRef, colType!.Value, bufferPool);
         }
 
         if (expression is BinaryExpression be)
         {
-            var left = Bind(be.Left, columns);
-            var right = Bind(be.Right, columns);
+            var left = Bind(be.Left, columns, ignoreMissingColumns);
+            var right = Bind(be.Right, columns, ignoreMissingColumns);
 
             if (left.BoundDataType == null || left.BoundDataType != right.BoundDataType)
             {
@@ -151,7 +154,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             var boundArgs = new BaseExpression[fn.Args.Length];
             for (var i = 0; i < fn.Args.Length; i++)
             {
-                boundArgs[i] = Bind(fn.Args[i], columns);
+                boundArgs[i] = Bind(fn.Args[i], columns, ignoreMissingColumns);
             }
             return functions.BindFunction(fn.Name, boundArgs);
         }
@@ -165,7 +168,11 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");
     }
 
-    private static (string, ColumnRef, DataType?) FindColumnIndex(IReadOnlyList<ColumnSchema> columns, BaseExpression exp)
+    private static (string, ColumnRef, DataType?) FindColumnIndex(
+        IReadOnlyList<ColumnSchema> columns,
+        BaseExpression exp,
+        bool ignoreMissingColumns
+        )
     {
         // TODO we need to actually handle * and alias
         if (exp is ColumnExpression column)
@@ -173,6 +180,11 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             var col = columns.SingleOrDefault(c => c.Name == column.Column);
             if (col == null)
             {
+                if (ignoreMissingColumns)
+                {
+                    return (column.Column, default, DataType.Int);
+                }
+
                 var columnNames = string.Join(", ", columns.Select(c => c.Name));
                 throw new QueryPlanException($"Column '{column.Column}' was not found in list of available columns {columnNames}");
             }

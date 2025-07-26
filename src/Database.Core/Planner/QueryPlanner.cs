@@ -21,23 +21,12 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                 $"Unknown statement type '{statement.GetType().Name}'. Cannot create query plan.");
         }
 
-        var from = select.From;
-        var table = catalog.Tables.FirstOrDefault(t => t.Name == from.Table);
-        if (table == null)
-        {
-            throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
-        }
-
-        IReadOnlyList<ColumnSchema> inputColumns = table.Columns.Select(c => c).ToList();
-
-        IOperation source = new FileScan(bufferPool, table.Location, catalog);
-
         select = ConstantFolding.Fold(select);
+
+        (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) = CreateFileScan(select);
 
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
-
-        var expressions = _binder.Bind(select.SelectList.Expressions, inputColumns);
 
         (source, expressions, inputColumns) = MaterializeAdditionalColumns(memTable, inputColumns, expressions, source);
 
@@ -80,6 +69,85 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
 
         return new QueryPlan(source);
+    }
+
+    private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateFileScan(SelectStatement select)
+    {
+        var from = select.From;
+        var table = catalog.Tables.FirstOrDefault(t => t.Name == from.Table);
+        if (table == null)
+        {
+            throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
+        }
+
+        IReadOnlyList<ColumnSchema> inputColumns = table.Columns.Select(c => c).ToList();
+        inputColumns = FilterToUsedColumns(select, inputColumns);
+        var expressions = _binder.Bind(select.SelectList.Expressions, inputColumns);
+
+        var columnRefs = inputColumns.Select(c => c.ColumnRef).ToList();
+        var op = new FileScan(
+            bufferPool,
+            table.Location,
+            columnRefs
+            );
+        return (op, expressions, inputColumns);
+    }
+
+    private IReadOnlyList<ColumnSchema> FilterToUsedColumns(SelectStatement select, IReadOnlyList<ColumnSchema> inputColumns)
+    {
+        var expressions = _binder.Bind(select.SelectList.Expressions, inputColumns);
+        var usedColumns = new HashSet<ColumnRef>();
+
+        foreach (var expr in expressions)
+        {
+            ExtractUsedColumns(expr);
+        }
+
+        if (select.Where != null)
+        {
+            ExtractUsedColumns(_binder.Bind(select.Where, inputColumns, ignoreMissingColumns: true));
+        }
+        if (select.Group?.Expressions != null)
+        {
+            var grouping = _binder.Bind(select.Group.Expressions, inputColumns);
+            foreach (var expr in grouping)
+            {
+                ExtractUsedColumns(expr);
+            }
+        }
+        if (select.Order?.Expressions != null)
+        {
+            var unwrapped = select.Order.Expressions.Select(e => e.Expression).ToList();
+            var orderBy = _binder.Bind(unwrapped, inputColumns);
+            foreach (var expr in orderBy)
+            {
+                ExtractUsedColumns(expr);
+            }
+        }
+
+        void ExtractUsedColumns(BaseExpression expr)
+        {
+            if (expr.BoundFunction is SelectFunction s)
+            {
+                usedColumns.Add(s.ColumnRef);
+            }
+            if (expr is BinaryExpression b)
+            {
+                ExtractUsedColumns(b.Left);
+                ExtractUsedColumns(b.Right);
+            }
+            if (expr is FunctionExpression f)
+            {
+                foreach (var arg in f.Args)
+                {
+                    ExtractUsedColumns(arg);
+                }
+            }
+        }
+
+
+        var filtered = inputColumns.Where(c => usedColumns.Contains(c.ColumnRef)).ToList();
+        return filtered;
     }
 
     private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateHashAggregate(

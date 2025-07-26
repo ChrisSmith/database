@@ -5,7 +5,7 @@ namespace Database.Core.Execution;
 public record RowGroup(
     int NumRows,
     RowGroupRef RowGroupRef,
-    List<ColumnRef> Columns
+    IReadOnlyList<ColumnRef> Columns
     )
 {
     public int NumColumns => Columns.Count;

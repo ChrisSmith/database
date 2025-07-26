@@ -1,11 +1,15 @@
 using Database.Core.BufferPool;
+using Database.Core.Catalog;
 using Database.Core.Execution;
 using Parquet;
 using Parquet.Schema;
 
 namespace Database.Core.Operations;
 
-public record FileScan(ParquetPool BufferPool, string Path, Catalog.Catalog Catalog) : IOperation
+public record FileScan(
+    ParquetPool BufferPool,
+    string Path,
+    IReadOnlyList<ColumnRef> OutputColumnRefs) : IOperation
 {
     private ParquetReader? _reader = null;
     private int _group = -1;
@@ -34,13 +38,10 @@ public record FileScan(ParquetPool BufferPool, string Path, Catalog.Catalog Cata
 
         var rg = _reader.OpenRowGroupReader(_group);
 
-        var table = Catalog.GetTableByPath(Path);
-        var columnRefs = table.Columns.Select(c => c.ColumnRef).ToList();
-
         return new RowGroup(
             (int)rg.RowCount,
             new RowGroupRef(_group),
-            columnRefs
+            OutputColumnRefs
         );
     }
 }
