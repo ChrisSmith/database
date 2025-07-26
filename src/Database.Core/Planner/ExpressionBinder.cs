@@ -173,7 +173,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             var col = columns.SingleOrDefault(c => c.Name == column.Column);
             if (col == null)
             {
-                throw new QueryPlanException($"Column '{column.Column}' does not exist on table");
+                var columnNames = string.Join(", ", columns.Select(c => c.Name));
+                throw new QueryPlanException($"Column '{column.Column}' was not found in list of available columns {columnNames}");
             }
 
             return (column.Column, col.ColumnRef, col.DataType);

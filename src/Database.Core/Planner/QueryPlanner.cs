@@ -47,15 +47,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
 
         // grouping
-        var groupingExprs = select.Group?.Expressions ?? [];
-        if (groupingExprs.Count > 0)
-        {
-            for (var i = 0; i < groupingExprs.Count; i++)
-            {
-                var expr = groupingExprs[i];
-                _binder.Bind(expr, inputColumns);
-            }
-        }
+        var groupingExprs = _binder.Bind(select.Group?.Expressions ?? [], inputColumns);
 
         if (expressions.Any(ExpressionContainsAggregate) || groupingExprs.Count > 0)
         {
@@ -68,8 +60,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
             if (groupingExprs.Count > 0)
             {
-                source = new HashAggregate(source, expressions, groupingExprs);
-                expressions = RemoveAggregatesFromExpressions(expressions);
+                (source, expressions, inputColumns) = CreateHashAggregate(source, inputColumns, expressions, groupingExprs);
             }
             else
             {
@@ -79,7 +70,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         if (select.Order != null)
         {
-            (source, expressions, inputColumns) = CreateSort(source, inputColumns, expressions, select.Order.Expressions);
+            // (source, expressions, inputColumns) = CreateSort(source, inputColumns, expressions, select.Order.Expressions);
         }
 
         (source, expressions, inputColumns) = MaterializeProjection(source, inputColumns, expressions);
@@ -89,6 +80,84 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
 
         return new QueryPlan(source);
+    }
+
+    private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateHashAggregate(
+        IOperation source,
+        IReadOnlyList<ColumnSchema> inputColumns,
+        IReadOnlyList<BaseExpression> expressions,
+        IReadOnlyList<BaseExpression> groupingExprs)
+    {
+        groupingExprs = _binder.Bind(groupingExprs, inputColumns);
+
+        // Transformation 1. Grouping + Aggregation
+        var memRef1 = bufferPool.OpenMemoryTable();
+        var memTable1 = bufferPool.GetMemoryTable(memRef1.TableId);
+
+        var outputExpressions = new List<BaseExpression>(expressions.Count);
+        var outputColumns = new List<ColumnSchema>(expressions.Count);
+        for (var i = 0; i < groupingExprs.Count; i++)
+        {
+            var expr = groupingExprs[i];
+            var newColumn = memTable1.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+
+            outputExpressions.Add(expr with
+            {
+                BoundOutputColumn = newColumn.ColumnRef,
+            });
+            outputColumns.Add(newColumn);
+        }
+
+        var aggregateExpressions = expressions
+            .Where(e => e.BoundFunction is IAggregateFunction)
+            .ToList();
+
+        foreach (var expr in aggregateExpressions)
+        {
+            var newColumn = memTable1.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            outputExpressions.Add(expr with
+            {
+                BoundOutputColumn = newColumn.ColumnRef,
+            });
+            outputColumns.Add(newColumn);
+        }
+
+
+        // Transformation 2. Expressions
+        expressions = RemoveAggregatesFromExpressions(expressions);
+        expressions = _binder.Bind(expressions, outputColumns);
+
+        var memRef2 = bufferPool.OpenMemoryTable();
+        var memTable2 = bufferPool.GetMemoryTable(memRef2.TableId);
+
+        var outputExpressions2 = new List<BaseExpression>(expressions.Count);
+        var outputColumns2 = new List<ColumnSchema>(expressions.Count);
+        for (var i = 0; i < expressions.Count; i++)
+        {
+            var expr = expressions[i];
+            var newColumn = memTable2.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+
+            outputExpressions2.Add(expr with
+            {
+                BoundOutputColumn = newColumn.ColumnRef,
+            });
+            outputColumns2.Add(newColumn);
+        }
+
+        var op = new HashAggregate(
+            bufferPool,
+            source,
+            memTable1,
+            outputExpressions,
+            outputColumns,
+            outputColumns.Select(c => c.ColumnRef).ToList(),
+
+            memTable2,
+            outputExpressions2,
+            outputColumns2,
+            outputColumns2.Select(c => c.ColumnRef).ToList());
+
+        return (op, outputExpressions2, outputColumns2);
     }
 
     private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateSort(
@@ -109,6 +178,8 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumns.Add(newColumn);
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
+
+        // orderExpressions = _binder.Bind(orderExpressions, inputColumns);
 
         var outputExpressions = _binder.Bind(expressions, outputColumns);
         var op = new SortOperator(bufferPool, memTable, source, orderExpressions, outputColumns, outputColumnsRefs);
@@ -176,6 +247,8 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         IReadOnlyList<BaseExpression> expressions
         )
     {
+        expressions = _binder.Bind(expressions, inputColumns);
+
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
@@ -362,18 +435,19 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         return false;
     }
 
+    // TODO I feel like I can remove this now
+    [Pure]
     private void BindAggregateExpressions(
         MemoryStorage memRef,
         MemoryBasedTable memTable,
         IReadOnlyList<ColumnSchema> allColumns,
         IReadOnlyList<BaseExpression> expressions,
-        List<BaseExpression> groupingExpressions
+        IReadOnlyList<BaseExpression> groupingExpressions
         )
     {
         for (var i = 0; i < expressions.Count; i++)
         {
-            var expr = expressions[i];
-            //BindExpression(expr, allColumns);
+            var expr = _binder.Bind(expressions[i], allColumns);
 
             if (!ExpressionContainsAggregate(expr))
             {
@@ -389,10 +463,13 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                         // need to bind to a separate schema?
                         if (expr.BoundFunction is SelectFunction s)
                         {
-                            // expr.BoundFunction = s with
-                            // {
-                            //     Index = j
-                            // };
+                            expr = expr with
+                            {
+                                BoundFunction = s with
+                                {
+                                    // ColumnRef =
+                                }
+                            };
                         }
                         isGrouping = true;
                         break;
@@ -405,8 +482,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                 }
             }
             // TODO some in the grouping will be columns to hold constant
-
-            memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            // var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
         }
     }
 }

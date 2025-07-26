@@ -47,23 +47,25 @@ public class MemoryBasedTable(MemoryStorage storage)
 
     public IColumn GetColumn(ColumnRef columnRef)
     {
+        ValidateColumnReference(columnRef);
+
         if (!_rowGroups.TryGetValue(columnRef.RowGroup, out var rowGroup))
         {
             throw new Exception($"Row group {columnRef} not found");
         }
-        return rowGroup[columnRef.Column];
+
+        var column = rowGroup[columnRef.Column];
+        if (column == null)
+        {
+            throw new Exception($"Column {columnRef} not found");
+        }
+        return column;
     }
 
     public void PutColumn(ColumnRef columnRef, IColumn column)
     {
-        if (!columnRef.Storage.Equals(storage))
-        {
-            throw new Exception($"Column ref {columnRef} does not belong to table {storage.TableId}");
-        }
-        if (_schema.Count <= columnRef.Column)
-        {
-            throw new Exception($"Attempting to write to a column {columnRef.Column} that does not exist in the schema.");
-        }
+        ValidateColumnReference(columnRef);
+
         var columnSchema = _schema[columnRef.Column];
         if (columnSchema.ClrType != column.Type)
         {
@@ -81,5 +83,18 @@ public class MemoryBasedTable(MemoryStorage storage)
             throw new Exception("Cannot overwrite an existing column in row group.");
         }
         rowGroup[columnRef.Column] = column;
+    }
+
+    private void ValidateColumnReference(ColumnRef columnRef)
+    {
+        if (!columnRef.Storage.Equals(storage))
+        {
+            throw new Exception($"Column ref {columnRef} does not belong to table {storage.TableId}");
+        }
+
+        if (_schema.Count <= columnRef.Column)
+        {
+            throw new Exception($"Attempting to write to a column {columnRef.Column} that does not exist in the schema.");
+        }
     }
 }
