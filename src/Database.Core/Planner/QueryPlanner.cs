@@ -84,14 +84,44 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
 
 
-        var projection = new Projection(bufferPool, source, expressions);
+        (source, expressions, inputColumns) = MaterializeProjection(source, inputColumns, expressions);
         if (select.SelectList.Distinct)
         {
-            var distinct = new Distinct(projection);
+            var distinct = new Distinct(source);
             return new QueryPlan(distinct);
         }
 
-        return new QueryPlan(projection);
+        return new QueryPlan(source);
+    }
+
+    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) MaterializeProjection(
+        IOperation source,
+        IReadOnlyList<ColumnSchema> inputColumns,
+        IReadOnlyList<BaseExpression> expressions
+        )
+    {
+        var memRef = bufferPool.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        // TODO the select column function isn't correctly bound here to the result of the filter table
+        // expressions = _binder.Bind(expressions, inputColumns);
+
+        var outputExpressions = new List<BaseExpression>(expressions.Count);
+        var outputColumns = new List<ColumnSchema>(expressions.Count);
+        for (var i = 0; i < expressions.Count; i++)
+        {
+            var expr = expressions[i];
+            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+
+            outputExpressions.Add(expr with
+            {
+                BoundOutputColumn = newColumn.ColumnRef,
+            });
+            outputColumns.Add(newColumn);
+        }
+
+        var op = new Projection(bufferPool, memTable, source, outputExpressions);
+        return (op, outputExpressions, outputColumns);
     }
 
     private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) MaterializeAdditionalColumns(
@@ -167,36 +197,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
 
-        var outputExpressions = new List<BaseExpression>(expressions.Count);
-        foreach (var expr in expressions)
-        {
-            var orgOutputColumn = expr.BoundOutputColumn;
-            if (orgOutputColumn == default)
-            {
-                outputExpressions.Add(expr);
-                continue;
-            }
-
-            var columnIndex = -1;
-            for (var j = 0; j < inputColumns.Count; j++)
-            {
-                if (inputColumns[j].ColumnRef == orgOutputColumn)
-                {
-                    columnIndex = j;
-                    break;
-                }
-            }
-            if (columnIndex == -1)
-            {
-                outputExpressions.Add(expr);
-            }
-
-            var outputCol = outputColumns[columnIndex];
-            outputExpressions.Add(expr with
-            {
-                BoundOutputColumn = outputCol.ColumnRef,
-            });
-        }
+        var outputExpressions = _binder.Bind(expressions, outputColumns);
 
         var op = new Filter(bufferPool, memTable, source, whereExpr, outputColumnsRefs);
         return (op, outputExpressions, outputColumns);

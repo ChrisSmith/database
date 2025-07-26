@@ -74,6 +74,29 @@ public class ExecutionTest
         values.Should().BeEquivalentTo(new List<int> { 0, 1, 2, 3, 4 });
     }
 
+    [TestCase("Id * Id")]
+    [TestCase("Id")]
+    [TestCase("Id + 1")]
+    [TestCase("Id * 2")]
+    [TestCase("Id % 2")]
+    [TestCase("Id / 1")]
+    [TestCase("Id / 2")]
+    [TestCase("Id / 8")]
+    [TestCase("Id + 1 + 1")]
+    [TestCase("Id + 1 * 3")]
+    [TestCase("0 + 1 * 3")]
+    [TestCase("0 + 1 * 6 / 2")]
+    [TestCase("0 as foo")]
+    [TestCase("0 + 1 as foo")]
+    // [TestCase("Id / 8.0")] // This doesn't work yet because we don't have upcasts
+    public void Select_Expressions(string expr)
+    {
+        var result = Query($"SELECT {expr} FROM table").AsRowList();
+
+        var res = (double)Convert.ChangeType(result[0].Values[0], typeof(double))!;
+        res.Should().BeGreaterThanOrEqualTo(0);
+    }
+
     [TestCase("Id * Id", ExpectedResult = 100)]
     [TestCase("Id", ExpectedResult = 10)]
     [TestCase("Id + 1", ExpectedResult = 11)]
@@ -89,7 +112,7 @@ public class ExecutionTest
     [TestCase("0 as foo", ExpectedResult = 0)]
     [TestCase("0 + 1 as foo", ExpectedResult = 1)]
     // [TestCase("Id / 8.0", ExpectedResult = 1.25)] // This doesn't work yet because we don't have upcasts
-    public object Select_Expressions(string expr)
+    public object Select_Expressions_With_Filter(string expr)
     {
         var result = Query($"SELECT {expr} FROM table where Id = 10;").AsRowList();
 

@@ -97,7 +97,6 @@ public record Filter(
                 BufferPool.WriteColumn(outputRef, column, targetRowGroup.RowGroup);
             }
 
-
             // Are there scenarios where using a mask would be better than doing the copy?
             // This would require the rest of the pipeline be filter aware however
             // which increases the code complexity

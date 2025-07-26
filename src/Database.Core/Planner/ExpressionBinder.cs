@@ -76,11 +76,6 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         IReadOnlyList<ColumnSchema> columns
         )
     {
-        if (expression.BoundFunction != null)
-        {
-            return expression.BoundFunction;
-        }
-
         if (expression is IntegerLiteral numInt)
         {
             return new LiteralFunction(numInt.Literal, DataType.Int);
@@ -118,8 +113,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
 
         if (expression is ColumnExpression column)
         {
-            var (_, index, colType) = FindColumnIndex(columns, column);
-            return new SelectFunction(index, colType!.Value, bufferPool);
+            var (_, columnRef, colType) = FindColumnIndex(columns, column);
+            return new SelectFunction(columnRef, colType!.Value, bufferPool);
         }
 
         if (expression is BinaryExpression be)
@@ -172,11 +167,6 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
 
     private static (string, ColumnRef, DataType?) FindColumnIndex(IReadOnlyList<ColumnSchema> columns, BaseExpression exp)
     {
-        if (exp.BoundOutputColumn != default)
-        {
-            return (exp.Alias, exp.BoundOutputColumn, exp.BoundDataType);
-        }
-
         // TODO we need to actually handle * and alias
         if (exp is ColumnExpression column)
         {

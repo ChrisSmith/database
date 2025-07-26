@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 
 namespace Database.Core.BufferPool;
 
+[DebuggerDisplay("{storage}")]
 public class MemoryBasedTable(MemoryStorage storage)
 {
     private Dictionary<int, IColumn[]> _rowGroups { get; set; } = new();
@@ -53,10 +55,29 @@ public class MemoryBasedTable(MemoryStorage storage)
 
     public void PutColumn(ColumnRef columnRef, IColumn column)
     {
+        if (!columnRef.Storage.Equals(storage))
+        {
+            throw new Exception($"Column ref {columnRef} does not belong to table {storage.TableId}");
+        }
+        if (_schema.Count <= columnRef.Column)
+        {
+            throw new Exception($"Attempting to write to a column {columnRef.Column} that does not exist in the schema.");
+        }
+        var columnSchema = _schema[columnRef.Column];
+        if (columnSchema.ClrType != column.Type)
+        {
+            throw new Exception($"Attempting to write a column of type {column.Type} to a column of type {columnSchema.ClrType}");
+        }
+
         if (!_rowGroups.TryGetValue(columnRef.RowGroup, out var rowGroup))
         {
             rowGroup = new IColumn[NumColumns];
             _rowGroups[columnRef.RowGroup] = rowGroup;
+        }
+
+        if (rowGroup[columnRef.Column] != null)
+        {
+            throw new Exception("Cannot overwrite an existing column in row group.");
         }
         rowGroup[columnRef.Column] = column;
     }

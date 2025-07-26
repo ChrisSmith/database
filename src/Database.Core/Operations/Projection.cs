@@ -6,7 +6,11 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Projection(ParquetPool BufferPool, IOperation Source, IReadOnlyList<BaseExpression> Expressions) : IOperation
+public record Projection(
+    ParquetPool BufferPool,
+    MemoryBasedTable MemoryTable,
+    IOperation Source,
+    IReadOnlyList<BaseExpression> Expressions) : IOperation
 {
     private ExpressionInterpreter _interpreter = new();
 
@@ -25,13 +29,6 @@ public record Projection(ParquetPool BufferPool, IOperation Source, IReadOnlyLis
         {
             var expr = Expressions[i];
             var fun = expr.BoundFunction!;
-
-            // Select function references existing data, return a pointer to it
-            if (fun is SelectFunction sel)
-            {
-                newColumns.Add(sel.ColumnRef);
-                continue;
-            }
 
             // Other functions will need to be materialized
             // Drop them into the buffer pool
