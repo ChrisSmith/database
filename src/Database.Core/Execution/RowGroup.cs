@@ -1,3 +1,5 @@
+using Database.Core.BufferPool;
+
 namespace Database.Core.Execution;
 
 public record RowGroup(
@@ -7,50 +9,27 @@ public record RowGroup(
     )
 {
     public int NumColumns => Columns.Count;
-    // public int NumRows => rows.Count;
 
-    public List<Row> MaterializeRows()
+    public List<Row> MaterializeRows(ParquetPool bufferPool)
     {
-        var numRows = 0;
-        var rows = new List<Row>(numRows);
-        for (var i = 0; i < numRows; i++)
+        var rows = new List<Row>(NumRows);
+        for (var i = 0; i < NumRows; i++)
         {
-            // rows.Add(new Row(new List<object?>(Columns.Count)));
+            rows.Add(new Row(new List<object?>(Columns.Count)));
         }
 
-        // for (var i = 0; i < Columns.Count; i++)
-        // {
-        //     var column = Columns[i];
-        //
-        //     for (var j = 0; j < numRows; j++)
-        //     {
-        //         var row = rows[j];
-        //         row.Values.Add(column[j]);
-        //     }
-        // }
-        return rows;
-    }
-
-    public static RowGroup FromRows(IReadOnlyList<Row> rows)
-    {
-        throw new NotImplementedException();
-
-        var firstRow = rows[0];
-        var numCol = firstRow.Values.Count;
-        var columns = new List<IColumn>(numCol);
-        for (var i = 0; i < numCol; i++)
+        for (var i = 0; i < Columns.Count; i++)
         {
-            var columnType = firstRow.Values[i]!.GetType();
-            columns.Add(IColumn.CreateColumn(columnType, $"col{i}", rows.Count));
-            var values = (Array)columns[i].ValuesArray;
+            var columnRef = Columns[i];
+            var column = bufferPool.GetColumn(columnRef with { RowGroup = RowGroupRef.RowGroup });
 
-            for (var j = 0; j < rows.Count; j++)
+            for (var j = 0; j < NumRows; j++)
             {
                 var row = rows[j];
-                values.SetValue(row.Values[i], j);
+                row.Values.Add(column[j]);
             }
         }
-        //return new RowGroup(columns);
+        return rows;
     }
 
     // TODO add a version that takes a list of indexes

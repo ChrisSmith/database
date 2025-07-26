@@ -73,25 +73,101 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             }
             else
             {
-                source = new Aggregate(source, expressions);
-                expressions = RemoveAggregatesFromExpressions(expressions);
+                (source, expressions, inputColumns) = CreateAggregate(source, inputColumns, expressions);
             }
         }
 
         if (select.Order != null)
         {
-            source = new SortOperator(source, select.Order.Expressions);
+            (source, expressions, inputColumns) = CreateSort(source, inputColumns, expressions, select.Order.Expressions);
         }
-
 
         (source, expressions, inputColumns) = MaterializeProjection(source, inputColumns, expressions);
         if (select.SelectList.Distinct)
         {
-            var distinct = new Distinct(source);
-            return new QueryPlan(distinct);
+            (source, expressions, inputColumns) = CreateDistinct(source, expressions, inputColumns);
         }
 
         return new QueryPlan(source);
+    }
+
+    private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateSort(
+        IOperation source,
+        IReadOnlyList<ColumnSchema> inputColumns,
+        IReadOnlyList<BaseExpression> expressions,
+        List<OrderingExpression> orderExpressions)
+    {
+        var memRef = bufferPool.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        var outputColumns = new List<ColumnSchema>(inputColumns.Count);
+        var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
+        for (var i = 0; i < inputColumns.Count; i++)
+        {
+            var existingColumn = inputColumns[i];
+            var newColumn = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
+            outputColumns.Add(newColumn);
+            outputColumnsRefs.Add(newColumn.ColumnRef);
+        }
+
+        var outputExpressions = _binder.Bind(expressions, outputColumns);
+        var op = new SortOperator(bufferPool, memTable, source, orderExpressions, outputColumns, outputColumnsRefs);
+        return (op, outputExpressions, outputColumns);
+    }
+
+    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) CreateDistinct(
+        IOperation source,
+        IReadOnlyList<BaseExpression> expressions,
+        IReadOnlyList<ColumnSchema> inputColumns)
+    {
+        var memRef = bufferPool.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        var outputColumns = new List<ColumnSchema>(inputColumns.Count);
+        var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
+        for (var i = 0; i < inputColumns.Count; i++)
+        {
+            var existingColumn = inputColumns[i];
+            var newColumn = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
+            outputColumns.Add(newColumn);
+            outputColumnsRefs.Add(newColumn.ColumnRef);
+        }
+
+        var outputExpressions = _binder.Bind(expressions, outputColumns);
+        var op = new Distinct(bufferPool, memTable, source, expressions, outputColumns, outputColumnsRefs);
+        return (op, outputExpressions, outputColumns);
+    }
+
+    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) CreateAggregate(
+        IOperation source,
+        IReadOnlyList<ColumnSchema> inputColumns,
+        IReadOnlyList<BaseExpression> expressions
+    )
+    {
+        var memRef = bufferPool.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        var outputExpressions = new List<BaseExpression>(expressions.Count);
+        var outputColumnRefs = new List<ColumnRef>(expressions.Count);
+        var outputColumns = new List<ColumnSchema>(expressions.Count);
+        for (var i = 0; i < expressions.Count; i++)
+        {
+            var expr = expressions[i];
+            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+
+            outputExpressions.Add(expr with
+            {
+                BoundOutputColumn = newColumn.ColumnRef,
+            });
+            outputColumns.Add(newColumn);
+            outputColumnRefs.Add(newColumn.ColumnRef);
+        }
+
+        var op = new Aggregate(bufferPool, memTable, source, outputExpressions, outputColumnRefs);
+
+        outputExpressions = RemoveAggregatesFromExpressions(outputExpressions);
+
+        return (op, outputExpressions, outputColumns);
     }
 
     private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) MaterializeProjection(
@@ -102,9 +178,6 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
     {
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
-
-        // TODO the select column function isn't correctly bound here to the result of the filter table
-        // expressions = _binder.Bind(expressions, inputColumns);
 
         var outputExpressions = new List<BaseExpression>(expressions.Count);
         var outputColumns = new List<ColumnSchema>(expressions.Count);

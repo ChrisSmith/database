@@ -1,10 +1,19 @@
 using System.Numerics;
+using Database.Core.BufferPool;
+using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 
 namespace Database.Core.Operations;
 
-public class SortOperator(IOperation source, List<OrderingExpression> orderExpressions) : IOperation
+public record SortOperator(
+    ParquetPool BufferPool,
+    MemoryBasedTable MemoryTable,
+    IOperation Source,
+    IReadOnlyList<OrderingExpression> OrderExpressions,
+    List<ColumnSchema> OutputColumns,
+    List<ColumnRef> OutputColumnRefs
+    ) : IOperation
 {
     bool _done = false;
 
@@ -16,11 +25,11 @@ public class SortOperator(IOperation source, List<OrderingExpression> orderExpre
         }
 
         var allRows = new List<Row>();
-        var next = source.Next();
+        var next = Source.Next();
         while (next != null)
         {
-            allRows.AddRange(next.MaterializeRows());
-            next = source.Next();
+            allRows.AddRange(next.MaterializeRows(BufferPool));
+            next = Source.Next();
         }
         _done = true;
 
@@ -29,7 +38,32 @@ public class SortOperator(IOperation source, List<OrderingExpression> orderExpre
         var asArray = allRows.ToArray();
         Array.Sort(asArray, new RowComparer(columns));
 
-        return RowGroup.FromRows(asArray);
+        return FromRows(asArray);
+    }
+
+    private RowGroup FromRows(IReadOnlyList<Row> rows)
+    {
+        var targetRowGroup = MemoryTable.AddRowGroup();
+
+        for (var i = 0; i < OutputColumns.Count; i++)
+        {
+            var columnSchema = OutputColumns[i];
+            var columnType = columnSchema.ClrType;
+            var values = Array.CreateInstance(columnType, rows.Count);
+            for (var j = 0; j < rows.Count; j++)
+            {
+                var row = rows[j];
+                values.SetValue(row.Values[i], j);
+            }
+
+            var column = ColumnHelper.CreateColumn(
+                columnType,
+                columnSchema.Name,
+                values
+            );
+            BufferPool.WriteColumn(columnSchema.ColumnRef, column, targetRowGroup.RowGroup);
+        }
+        return new RowGroup(rows.Count, targetRowGroup, OutputColumnRefs);
     }
 
     public class RowComparer(List<int> indexes) : IComparer<Row>

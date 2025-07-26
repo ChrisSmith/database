@@ -13,11 +13,12 @@ public class MemoryBasedTable(MemoryStorage storage)
     public int NumColumns => _schema.Count;
     public IReadOnlyList<ColumnSchema> Schema => _schema;
 
-    private int _nextRowGroup = 0;
+    private static volatile int _nextRowGroup = 0;
 
     public RowGroupRef AddRowGroup()
     {
-        return new RowGroupRef(--_nextRowGroup);
+        var id = Interlocked.Decrement(ref _nextRowGroup);
+        return new RowGroupRef(id);
     }
 
     public ColumnSchema AddColumnToSchema(string name, DataType type)

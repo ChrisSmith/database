@@ -1,10 +1,17 @@
+using Database.Core.BufferPool;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Aggregate(IOperation Source, IReadOnlyList<BaseExpression> Expressions) : IOperation
+public record Aggregate(
+    ParquetPool BufferPool,
+    MemoryBasedTable MemoryTable,
+    IOperation Source,
+    IReadOnlyList<BaseExpression> Expressions,
+    List<ColumnRef> OutputColumns
+    ) : IOperation
 {
     private bool _done = false;
 
@@ -12,8 +19,6 @@ public record Aggregate(IOperation Source, IReadOnlyList<BaseExpression> Express
 
     public RowGroup? Next()
     {
-        throw new NotImplementedException();
-        /**
         if (_done)
         {
             return null;
@@ -55,7 +60,9 @@ public record Aggregate(IOperation Source, IReadOnlyList<BaseExpression> Express
             rowGroup = Source.Next();
         }
 
-        var result = new RowGroup(new List<IColumn>(Expressions.Count));
+
+        var targetRowGroup = MemoryTable.AddRowGroup();
+
         for (var i = 0; i < Expressions.Count; i++)
         {
             var expression = Expressions[i];
@@ -64,14 +71,18 @@ public record Aggregate(IOperation Source, IReadOnlyList<BaseExpression> Express
 
             var columnType = value!.GetType();
             var values = Array.CreateInstance(columnType, 1);
-            values.SetValue(Convert.ChangeType(value, columnType), 0);
+            values.SetValue(value, 0);
 
-            var column = ColumnHelper.CreateColumn(columnType, expression.Alias, i, values);
-            result.Columns.Add(column);
+            var column = ColumnHelper.CreateColumn(
+                columnType,
+                expression.Alias,
+                values);
+
+            var outputRef = OutputColumns[i];
+            BufferPool.WriteColumn(outputRef, column, targetRowGroup.RowGroup);
         }
 
         _done = true;
-        return result;
-        **/
+        return new RowGroup(1, targetRowGroup, OutputColumns);
     }
 }
