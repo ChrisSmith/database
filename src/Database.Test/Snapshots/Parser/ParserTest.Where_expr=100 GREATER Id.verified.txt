@@ -14,6 +14,7 @@
   },
   Where: {
     Operator: GREATER,
+    OperatorLiteral: >,
     Left: {
       Literal: 100,
       Alias: 

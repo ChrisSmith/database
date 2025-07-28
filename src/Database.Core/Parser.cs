@@ -243,7 +243,7 @@ public class Parser
         if (Match(OR, out var token))
         {
             var right = ParseOr();
-            return new BinaryExpression(token.TokenType, and, right);
+            return new BinaryExpression(token.TokenType, token.Lexeme, and, right);
         }
 
         return and;
@@ -255,7 +255,7 @@ public class Parser
         if (Match(AND, out var token))
         {
             var right = ParseAnd();
-            return new BinaryExpression(token.TokenType, not, right);
+            return new BinaryExpression(token.TokenType, token.Lexeme, not, right);
         }
 
         return not;
@@ -267,7 +267,7 @@ public class Parser
         if (Match(NOT, out var token))
         {
             var right = ParseNot();
-            return new BinaryExpression(token.TokenType, equality, right);
+            return new BinaryExpression(token.TokenType, token.Lexeme, equality, right);
         }
 
         return equality;
@@ -279,7 +279,7 @@ public class Parser
         if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, BETWEEN))
         {
             var right = ParseEquality();
-            return new BinaryExpression(token.TokenType, plus, right);
+            return new BinaryExpression(token.TokenType, token.Lexeme, plus, right);
         }
 
         return plus;
@@ -291,7 +291,7 @@ public class Parser
         if (Match(out var token, PLUS, MINUS))
         {
             var right = ParsePlusMinus();
-            return new BinaryExpression(token.TokenType, plus, right);
+            return new BinaryExpression(token.TokenType, token.Lexeme, plus, right);
         }
 
         return plus;
@@ -303,7 +303,7 @@ public class Parser
         if (Match(out var token, STAR, SLASH, PERCENT))
         {
             var right = ParseMultiplication();
-            return new BinaryExpression(token.TokenType, value, right);
+            return new BinaryExpression(token.TokenType, token.Lexeme, value, right);
         }
 
         return value;

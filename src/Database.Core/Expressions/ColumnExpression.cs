@@ -9,4 +9,9 @@ public record ColumnExpression(string Column, string? Table = null) : BaseExpres
     {
         yield break;
     }
+
+    public override string ToString()
+    {
+        return Column;
+    }
 }

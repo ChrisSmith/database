@@ -7,6 +7,7 @@
         Args: [
           {
             Operator: PLUS,
+            OperatorLiteral: +,
             Left: {
               Column: a,
               Alias: a

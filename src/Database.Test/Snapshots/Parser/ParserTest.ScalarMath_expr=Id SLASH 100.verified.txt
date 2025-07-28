@@ -4,6 +4,7 @@
     Expressions: [
       {
         Operator: SLASH,
+        OperatorLiteral: /,
         Left: {
           Column: Id,
           Alias: Id

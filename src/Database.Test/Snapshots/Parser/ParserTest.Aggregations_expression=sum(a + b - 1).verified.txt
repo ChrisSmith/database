@@ -7,12 +7,14 @@
         Args: [
           {
             Operator: PLUS,
+            OperatorLiteral: +,
             Left: {
               Column: a,
               Alias: a
             },
             Right: {
               Operator: STAR,
+              OperatorLiteral: *,
               Left: {
                 Column: b,
                 Alias: b

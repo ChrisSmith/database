@@ -4,6 +4,7 @@
     Expressions: [
       {
         Operator: MINUS,
+        OperatorLiteral: -,
         Left: {
           Literal: 200,
           Alias: 

@@ -6,4 +6,9 @@ public record StarExpression(string? Table = null) : BaseExpression
     {
         yield break;
     }
+
+    public override string ToString()
+    {
+        return "*";
+    }
 }

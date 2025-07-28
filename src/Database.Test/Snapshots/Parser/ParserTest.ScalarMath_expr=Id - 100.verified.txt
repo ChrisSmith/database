@@ -4,6 +4,7 @@
     Expressions: [
       {
         Operator: MINUS,
+        OperatorLiteral: -,
         Left: {
           Column: Id,
           Alias: Id

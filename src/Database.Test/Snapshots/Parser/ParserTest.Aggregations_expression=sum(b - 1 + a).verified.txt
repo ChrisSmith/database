@@ -7,8 +7,10 @@
         Args: [
           {
             Operator: PLUS,
+            OperatorLiteral: +,
             Left: {
               Operator: STAR,
+              OperatorLiteral: *,
               Left: {
                 Column: b,
                 Alias: b

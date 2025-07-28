@@ -34,17 +34,9 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
     {
         var fun = FunctionForExpression(expression, columns, ignoreMissingColumns);
         var alias = expression.Alias;
-        // TODO literal of the expression (embed the lexme in it?)
         if (alias == "")
         {
-            if (expression is BinaryExpression b)
-            {
-                alias = b.Operator.ToString();
-            }
-            if (expression is FunctionExpression f)
-            {
-                alias = f.Name;
-            }
+            alias = expression.ToString();
         }
 
         expression = expression with

@@ -4,6 +4,7 @@
     Expressions: [
       {
         Operator: STAR,
+        OperatorLiteral: *,
         Left: {
           Literal: 200,
           Alias: 

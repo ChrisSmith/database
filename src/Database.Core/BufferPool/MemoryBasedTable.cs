@@ -25,8 +25,7 @@ public class MemoryBasedTable(MemoryStorage storage)
     {
         if (name == "")
         {
-            // TODO this currently breaks because I'm not generating unique column names
-            // throw new Exception("Column name cannot be empty");
+            throw new Exception("Column name cannot be empty");
         }
 
         var columnId = NumColumns;

@@ -13,4 +13,10 @@ public record FunctionExpression(string Name, params BaseExpression[] Args) : Ba
             yield return arg;
         }
     }
+
+    public override string ToString()
+    {
+        var argsStr = string.Join<BaseExpression>(", ", Args);
+        return $"{Name}({argsStr})";
+    }
 }

@@ -14,6 +14,7 @@
   },
   Where: {
     Operator: LESS,
+    OperatorLiteral: <,
     Left: {
       Column: Id,
       Alias: Id
