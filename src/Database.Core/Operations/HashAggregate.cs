@@ -42,63 +42,14 @@ public record HashAggregate(
         while (rowGroup != null)
         {
             // Build up the grouping keys, one per row
-            var groupingKeys = new List<Row>(rowGroup.NumRows);
-            for (var i = 0; i < rowGroup.NumRows; i++)
-            {
-                groupingKeys.Add(new Row(new List<object?>(groupingExpressions.Count)));
-            }
-
-            for (var g = 0; g < groupingExpressions.Count; g++)
-            {
-                var expression = groupingExpressions[g];
-                var column = _interpreter.Execute(expression, rowGroup);
-                for (var i = 0; i < column.Length; i++)
-                {
-                    groupingKeys[i].Values.Add(column[i]);
-                }
-            }
+            var groupingKeys = GroupByKeys(rowGroup, groupingExpressions);
 
             // This is by aggregate column
-            var stateArray = new List<IAggregateState[]>(aggregates.Count);
-            for (var i = 0; i < aggregates.Count; i++)
-            {
-                var fun = (IAggregateFunction)aggregates[i].BoundFunction!;
-                stateArray.Add(fun.InitializeArray(rowGroup.NumRows));
-            }
-
-            // For each row, get the list of aggregate states and put them into
-            // a row oriented list. This means the same state can be in the list multiple times
-            for (var i = 0; i < groupingKeys.Count; i++)
-            {
-                var groupingKey = groupingKeys[i];
-                if (!hashToAggState.TryGetValue(groupingKey, out var states))
-                {
-                    states = new List<IAggregateState>(aggregates.Count);
-                    for (var a = 0; a < aggregates.Count; a++)
-                    {
-                        var aggregate = (IAggregateFunction)aggregates[a].BoundFunction!;
-                        states.Add(aggregate.Initialize());
-                    }
-                    hashToAggState[groupingKey] = states;
-                }
-
-                for (var a = 0; a < aggregates.Count; a++)
-                {
-                    stateArray[a][i] = states[a];
-                }
-            }
+            var stateArray = InitializeAggregateStates(aggregates, rowGroup, groupingKeys, hashToAggState);
 
             // Update all aggregate states. Since these are pointers to the global states,
             // they're updating the global stats too
-            for (var a = 0; a < aggregates.Count; a++)
-            {
-                var expression = aggregates[a];
-                var aggregate = (IAggregateFunction)expression.BoundFunction!;
-                var aggFunctionExpr = (FunctionExpression)expression;
-                var state = stateArray[a];
-
-                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, state);
-            }
+            ComputeAggregates(aggregates, stateArray, rowGroup);
 
             rowGroup = Source.Next();
         }
@@ -109,6 +60,75 @@ public record HashAggregate(
         _done = true;
 
         return groupedRowGroup;
+    }
+
+    private void ComputeAggregates(List<BaseExpression> aggregates, List<IAggregateState[]> stateArray, RowGroup rowGroup)
+    {
+        for (var a = 0; a < aggregates.Count; a++)
+        {
+            var expression = aggregates[a];
+            var aggregate = (IAggregateFunction)expression.BoundFunction!;
+            var aggFunctionExpr = (FunctionExpression)expression;
+            var state = stateArray[a];
+
+            _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, state);
+        }
+    }
+
+    private static List<IAggregateState[]> InitializeAggregateStates(List<BaseExpression> aggregates, RowGroup rowGroup, List<Row> groupingKeys,
+        Dictionary<Row, List<IAggregateState>> hashToAggState)
+    {
+        var stateArray = new List<IAggregateState[]>(aggregates.Count);
+        for (var i = 0; i < aggregates.Count; i++)
+        {
+            var fun = (IAggregateFunction)aggregates[i].BoundFunction!;
+            stateArray.Add(fun.InitializeArray(rowGroup.NumRows));
+        }
+
+        // For each row, get the list of aggregate states and put them into
+        // a row oriented list. This means the same state can be in the list multiple times
+        for (var i = 0; i < groupingKeys.Count; i++)
+        {
+            var groupingKey = groupingKeys[i];
+            if (!hashToAggState.TryGetValue(groupingKey, out var states))
+            {
+                states = new List<IAggregateState>(aggregates.Count);
+                for (var a = 0; a < aggregates.Count; a++)
+                {
+                    var aggregate = (IAggregateFunction)aggregates[a].BoundFunction!;
+                    states.Add(aggregate.Initialize());
+                }
+                hashToAggState[groupingKey] = states;
+            }
+
+            for (var a = 0; a < aggregates.Count; a++)
+            {
+                stateArray[a][i] = states[a];
+            }
+        }
+
+        return stateArray;
+    }
+
+    private List<Row> GroupByKeys(RowGroup rowGroup, List<BaseExpression> groupingExpressions)
+    {
+        var groupingKeys = new List<Row>(rowGroup.NumRows);
+        for (var i = 0; i < rowGroup.NumRows; i++)
+        {
+            groupingKeys.Add(new Row(new List<object?>(groupingExpressions.Count)));
+        }
+
+        for (var g = 0; g < groupingExpressions.Count; g++)
+        {
+            var expression = groupingExpressions[g];
+            var column = _interpreter.Execute(expression, rowGroup);
+            for (var i = 0; i < column.Length; i++)
+            {
+                groupingKeys[i].Values.Add(column[i]);
+            }
+        }
+
+        return groupingKeys;
     }
 
     private RowGroup FromRows(List<KeyValuePair<Row, List<IAggregateState>>> resRows)
