@@ -4,33 +4,27 @@
     Expressions: [
       {
         Column: a,
-        BoundIndex: -1,
         Alias: a
       },
       {
         Column: b,
-        BoundIndex: -1,
         Alias: b
       },
       {
         Column: a,
         Table: t,
-        BoundIndex: -1,
         Alias: a
       },
       {
         Column: b,
         Table: t,
-        BoundIndex: -1,
         Alias: b
       },
       {
         Table: t,
-        BoundIndex: -1,
         Alias: 
       },
       {
-        BoundIndex: -1,
         Alias: 
       }
     ]

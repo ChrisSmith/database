@@ -4,7 +4,6 @@
     Expressions: [
       {
         Column: a,
-        BoundIndex: -1,
         Alias: a
       }
     ]

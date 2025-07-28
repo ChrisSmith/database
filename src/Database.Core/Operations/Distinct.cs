@@ -1,8 +1,18 @@
+using Database.Core.BufferPool;
+using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Expressions;
 
 namespace Database.Core.Operations;
 
-public record Distinct(IOperation Source) : IOperation
+public record Distinct(
+    ParquetPool BufferPool,
+    MemoryBasedTable MemoryTable,
+    IOperation Source,
+    IReadOnlyList<BaseExpression> Expressions,
+    List<ColumnSchema> OutputColumns,
+    List<ColumnRef> OutputColumnRefs
+    ) : IOperation
 {
     private HashSet<Row> _unique = null;
 
@@ -25,7 +35,7 @@ public record Distinct(IOperation Source) : IOperation
 
             while (rowGroup != null)
             {
-                foreach (var row in rowGroup.MaterializeRows())
+                foreach (var row in rowGroup.MaterializeRows(BufferPool))
                 {
                     _unique.Add(row);
                 }
@@ -39,29 +49,29 @@ public record Distinct(IOperation Source) : IOperation
         }
 
         var uniqueList = _unique.ToList();
+        var targetRowGroup = MemoryTable.AddRowGroup();
 
-        var result = new RowGroup(new List<IColumn>(numColumns));
         for (var i = 0; i < numColumns; i++)
         {
-            var columnType = columns[i].Type;
+            var outputColumn = OutputColumns[i];
+            var columnType = outputColumn.ClrType;
             var values = Array.CreateInstance(columnType, uniqueList.Count);
 
             for (var j = 0; j < uniqueList.Count; j++)
             {
                 var row = uniqueList[j];
-                values.SetValue(Convert.ChangeType(row.Values[i], columnType), j);
+                values.SetValue(row.Values[i], j);
             }
 
             var column = ColumnHelper.CreateColumn(
                 columnType,
-                $"{i}.{columnType}",
-                i,
+                outputColumn.Name,
                 values
             );
-            result.Columns.Add(column);
+
+            BufferPool.WriteColumn(outputColumn.ColumnRef, column, targetRowGroup.RowGroup);
         }
 
-        // How do we determine the chunk size now?
-        return result;
+        return new RowGroup(uniqueList.Count, targetRowGroup, OutputColumnRefs);
     }
 }

@@ -4,7 +4,6 @@
     Expressions: [
       {
         Column: Id,
-        BoundIndex: -1,
         Alias: Id
       }
     ]
@@ -17,15 +16,12 @@
     Operator: EQUAL,
     Left: {
       Literal: 100,
-      BoundIndex: -1,
       Alias: 
     },
     Right: {
       Column: Id,
-      BoundIndex: -1,
       Alias: Id
     },
-    BoundIndex: -1,
     Alias: 
   }
 }

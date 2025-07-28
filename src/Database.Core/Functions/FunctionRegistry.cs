@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 
@@ -118,7 +119,8 @@ public class FunctionRegistry
         }));
     }
 
-    public IFunction BindFunction(string name, IExpression[] args, TableSchema table)
+    [Pure]
+    public IFunction BindFunction(string name, BaseExpression[] args)
     {
         if (!_funcs.TryGetValue(name, out var func))
         {

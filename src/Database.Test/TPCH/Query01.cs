@@ -18,15 +18,15 @@ public class Query01
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 
-    private List<RowGroup> Query(string query)
+    private List<MaterializedRowGroup> Query(string query)
     {
         var scanner = new Scanner(query);
         var tokens = scanner.ScanTokens();
         var parser = new Parser(tokens);
         var statement = parser.Parse();
 
-        var it = new Interpreter();
         var bufferPool = new ParquetPool();
+        var it = new Interpreter(bufferPool);
         var planner = new QueryPlanner(_catalog, bufferPool);
         var plan = planner.CreatePlan(statement);
         var result = it.Execute(plan).ToList();
@@ -66,4 +66,10 @@ public class Query01
     // Skip decoding unused columns, 1,000ms
     // UnpackNullsTypeFast - can be vectorized. check assembly. 68ms ~ 6% https://github.com/aloneguid/parquet-dotnet/blob/124cd02109aaccf5cbfed08c63c9587a126d7fc2/src/Parquet/Extensions/UntypedArrayExtensions.cs#L1039C25-L1039C44
     // Remove Enumerable.Count inside datacolumn ctor 64ms
+    // File format ideas
+    // - disable block compression
+    // - check the row group size
+    // - https://arxiv.org/pdf/2304.05028
+    // - see if bloom filters are enabled
+    // - verify parquet > 2.9 where PageIndex is used for zone maps
 }

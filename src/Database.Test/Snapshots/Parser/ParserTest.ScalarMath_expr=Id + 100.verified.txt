@@ -6,15 +6,12 @@
         Operator: PLUS,
         Left: {
           Column: Id,
-          BoundIndex: -1,
           Alias: Id
         },
         Right: {
           Literal: 100,
-          BoundIndex: -1,
           Alias: 
         },
-        BoundIndex: -1,
         Alias: 
       }
     ]

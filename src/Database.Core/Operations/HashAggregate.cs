@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
@@ -5,7 +7,14 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record HashAggregate(IOperation Source, List<IExpression> Expressions, List<IExpression> GroupingExpressions) : IOperation
+public record HashAggregate(
+    ParquetPool BufferPool,
+    IOperation Source,
+    MemoryBasedTable GroupingTable,
+    List<BaseExpression> OutputExpressions, // grouping columns + aggregates
+    List<ColumnSchema> OutputColumns,
+    List<ColumnRef> OutputColumnRefs
+    ) : IOperation
 {
     private bool _done = false;
 
@@ -18,8 +27,12 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
             return null;
         }
 
-        var aggregates = Expressions
+        var aggregates = OutputExpressions
             .Where(e => e.BoundFunction is IAggregateFunction)
+            .ToList();
+
+        var groupingExpressions = OutputExpressions
+            .Where(e => e.BoundFunction is not IAggregateFunction)
             .ToList();
 
         var rowGroup = Source.Next();
@@ -32,12 +45,12 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
             var groupingKeys = new List<Row>(rowGroup.NumRows);
             for (var i = 0; i < rowGroup.NumRows; i++)
             {
-                groupingKeys.Add(new Row(new List<object?>(GroupingExpressions.Count)));
+                groupingKeys.Add(new Row(new List<object?>(groupingExpressions.Count)));
             }
 
-            for (var g = 0; g < GroupingExpressions.Count; g++)
+            for (var g = 0; g < groupingExpressions.Count; g++)
             {
-                var expression = GroupingExpressions[g];
+                var expression = groupingExpressions[g];
                 var column = _interpreter.Execute(expression, rowGroup);
                 for (var i = 0; i < column.Length; i++)
                 {
@@ -91,28 +104,27 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
         }
 
         var resRows = hashToAggState.ToList();
+        var groupedRowGroup = FromRows(resRows);
+
+        _done = true;
+
+        return groupedRowGroup;
+    }
+
+    private RowGroup FromRows(List<KeyValuePair<Row, List<IAggregateState>>> resRows)
+    {
         var rows = resRows.Select(kvp => kvp.Key).ToList();
-        var groupedRowGroup = RowGroup.FromRows(rows);
-
+        var targetRowGroup = GroupingTable.AddRowGroup();
+        var groupingIdx = 0;
         var aggIdx = 0;
-        // create empty rowgroup we'll fill in below
-        var result = new RowGroup(new List<IColumn>(Expressions.Count));
-        for (var i = 0; i < Expressions.Count; i++)
-        {
-            var expression = Expressions[i];
-            var fun = expression.BoundFunction!;
-            var dataType = fun.ReturnType.ClrTypeFromDataType();
-            var valuesArray = Array.CreateInstance(dataType, resRows.Count);
-            var column = ColumnHelper.CreateColumn(dataType, expression.Alias, i, valuesArray);
-            result.Columns.Add(column);
-        }
 
-        // Fill in the rowgroup with the aggregate results
-        for (var i = 0; i < Expressions.Count; i++)
+        for (var i = 0; i < OutputExpressions.Count; i++)
         {
-            var expression = Expressions[i];
-            var column = result.Columns[i];
-            var values = column.ValuesArray;
+            var expression = OutputExpressions[i];
+            var columnSchema = OutputColumns[i];
+            var columnRef = columnSchema.ColumnRef;
+            var columnType = columnSchema.ClrType;
+            var values = Array.CreateInstance(columnType, rows.Count);
 
             if (expression.BoundFunction is IAggregateFunction aggFn)
             {
@@ -127,12 +139,26 @@ public record HashAggregate(IOperation Source, List<IExpression> Expressions, Li
             }
             else
             {
-                var columnRes = _interpreter.Execute(expression, groupedRowGroup);
-                Array.Copy(columnRes.ValuesArray, values, columnRes.Length);
+                for (var j = 0; j < rows.Count; j++)
+                {
+                    var row = rows[j];
+                    values.SetValue(row.Values[groupingIdx], j);
+                }
+
+                groupingIdx++;
             }
+
+            var column = ColumnHelper.CreateColumn(
+                columnType,
+                columnSchema.Name,
+                values
+            );
+            BufferPool.WriteColumn(columnRef, column, targetRowGroup.RowGroup);
         }
 
-        _done = true;
-        return result;
+
+
+
+        return new RowGroup(rows.Count, targetRowGroup, OutputColumnRefs);
     }
 }

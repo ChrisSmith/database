@@ -6,7 +6,7 @@ namespace Database.Core.Expressions;
 
 public class ExpressionInterpreter
 {
-    public IColumn Execute(IExpression exp, RowGroup rowGroup)
+    public IColumn Execute(BaseExpression exp, RowGroup rowGroup)
     {
         if (exp is BinaryExpression be)
         {
@@ -37,11 +37,16 @@ public class ExpressionInterpreter
             return literal.MaterializeColumn(expectedRows);
         }
 
+        if (exp.BoundFunction == null)
+        {
+            throw new ExpressionEvaluationException($"expression does not have BoundFunction bound for evaluation. {exp}");
+        }
+
         throw new ExpressionEvaluationException($"expression {exp} is not supported for evaluation");
     }
 
     // Assumes the expression has already been bound
-    public IColumn Execute(IExpression expr, IFunction fun, IColumn left, IColumn right)
+    public IColumn Execute(BaseExpression expr, IFunction fun, IColumn left, IColumn right)
     {
         Array outputArray = null;
 
@@ -93,7 +98,6 @@ public class ExpressionInterpreter
         var column = ColumnHelper.CreateColumn(
             fun.ReturnType.ClrTypeFromDataType(),
             expr.Alias,
-            expr.BoundIndex,
             outputArray
             );
         return column;

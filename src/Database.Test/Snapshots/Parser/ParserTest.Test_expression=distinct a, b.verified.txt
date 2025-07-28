@@ -4,12 +4,10 @@
     Expressions: [
       {
         Column: a,
-        BoundIndex: -1,
         Alias: a
       },
       {
         Column: b,
-        BoundIndex: -1,
         Alias: b
       }
     ]

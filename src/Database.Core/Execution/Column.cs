@@ -6,7 +6,6 @@ namespace Database.Core.Execution;
 public interface IColumn
 {
     string Name { get; }
-    int Index { get; }
     Type Type { get; }
 
     int Length { get; }
@@ -15,22 +14,10 @@ public interface IColumn
 
     Array ValuesArray { get; }
 
-    public static IColumn CreateColumn(Type dataType, string name, int index, int length)
-    {
-        var values = Array.CreateInstance(dataType, length);
-
-        return ColumnHelper.CreateColumn(
-            dataType,
-            name,
-            index,
-            values
-        );
-    }
-
     public void SetValues(Array source, bool[] mask);
 }
 
-public record Column<T>(string Name, int Index, T[] Values) : IColumn
+public record Column<T>(string Name, T[] Values) : IColumn
 {
     public Type Type => typeof(T);
 
@@ -59,7 +46,7 @@ public static class ColumnHelper
     // TODO make thread safe
     private static readonly Dictionary<Type, ConstructorInfo> _typeCache = new();
 
-    public static IColumn CreateColumn(Type targetType, string name, int index, Array values)
+    public static IColumn CreateColumn(Type targetType, string name, Array values)
     {
         if (!_typeCache.TryGetValue(targetType, out var ctor))
         {
@@ -70,7 +57,6 @@ public static class ColumnHelper
 
         return (IColumn)ctor.Invoke([
             name,
-            index,
             values
         ]);
     }

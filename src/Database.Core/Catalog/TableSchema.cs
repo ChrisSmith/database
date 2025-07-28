@@ -1,11 +1,14 @@
+using Database.Core.Execution;
+
 namespace Database.Core.Catalog;
 
 public enum TableId : int { }
 
 public record TableSchema(
+    IStorageLocation Storage,
     TableId Id,
     string Name,
-    List<ColumnSchema> Columns,
+    IReadOnlyList<ColumnSchema> Columns,
     string Location,
     long NumRows,
     int NumRowGroups,
@@ -35,12 +38,11 @@ public enum ColumnId : int { }
 
 /// <summary>
 /// Represents the schema for a column within a database table.
-/// <param name="Index">The offset in the parquet file</param>
 /// </summary>
 public record ColumnSchema(
+    ColumnRef ColumnRef,
     ColumnId Id,
     string Name,
     DataType DataType,
-    Type ClrType,
-    int Index
+    Type ClrType
     );
