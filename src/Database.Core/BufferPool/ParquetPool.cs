@@ -129,12 +129,6 @@ public class ParquetPool
         }, column);
     }
 
-    // public T GetValue<T>(RowRef rowRef)
-    // {
-    //     var column = GetColumn(rowRef.ColumnRef);
-    //     return (T)column[rowRef.Row]!;
-    // }
-
     private RefCounter<ParquetFileHandle> OpenReader(string path)
     {
         var file = MemoryMappedFile.CreateFromFile(path);

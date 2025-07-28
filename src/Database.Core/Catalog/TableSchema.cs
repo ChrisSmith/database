@@ -38,13 +38,11 @@ public enum ColumnId : int { }
 
 /// <summary>
 /// Represents the schema for a column within a database table.
-/// <param name="Index">The offset in the parquet file</param>
 /// </summary>
 public record ColumnSchema(
     ColumnRef ColumnRef,
     ColumnId Id,
     string Name,
     DataType DataType,
-    Type ClrType,
-    int Index
+    Type ClrType
     );

@@ -36,8 +36,7 @@ public class MemoryBasedTable(MemoryStorage storage)
             (ColumnId)columnId,
             name,
             type,
-            type.ClrTypeFromDataType(),
-            -1); // TODO remove all these extra indexes
+            type.ClrTypeFromDataType());
         _schema.Add(newColumn);
         return newColumn;
     }

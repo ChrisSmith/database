@@ -31,8 +31,7 @@ public record Catalog(ParquetPool BufferPool)
                 columnId,
                 field.Name,
                 field.ClrType.DataTypeFromClrType(),
-                field.ClrType,
-                i
+                field.ClrType
                 ));
         }
 

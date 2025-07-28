@@ -10,20 +10,9 @@ public interface IColumn
 
     int Length { get; }
 
-    object? this[long index] { get; }
+    object? this[int index] { get; }
 
     Array ValuesArray { get; }
-
-    public static IColumn CreateColumn(Type dataType, string name, int length)
-    {
-        var values = Array.CreateInstance(dataType, length);
-
-        return ColumnHelper.CreateColumn(
-            dataType,
-            name,
-            values
-        );
-    }
 
     public void SetValues(Array source, bool[] mask);
 }
@@ -34,7 +23,7 @@ public record Column<T>(string Name, T[] Values) : IColumn
 
     public int Length => Values.Length;
 
-    public object? this[long index] => Values[index];
+    public object? this[int index] => Values[index];
     public Array ValuesArray => Values;
 
     public void SetValues(Array source, bool[] mask)
