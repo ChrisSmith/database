@@ -118,29 +118,19 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             }
         }
 
-        void ExtractUsedColumns(BaseExpression expr)
-        {
-            if (expr.BoundFunction is SelectFunction s)
-            {
-                usedColumns.Add(s.ColumnRef);
-            }
-            if (expr is BinaryExpression b)
-            {
-                ExtractUsedColumns(b.Left);
-                ExtractUsedColumns(b.Right);
-            }
-            if (expr is FunctionExpression f)
-            {
-                foreach (var arg in f.Args)
-                {
-                    ExtractUsedColumns(arg);
-                }
-            }
-        }
-
-
         var filtered = inputColumns.Where(c => usedColumns.Contains(c.ColumnRef)).ToList();
         return filtered;
+
+        void ExtractUsedColumns(BaseExpression root)
+        {
+            root.Walk(expr =>
+            {
+                if (expr.BoundFunction is SelectFunction s)
+                {
+                    usedColumns.Add(s.ColumnRef);
+                }
+            });
+        }
     }
 
     private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateHashAggregate(
@@ -452,25 +442,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
     private bool ExpressionContainsAggregate(BaseExpression expr)
     {
-        // TODO need a generic way to traverse the tree, would clean this up a bit
-        // return expr.Children.Any(ExpressionContainsAggregate)
-
-        if (expr.BoundFunction is IAggregateFunction)
-        {
-            return true;
-        }
-        if (expr is BinaryExpression be)
-        {
-            return ExpressionContainsAggregate(be.Left) || ExpressionContainsAggregate(be.Right);
-        }
-        if (expr is FunctionExpression fn)
-        {
-            if (fn.Args.Any(ExpressionContainsAggregate))
-            {
-                return true;
-            }
-        }
-        return false;
+        return expr.AnyChildOrSelf(e => e.BoundFunction is IAggregateFunction);
     }
 }
 

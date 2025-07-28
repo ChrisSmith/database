@@ -11,11 +11,39 @@ namespace Database.Core.Expressions;
 /// Not all expressions will be bound, intermediate results from complex expressions
 /// are not written back to the buffer pool atm.
 /// </summary>
-public record BaseExpression(
+public abstract record BaseExpression(
     ColumnRef BoundOutputColumn = default,
     DataType? BoundDataType = null,
     IFunction? BoundFunction = null,
     string Alias = ""
     )
 {
+    public abstract IEnumerable<BaseExpression> Children();
+
+    public bool AnyChildOrSelf(Predicate<BaseExpression> predicate)
+    {
+        if (predicate(this))
+        {
+            return true;
+        }
+
+        foreach (var child in Children())
+        {
+            if (predicate(child))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void Walk(Action<BaseExpression> fun)
+    {
+        fun(this);
+        foreach (var child in Children())
+        {
+            child.Walk(fun);
+        }
+    }
 }
