@@ -75,11 +75,15 @@ public record HashAggregate(
         }
     }
 
-    private static List<IAggregateState[]> InitializeAggregateStates(List<BaseExpression> aggregates, RowGroup rowGroup, List<Row> groupingKeys,
+    private static List<IAggregateState[]> InitializeAggregateStates(
+        IReadOnlyList<BaseExpression> aggregates,
+        RowGroup rowGroup,
+        IReadOnlyList<Row> groupingKeys,
         Dictionary<Row, List<IAggregateState>> hashToAggState)
     {
-        var stateArray = new List<IAggregateState[]>(aggregates.Count);
-        for (var i = 0; i < aggregates.Count; i++)
+        var count = aggregates.Count;
+        var stateArray = new List<IAggregateState[]>(count);
+        for (var i = 0; i < count; i++)
         {
             var fun = (IAggregateFunction)aggregates[i].BoundFunction!;
             stateArray.Add(fun.InitializeArray(rowGroup.NumRows));
@@ -92,8 +96,8 @@ public record HashAggregate(
             var groupingKey = groupingKeys[i];
             if (!hashToAggState.TryGetValue(groupingKey, out var states))
             {
-                states = new List<IAggregateState>(aggregates.Count);
-                for (var a = 0; a < aggregates.Count; a++)
+                states = new List<IAggregateState>(count);
+                for (var a = 0; a < count; a++)
                 {
                     var aggregate = (IAggregateFunction)aggregates[a].BoundFunction!;
                     states.Add(aggregate.Initialize());
@@ -101,7 +105,7 @@ public record HashAggregate(
                 hashToAggState[groupingKey] = states;
             }
 
-            for (var a = 0; a < aggregates.Count; a++)
+            for (var a = 0; a < count; a++)
             {
                 stateArray[a][i] = states[a];
             }
@@ -110,15 +114,17 @@ public record HashAggregate(
         return stateArray;
     }
 
-    private List<Row> GroupByKeys(RowGroup rowGroup, List<BaseExpression> groupingExpressions)
+    private List<Row> GroupByKeys(RowGroup rowGroup, IReadOnlyList<BaseExpression> groupingExpressions)
     {
-        var groupingKeys = new List<Row>(rowGroup.NumRows);
-        for (var i = 0; i < rowGroup.NumRows; i++)
+        var numRows = rowGroup.NumRows;
+        var numGroupingExpressions = groupingExpressions.Count;
+        var groupingKeys = new List<Row>(numRows);
+        for (var i = 0; i < numRows; i++)
         {
-            groupingKeys.Add(new Row(new List<object?>(groupingExpressions.Count)));
+            groupingKeys.Add(new Row(new List<object?>(numGroupingExpressions)));
         }
 
-        for (var g = 0; g < groupingExpressions.Count; g++)
+        for (var g = 0; g < numGroupingExpressions; g++)
         {
             var expression = groupingExpressions[g];
             var column = _interpreter.Execute(expression, rowGroup);
