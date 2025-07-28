@@ -21,6 +21,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
 
         select = ConstantFolding.Fold(select);
+        select = QueryRewriter.ExpandStarStatements(select, catalog);
 
         (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) = CreateFileScan(select);
 
