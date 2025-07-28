@@ -1,0 +1,35 @@
+using Database.Core;
+using Database.Core.BufferPool;
+using Database.Core.Catalog;
+using Database.Core.Execution;
+using Database.Core.Planner;
+using FluentAssertions;
+
+namespace Database.Test.TPCH;
+
+public partial class TPCHTests
+{
+    [Test]
+    public void Q14()
+    {
+        var query = @"
+SELECT
+    100.00 * SUM(
+        CASE
+            WHEN p_type LIKE 'PROMO%'
+            THEN l_extendedprice * (1 - l_discount)
+            ELSE 0
+        END
+    ) / SUM(l_extendedprice * (1 - l_discount)) AS promo_revenue
+FROM
+    lineitem,
+    part
+WHERE
+    l_partkey = p_partkey
+    AND l_shipdate >= date '[DATE]'
+    AND l_shipdate < date '[DATE]' + interval '1' month;
+        ";
+        var result = Query(query).AsRowList();
+        result.Should().HaveCountGreaterOrEqualTo(1);
+    }
+}

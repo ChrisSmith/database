@@ -7,34 +7,10 @@ using FluentAssertions;
 
 namespace Database.Test.TPCH;
 
-public class Query01
+public partial class TPCHTests
 {
-    private Catalog _catalog;
-
-    [OneTimeSetUp]
-    public void OneTimeSetup()
-    {
-        _catalog = new Catalog(new ParquetPool());
-        TestDatasets.AddTestDatasetsToCatalog(_catalog);
-    }
-
-    private List<MaterializedRowGroup> Query(string query)
-    {
-        var scanner = new Scanner(query);
-        var tokens = scanner.ScanTokens();
-        var parser = new Parser(tokens);
-        var statement = parser.Parse();
-
-        var bufferPool = new ParquetPool();
-        var it = new Interpreter(bufferPool);
-        var planner = new QueryPlanner(_catalog, bufferPool);
-        var plan = planner.CreatePlan(statement);
-        var result = it.Execute(plan).ToList();
-        return result;
-    }
-
     [Test]
-    public void Runs()
+    public void Q01()
     {
         var query = @"
             select
