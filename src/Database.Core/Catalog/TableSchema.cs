@@ -1,3 +1,4 @@
+using Database.Core.BufferPool;
 using Database.Core.Execution;
 
 namespace Database.Core.Catalog;
@@ -15,7 +16,8 @@ public record TableSchema(
     List<RowGroupMeta> RowGroups
     )
 {
-
+    public RowGroup StatsRowGroup { get; set; }
+    public MemoryStorage StatsTable { get; set; }
 }
 
 /// <summary>

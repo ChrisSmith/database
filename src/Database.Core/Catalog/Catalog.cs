@@ -58,8 +58,102 @@ public record Catalog(ParquetPool BufferPool)
             meta.NumRows,
             reader.RowGroupCount,
             rowGroups
-            );
+        );
+
+        (table.StatsTable, table.StatsRowGroup) = BuildStatsTable(table);
+
         Tables.Add(table);
+    }
+
+    public (MemoryStorage, RowGroup) BuildStatsTable(TableSchema table)
+    {
+        var memRef = BufferPool.OpenMemoryTable();
+        var memTable = BufferPool.GetMemoryTable(memRef.TableId);
+
+        var statsRg = memTable.AddRowGroup();
+        var rgCount = table.NumRowGroups;
+
+        var outputRefs = new List<ColumnRef>();
+
+        // Need to allocate the columns first
+        for (var i = 0; i < table.Columns.Count; i++)
+        {
+            var column = table.Columns[i];
+            var columnType = column.ClrType;
+            var minColumn = memTable.AddColumnToSchema(column.Name + "_$min", column.DataType);
+            var maxColumn = memTable.AddColumnToSchema(column.Name + "_$max", column.DataType);
+            var distinctCountColumn = memTable.AddColumnToSchema(column.Name + "_$distinct_count", DataType.Int);
+            var nullCountColumn = memTable.AddColumnToSchema(column.Name + "_$null_count", DataType.Int);
+        }
+
+        var statsColumns = memTable.Schema;
+
+        for (var i = 0; i < table.Columns.Count; i++)
+        {
+            var column = table.Columns[i];
+            var columnType = column.ClrType;
+            // TODO type hack for decimal
+            if (columnType == typeof(decimal))
+            {
+                columnType = typeof(double);
+            }
+
+            var s = i * 4;
+            var minColumn = statsColumns[s];
+            var maxColumn = statsColumns[s + 1];
+            var distinctCountColumn = statsColumns[s + 2];
+            var nullCountColumn = statsColumns[s + 3];
+
+            var minValues = Array.CreateInstance(columnType, rgCount);
+            var maxValues = Array.CreateInstance(columnType, rgCount);
+            var distinctCounts = new int[rgCount];
+            var nullCounts = new int[rgCount];
+
+            for (var j = 0; j < rgCount; j++)
+            {
+                var stats = table.RowGroups[j].Statistics;
+                var columnStats = stats[i];
+
+                minValues.SetValue(ChangeType(columnStats.MinValue, columnType), j);
+                maxValues.SetValue(ChangeType(columnStats.MaxValue, columnType), j);
+                distinctCounts[j] = (int)(columnStats.DistinctCount ?? int.MinValue);
+                nullCounts[j] = (int)(columnStats.NullCount ?? int.MinValue);
+            }
+
+            WriteColumn(minColumn, minValues);
+            WriteColumn(maxColumn, maxValues);
+            WriteColumn(distinctCountColumn, distinctCounts);
+            WriteColumn(nullCountColumn, nullCounts);
+        }
+
+        return (memRef, new RowGroup(
+            rgCount,
+            statsRg,
+            outputRefs
+        ));
+
+        void WriteColumn(ColumnSchema columnSchema, Array values)
+        {
+            var col = ColumnHelper.CreateColumn(
+                columnSchema.ClrType,
+                columnSchema.Name,
+                values
+            );
+            BufferPool.WriteColumn(columnSchema.ColumnRef, col, statsRg.RowGroup);
+            outputRefs.Add(columnSchema.ColumnRef);
+        }
+
+        object? ChangeType(object? value, Type columnType)
+        {
+            if (columnType == typeof(DateTime) && value is int)
+            {
+                // The types are kinda off in our dataset here
+                // These are just dates, not dattimes
+                var asDouble = Convert.ToDouble(value);
+                return DateTime.UnixEpoch.AddDays(asDouble);
+            }
+            return Convert.ChangeType(value, columnType);
+        }
     }
 
     public TableSchema GetTable(TableId id)

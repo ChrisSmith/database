@@ -5,6 +5,7 @@ using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 using Database.Core.Operations;
+using static Database.Core.TokenType;
 
 namespace Database.Core.Planner;
 
@@ -78,12 +79,110 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         var expressions = _binder.Bind(select.SelectList.Expressions, inputColumns);
 
         var columnRefs = inputColumns.Select(c => c.ColumnRef).ToList();
+
+        if (TryBindPushFilterDown(table, select.Where, out var filter))
+        {
+            var pop = new FileScanFusedFilter(
+                bufferPool,
+                table.Location,
+                catalog,
+                filter!,
+                columnRefs
+            );
+            return (pop, expressions, inputColumns);
+        }
+
+
         var op = new FileScan(
             bufferPool,
             table.Location,
             columnRefs
             );
         return (op, expressions, inputColumns);
+    }
+
+    private bool TryBindPushFilterDown(
+        TableSchema table,
+        BaseExpression? where,
+        out BaseExpression? result)
+    {
+        result = null;
+        if (where is not BinaryExpression b)
+        {
+            return false;
+        }
+        if (!IsSupportedExpression(b.Left) || !IsSupportedExpression(b.Right))
+        {
+            return false;
+        }
+
+        var statTable = bufferPool.GetMemoryTable(table.StatsTable.TableId);
+
+        // What is the correct way to rewrite these?
+        // As a range operation with an OR between left and right?
+        var statName = b.Operator switch
+        {
+            LESS => "_$min",
+            LESS_EQUAL => "_$min",
+            GREATER => "_$max",
+            GREATER_EQUAL => "_$max",
+            _ => null,
+        };
+        if (statName == null)
+        {
+            return false;
+        }
+
+        // a > 123 -> max(a) > 123
+        // a < 123 -> min(a) < 123
+        result = b with
+        {
+            Left = RebindToStatistic(b.Left),
+            Right = RebindToStatistic(b.Right),
+        };
+
+        result = _binder.Bind(result, statTable.Schema);
+
+        return true;
+
+        BaseExpression RebindToStatistic(BaseExpression expr)
+        {
+            if (expr is LiteralExpression)
+            {
+                return expr;
+            }
+
+            if (expr is ColumnExpression c)
+            {
+                var expectedName = $"{c.Column}{statName}";
+                ColumnRef colRef = default;
+                var columns = statTable.Schema;
+                for (var i = 0; i < columns.Count; i++)
+                {
+                    if (columns[i].Name == expectedName)
+                    {
+                        colRef = columns[i].ColumnRef;
+                        break;
+                    }
+                }
+                if (colRef == default)
+                {
+                    throw new QueryPlanException($"Column '{expectedName}' not found in table '{table.Name}'");
+                }
+
+                return c with
+                {
+                    Column = expectedName,
+                    BoundOutputColumn = colRef,
+                };
+            }
+            throw new QueryPlanException($"Expression {expr} is not supported for pushdown predicate");
+        }
+
+        bool IsSupportedExpression(BaseExpression expr)
+        {
+            return expr is ColumnExpression or LiteralExpression;
+        }
     }
 
     private IReadOnlyList<ColumnSchema> FilterToUsedColumns(SelectStatement select, IReadOnlyList<ColumnSchema> inputColumns)

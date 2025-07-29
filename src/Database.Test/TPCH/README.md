@@ -12,5 +12,10 @@ DROP TABLE IF EXISTS supplier;
 
 CALL dbgen(sf = 1);
 
+CREATE OR REPLACE TABLE lineitem AS
+SELECT *
+FROM lineitem
+ORDER BY l_shipdate;
+
 EXPORT DATABASE '/Users/chris/src/database/tpch/1' (FORMAT parquet);
 ```
