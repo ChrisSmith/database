@@ -117,6 +117,13 @@ public class FunctionRegistry
             { DataType.Float, typeof(ModuloTwo<float>) },
             { DataType.Double, typeof(ModuloTwo<double>) },
         }));
+        _funcs.Add("between", new("between", 3, new()
+        {
+            { DataType.Int, typeof(Between<int>)},
+            { DataType.Long, typeof(Between<long>)},
+            { DataType.Float, typeof(Between<float>)},
+            { DataType.Double, typeof(Between<double>)},
+        }));
     }
 
     [Pure]

@@ -15,13 +15,7 @@ public interface IFilterFunctionTwo<In> : IFunction
 
 public interface IFilterThreeColsThree<In> : IFunction
 {
-    public int LeftIndex { get; }
-
-    public int ValueIndex { get; }
-
-    public int RightIndex { get; }
-
-    public bool[] Ok(In[] left, In[] value, In[] right);
+    public bool[] Ok(In[] value, In[] lower, In[] upper);
 }
 
 # region Greater Than
@@ -120,15 +114,15 @@ public record NotEqualTwo<T> : BoolFunction, IFilterFunctionTwo<T>
 
 #region Between
 
-public record Between<T>(int LeftIndex, int ValueIndex, int RightIndex) : BoolFunction, IFilterThreeColsThree<T>
+public record Between<T>() : BoolFunction, IFilterThreeColsThree<T>
     where T : INumber<T>
 {
-    public bool[] Ok(T[] left, T[] values, T[] right)
+    public bool[] Ok(T[] value, T[] lower, T[] upper)
     {
-        var result = new bool[left.Length];
-        for (var i = 0; i < left.Length; i++)
+        var result = new bool[value.Length];
+        for (var i = 0; i < value.Length; i++)
         {
-            result[i] = left[i] >= values[i] && left[i] <= right[i];
+            result[i] = lower[i] <= value[i] && value[i] <= upper[i];
         }
         return result;
     }

@@ -34,6 +34,9 @@ public class Scanner
         {"offset", OFFSET},
         {"and", AND},
         {"or", OR},
+        {"between", BETWEEN},
+        {"is", IS},
+        {"not", NOT},
     };
 
     public Scanner(string source)

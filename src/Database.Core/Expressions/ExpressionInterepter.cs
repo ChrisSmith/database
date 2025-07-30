@@ -15,6 +15,14 @@ public class ExpressionInterpreter
             return Execute(exp, be.BoundFunction!, left, right);
         }
 
+        if (exp is BetweenExpression bt)
+        {
+            var value = Execute(bt.Value, rowGroup);
+            var lower = Execute(bt.Lower, rowGroup);
+            var upper = Execute(bt.Upper, rowGroup);
+            return Execute(exp, bt.BoundFunction!, value, lower, upper);
+        }
+
         if (exp is FunctionExpression fe)
         {
             var args = new IColumn[fe.Args.Length];
@@ -102,6 +110,48 @@ public class ExpressionInterpreter
             );
         return column;
     }
+
+    public IColumn Execute(BaseExpression expr, IFunction fun, IColumn value, IColumn lower, IColumn upper)
+    {
+        Array outputArray = null;
+
+        if (fun is IFilterThreeColsThree<int> sti)
+        {
+            outputArray = sti.Ok((int[])value.ValuesArray, (int[])lower.ValuesArray, (int[])upper.ValuesArray);
+        }
+        else if (fun is IFilterThreeColsThree<long> stl)
+        {
+            outputArray = stl.Ok((long[])value.ValuesArray, (long[])lower.ValuesArray, (long[])upper.ValuesArray);
+        }
+        else if (fun is IFilterThreeColsThree<float> stf)
+        {
+            outputArray = stf.Ok((float[])value.ValuesArray, (float[])lower.ValuesArray, (float[])upper.ValuesArray);
+        }
+        else if (fun is IFilterThreeColsThree<double> std)
+        {
+            outputArray = std.Ok((double[])value.ValuesArray, (double[])lower.ValuesArray, (double[])upper.ValuesArray);
+        }
+        else if (fun is IFilterThreeColsThree<DateTime> dt)
+        {
+            outputArray = dt.Ok((DateTime[])value.ValuesArray, (DateTime[])lower.ValuesArray, (DateTime[])upper.ValuesArray);
+        }
+        else if (fun is IFilterThreeColsThree<DateOnly> dto)
+        {
+            outputArray = dto.Ok((DateOnly[])value.ValuesArray, (DateOnly[])lower.ValuesArray, (DateOnly[])upper.ValuesArray);
+        }
+        else
+        {
+            throw new NotImplementedException($"Function {fun.GetType().Name} not implemented");
+        }
+
+        var column = ColumnHelper.CreateColumn(
+            fun.ReturnType.ClrTypeFromDataType(),
+            expr.Alias,
+            outputArray
+            );
+        return column;
+    }
+
 
     public IColumn Execute(IFunction fun, IColumn[] args)
     {

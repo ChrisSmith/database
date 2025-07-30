@@ -10,11 +10,14 @@ namespace Database.Test;
 
 public class ExecutionTest
 {
-    private Catalog _catalog = new(new ParquetPool());
+    private ParquetPool _bufferPool;
+    private Catalog _catalog;
 
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
+        _bufferPool = new ParquetPool();
+        _catalog = new Catalog(_bufferPool);
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 
@@ -25,9 +28,8 @@ public class ExecutionTest
         var parser = new Parser(tokens);
         var statement = parser.Parse();
 
-        var bufferPool = new ParquetPool();
-        var it = new Interpreter(bufferPool);
-        var planner = new QueryPlanner(_catalog, bufferPool);
+        var it = new Interpreter(_bufferPool);
+        var planner = new QueryPlanner(_catalog, _bufferPool);
         var plan = planner.CreatePlan(statement);
         var result = it.Execute(plan).ToList();
         return result;
@@ -185,8 +187,7 @@ public class ExecutionTest
     [TestCase("Id > 100000 - 101")]
     [TestCase("99899 < Id")]
     [TestCase("100000 - 101 < Id")]
-    // Don't pass yet
-    // [TestCase("Id between 0 and 100")]
+    [TestCase("Id between 0 and 99")]
     public void Where(string expr)
     {
         var result = Query($"SELECT Id FROM table where {expr};").AsRowList();

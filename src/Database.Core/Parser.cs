@@ -276,10 +276,18 @@ public class Parser
     private BaseExpression ParseEquality()
     {
         var plus = ParsePlusMinus();
-        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, BETWEEN))
+        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
         {
             var right = ParseEquality();
             return new BinaryExpression(token.TokenType, token.Lexeme, plus, right);
+        }
+
+        if (Match(out token, BETWEEN))
+        {
+            var middle = ParseEquality();
+            Consume(AND, "Expected AND after BETWEEN expression");
+            var right = ParseEquality();
+            return new BetweenExpression(plus, middle, right);
         }
 
         return plus;

@@ -55,6 +55,16 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             };
         }
 
+        if (expression is BetweenExpression bt)
+        {
+            return bt with
+            {
+                Value = Bind(bt.Value, columns, ignoreMissingColumns),
+                Lower = Bind(bt.Lower, columns, ignoreMissingColumns),
+                Upper = Bind(bt.Upper, columns, ignoreMissingColumns),
+            };
+        }
+
         if (expression is FunctionExpression fn)
         {
             var boundArgs = new BaseExpression[fn.Args.Length];
@@ -147,6 +157,14 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 PERCENT => functions.BindFunction("%", args),
                 _ => throw new QueryPlanException($"operator '{be.Operator}' not setup for binding yet"),
             };
+        }
+
+        if (expression is BetweenExpression bt)
+        {
+            var value = Bind(bt.Value, columns, ignoreMissingColumns);
+            var lower = Bind(bt.Lower, columns, ignoreMissingColumns);
+            var upper = Bind(bt.Upper, columns, ignoreMissingColumns);
+            return functions.BindFunction("between", [value, lower, upper]);
         }
 
         if (expression is FunctionExpression fn)

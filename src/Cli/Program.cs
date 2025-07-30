@@ -209,6 +209,11 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
 
 void PrintTable(List<MaterializedRowGroup> result)
 {
+    if (result.Count == 0)
+    {
+        Console.WriteLine("No rows returned");
+        return;
+    }
     var rg = result[0];
     var columnHeader = string.Join(", ", rg.Columns.Select(c => c.Name));
     Console.WriteLine(columnHeader);
