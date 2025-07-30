@@ -8,7 +8,7 @@ public static class TestDatasets
         var dataPath = Path.Combine(homeDir, "src/database/tpch/1");
 
         var tableName = "lineitem";
-        catalog.LoadTable(tableName, Path.Combine(dataPath, $"{tableName}.parquet"));
+        catalog.LoadTable(tableName, Path.Combine(dataPath, $"{tableName}2.parquet"));
 
 
         catalog.LoadTable("table", Path.Combine(homeDir, "src/database/data.parquet"));
