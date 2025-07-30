@@ -30,8 +30,8 @@ FROM
 WHERE
     c_custkey = o_custkey
     AND l_orderkey = o_orderkey
-    AND o_orderdate >= date '[DATE]'
-    AND o_orderdate < date '[DATE]' + interval '3' month
+    AND o_orderdate >= date '1993-10-01'
+    AND o_orderdate < date '1993-10-01' + interval '3' month
     AND l_returnflag = 'R'
     AND c_nationkey = n_nationkey
 GROUP BY
@@ -45,7 +45,7 @@ GROUP BY
 ORDER BY
     revenue DESC;
 
-        ;";
+        ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }

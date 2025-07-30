@@ -33,7 +33,7 @@ WHERE
         GROUP BY
             l_orderkey
         HAVING
-            SUM(l_quantity) > [QUANTITY]
+            SUM(l_quantity) > 300
     )
     AND c_custkey = o_custkey
     AND o_orderkey = l_orderkey
@@ -45,7 +45,7 @@ GROUP BY
     o_totalprice
 ORDER BY
     o_totalprice DESC,
-    o_orderdate;
+    o_orderdate
 limit 100;
         ";
         var result = Query(query).AsRowList();

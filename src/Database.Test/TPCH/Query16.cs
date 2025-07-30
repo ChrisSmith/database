@@ -23,17 +23,17 @@ FROM
     part
 WHERE
     p_partkey = ps_partkey
-    AND p_brand <> '[BRAND]'
-    AND p_type NOT LIKE '[TYPE]%'
+    AND p_brand <> 'Brand#45'
+    AND p_type NOT LIKE 'MEDIUM POLISHED%'
     AND p_size IN (
-        [SIZE1],
-        [SIZE2],
-        [SIZE3],
-        [SIZE4],
-        [SIZE5],
-        [SIZE6],
-        [SIZE7],
-        [SIZE8]
+        49,
+        14,
+        23,
+        45,
+        19,
+        3,
+        36,
+        9
     )
     AND ps_suppkey NOT IN (
         SELECT
@@ -53,7 +53,7 @@ ORDER BY
     p_type,
     p_size;
 
-        ;";
+        ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }

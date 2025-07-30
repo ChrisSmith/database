@@ -20,16 +20,16 @@ public partial class TPCHTests
                 o_shippriority
             from customer, orders, lineitem
             where
-                    c_mktsegment = '[SEGMENT]'
+                    c_mktsegment = 'BUILDING'
                 and c_custkey = o_custkey
                 and l_orderkey = o_orderkey
-                and o_orderdate < date '[DATE]'
-                and l_shipdate > date '[DATE]'
+                and o_orderdate < date '1995-03-15'
+                and l_shipdate > date '1995-03-15'
             group by l_orderkey, o_orderdate, o_shippriority
             order by revenue desc, o_orderdate
             limit 10
             ;
-        ;";
+        ";
 
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);

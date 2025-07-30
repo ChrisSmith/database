@@ -25,7 +25,7 @@ FROM (
         customer
     WHERE
         substring(c_phone FROM 1 FOR 2) IN
-            ('[I1]','[I2]','[I3]','[I4]','[I5]','[I6]','[I7]')
+            ('13','31','23','29','30','18','17')
         AND c_acctbal > (
             SELECT
                 avg(c_acctbal)
@@ -34,7 +34,7 @@ FROM (
             WHERE
                 c_acctbal > 0.00
                 AND substring(c_phone FROM 1 FOR 2) IN
-                    ('[I1]','[I2]','[I3]','[I4]','[I5]','[I6]','[I7]')
+                    ('13','31','23','29','30','18','17')
         )
         AND NOT EXISTS (
             SELECT

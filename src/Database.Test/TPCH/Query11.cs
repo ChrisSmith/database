@@ -23,13 +23,13 @@ FROM
 WHERE
     ps_suppkey = s_suppkey
     AND s_nationkey = n_nationkey
-    AND n_name = '[NATION]'
+    AND n_name = 'GERMANY'
 GROUP BY
     ps_partkey
 HAVING
     SUM(ps_supplycost * ps_availqty) > (
         SELECT
-            SUM(ps_supplycost * ps_availqty) * [FRACTION]
+            SUM(ps_supplycost * ps_availqty) * 0.0001
         FROM
             partsupp,
             supplier,
@@ -37,11 +37,11 @@ HAVING
         WHERE
             ps_suppkey = s_suppkey
             AND s_nationkey = n_nationkey
-            AND n_name = '[NATION]'
+            AND n_name = 'GERMANY'
     )
 ORDER BY
     value DESC;
-        ;";
+        ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }

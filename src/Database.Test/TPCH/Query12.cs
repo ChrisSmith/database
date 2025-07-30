@@ -32,17 +32,17 @@ FROM
     lineitem
 WHERE
     o_orderkey = l_orderkey
-    AND l_shipmode IN ('[SHIPMODE1]', '[SHIPMODE2]')
+    AND l_shipmode IN ('MAIL', 'SHIP')
     AND l_commitdate < l_receiptdate
     AND l_shipdate < l_commitdate
-    AND l_receiptdate >= date '[DATE]'
-    AND l_receiptdate < date '[DATE]' + interval '1' year
+    AND l_receiptdate >= date '1994-01-01'
+    AND l_receiptdate < date '1994-01-01' + interval '1' year
 GROUP BY
     l_shipmode
 ORDER BY
     l_shipmode;
 
-        ;";
+        ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }

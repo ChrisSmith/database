@@ -23,7 +23,7 @@ FROM (
     FROM
         customer LEFT OUTER JOIN orders ON
             c_custkey = o_custkey
-            AND o_comment NOT LIKE '%[WORD1]%[WORD2]%'
+            AND o_comment NOT LIKE '%special%requests%'
     GROUP BY
         c_custkey
 ) AS c_orders (c_custkey, c_count)
@@ -33,7 +33,7 @@ ORDER BY
     custdist DESC,
     c_count DESC;
 
-        ;";
+        ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }

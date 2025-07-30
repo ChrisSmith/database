@@ -26,8 +26,8 @@ FROM
     part
 WHERE
     l_partkey = p_partkey
-    AND l_shipdate >= date '[DATE]'
-    AND l_shipdate < date '[DATE]' + interval '1' month;
+    AND l_shipdate >= date '1995-09-01'
+    AND l_shipdate < date '1995-09-01' + interval '1' month;
         ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);

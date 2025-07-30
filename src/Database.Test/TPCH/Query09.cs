@@ -36,7 +36,7 @@ public partial class TPCHTests
                     AND p_partkey = l_partkey
                     AND o_orderkey = l_orderkey
                     AND s_nationkey = n_nationkey
-                    AND p_name LIKE '%[COLOR]%'
+                    AND p_name LIKE '%green%'
             ) AS profit
             GROUP BY
                 nation,
@@ -45,7 +45,7 @@ public partial class TPCHTests
                 nation,
                 o_year DESC;
 
-        ;";
+        ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }

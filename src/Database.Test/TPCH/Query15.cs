@@ -13,15 +13,15 @@ public partial class TPCHTests
     public void Q15()
     {
         var query = @"
-CREATE VIEW revenue[STREAM_ID] (supplier_no, total_revenue) AS
+CREATE VIEW revenue1 (supplier_no, total_revenue) AS
 SELECT
     l_suppkey,
     SUM(l_extendedprice * (1 - l_discount)) as total_revenue
 FROM
     lineitem
 WHERE
-    l_shipdate >= date '[DATE]'
-    AND l_shipdate < date '[DATE]' + interval '3' month
+    l_shipdate >= date '1996-01-01'
+    AND l_shipdate < date '1996-01-01' + interval '3' month
 GROUP BY
     l_suppkey;
 
@@ -33,19 +33,19 @@ SELECT
     total_revenue
 FROM
     supplier,
-    revenue[STREAM_ID]
+    revenue1
 WHERE
     s_suppkey = supplier_no
     AND total_revenue = (
         SELECT
             MAX(total_revenue)
         FROM
-            revenue[STREAM_ID]
+            revenue1
     )
 ORDER BY
     s_suppkey;
 
-DROP VIEW revenue[STREAM_ID];
+DROP VIEW revenue1;
         ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);

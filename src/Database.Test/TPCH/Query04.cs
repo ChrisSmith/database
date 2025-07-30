@@ -18,8 +18,8 @@ public partial class TPCHTests
                 count(*) as order_count
             from orders
             where
-                    o_orderdate >= date '[DATE]'
-                and o_orderdate < date '[DATE]' + interval '3' month
+                    o_orderdate >= date '1993-07-01'
+                and o_orderdate < date '1993-07-01' + interval '3' month
                 and exists (
                     select *
                     from
@@ -32,7 +32,7 @@ public partial class TPCHTests
                 o_orderpriority
             order by
                 o_orderpriority;
-        ;";
+        ";
 
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);

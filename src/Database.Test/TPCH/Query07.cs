@@ -38,8 +38,8 @@ public partial class TPCHTests
                     and s_nationkey = n1.n_nationkey
                     and c_nationkey = n2.n_nationkey
                     and (
-                        (n1.n_name = '[NATION1]' and n2.n_name = '[NATION2]')
-                        or (n1.n_name = '[NATION2]' and n2.n_name = '[NATION1]')
+                        (n1.n_name = 'FRANCE' and n2.n_name = 'GERMANY')
+                        or (n1.n_name = 'GERMANY' and n2.n_name = 'FRANCE')
                     )
                     and l_shipdate between date '1995-01-01' and date '1996-12-31'
                 ) as shipping
@@ -51,7 +51,7 @@ public partial class TPCHTests
                 supp_nation,
                 cust_nation,
                 l_year;
-        ;";
+        ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }

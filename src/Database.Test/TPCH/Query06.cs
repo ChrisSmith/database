@@ -18,11 +18,11 @@ public partial class TPCHTests
             from
                 lineitem
             where
-                    l_shipdate >= date '[DATE]'
-                and l_shipdate < date '[DATE]' + interval '1' year
-                and l_discount between [DISCOUNT] - 0.01 and [DISCOUNT] + 0.01
-                and l_quantity < [QUANTITY];
-        ;";
+                    l_shipdate >= date '1994-01-01'
+                and l_shipdate < date '1994-01-01' + interval '1' year
+                and l_discount between 0.06 - 0.01 and 0.06 + 0.01
+                and l_quantity < 24;
+        ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
