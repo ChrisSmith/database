@@ -33,7 +33,7 @@ public partial class TPCHTests
         ;";
 
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().HaveCount(4);
     }
 
     // Null value handling is weird. Either we're losing it in the write from duckdb, or we're parsing it unconditionally?

@@ -37,7 +37,7 @@ public record HashAggregate(
 
         var rowGroup = Source.Next();
 
-        var hashToAggState = new Dictionary<Row, List<IAggregateState>>();
+        var hashToAggState = new HashTable<List<IAggregateState>>(groupingExpressions.Count);
 
         while (rowGroup != null)
         {
@@ -54,7 +54,7 @@ public record HashAggregate(
             rowGroup = Source.Next();
         }
 
-        var resRows = hashToAggState.ToList();
+        var resRows = hashToAggState.KeyValuePairs();
         var groupedRowGroup = FromRows(resRows);
 
         _done = true;
@@ -78,8 +78,8 @@ public record HashAggregate(
     private static List<IAggregateState[]> InitializeAggregateStates(
         IReadOnlyList<BaseExpression> aggregates,
         RowGroup rowGroup,
-        IReadOnlyList<Row> groupingKeys,
-        Dictionary<Row, List<IAggregateState>> hashToAggState)
+        IReadOnlyList<IColumn> groupingKeys,
+        HashTable<List<IAggregateState>> hashToAggState)
     {
         var count = aggregates.Count;
         var stateArray = new List<IAggregateState[]>(count);
@@ -89,55 +89,50 @@ public record HashAggregate(
             stateArray.Add(fun.InitializeArray(rowGroup.NumRows));
         }
 
-        // For each row, get the list of aggregate states and put them into
-        // a row oriented list. This means the same state can be in the list multiple times
-        for (var i = 0; i < groupingKeys.Count; i++)
+        var numRows = groupingKeys[0].Length;
+        if (numRows != rowGroup.NumRows)
         {
-            var groupingKey = groupingKeys[i];
-            if (!hashToAggState.TryGetValue(groupingKey, out var states))
-            {
-                states = new List<IAggregateState>(count);
-                for (var a = 0; a < count; a++)
-                {
-                    var aggregate = (IAggregateFunction)aggregates[a].BoundFunction!;
-                    states.Add(aggregate.Initialize());
-                }
-                hashToAggState[groupingKey] = states;
-            }
+            throw new Exception("Number of rows in grouping keys does not match number of rows in row group");
+        }
 
+        var output = hashToAggState.GetOrAdd(groupingKeys, () =>
+        {
+            var states = new List<IAggregateState>(count);
             for (var a = 0; a < count; a++)
             {
-                stateArray[a][i] = states[a];
+                var aggregate = (IAggregateFunction)aggregates[a].BoundFunction!;
+                states.Add(aggregate.Initialize());
+            }
+
+            return states;
+        });
+
+        for (var i = 0; i < numRows; i++)
+        {
+            for (var a = 0; a < count; a++)
+            {
+                stateArray[a][i] = output[i][a];
             }
         }
 
         return stateArray;
     }
 
-    private List<Row> GroupByKeys(RowGroup rowGroup, IReadOnlyList<BaseExpression> groupingExpressions)
+    private List<IColumn> GroupByKeys(RowGroup rowGroup, IReadOnlyList<BaseExpression> groupingExpressions)
     {
-        var numRows = rowGroup.NumRows;
-        var numGroupingExpressions = groupingExpressions.Count;
-        var groupingKeys = new List<Row>(numRows);
-        for (var i = 0; i < numRows; i++)
-        {
-            groupingKeys.Add(new Row(new List<object?>(numGroupingExpressions)));
-        }
+        var numColumns = groupingExpressions.Count;
+        var result = new List<IColumn>(numColumns);
 
-        for (var g = 0; g < numGroupingExpressions; g++)
+        for (var i = 0; i < numColumns; i++)
         {
-            var expression = groupingExpressions[g];
+            var expression = groupingExpressions[i];
             var column = _interpreter.Execute(expression, rowGroup);
-            for (var i = 0; i < column.Length; i++)
-            {
-                groupingKeys[i].Values.Add(column[i]);
-            }
+            result.Add(column);
         }
-
-        return groupingKeys;
+        return result;
     }
 
-    private RowGroup FromRows(List<KeyValuePair<Row, List<IAggregateState>>> resRows)
+    private RowGroup FromRows(List<KeyValuePair<List<object?>, List<IAggregateState>>> resRows)
     {
         var rows = resRows.Select(kvp => kvp.Key).ToList();
         var targetRowGroup = GroupingTable.AddRowGroup();
@@ -168,7 +163,7 @@ public record HashAggregate(
                 for (var j = 0; j < rows.Count; j++)
                 {
                     var row = rows[j];
-                    values.SetValue(row.Values[groupingIdx], j);
+                    values.SetValue(row[groupingIdx], j);
                 }
 
                 groupingIdx++;
