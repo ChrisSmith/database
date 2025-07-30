@@ -111,7 +111,30 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         {
             return false;
         }
-        if (!IsSupportedExpression(b.Left) || !IsSupportedExpression(b.Right))
+
+        if (b.Operator != LESS && b.Operator != LESS_EQUAL && b.Operator != GREATER && b.Operator != GREATER_EQUAL)
+        {
+            return false;
+        }
+
+        TokenType op = b.Operator;
+        string opLiteral = b.OperatorLiteral;
+        ColumnExpression? left = null;
+        LiteralExpression? right = null;
+
+        // Normalize to column on left of expression
+        if (b.Left is LiteralExpression lit && b.Right is ColumnExpression col)
+        {
+            left = col;
+            right = lit;
+            (op, opLiteral) = FlipOperator(op);
+        }
+        else if (b.Left is ColumnExpression col2 && b.Right is LiteralExpression lit2)
+        {
+            left = col2;
+            right = lit2;
+        }
+        else
         {
             return false;
         }
@@ -120,7 +143,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         // What is the correct way to rewrite these?
         // As a range operation with an OR between left and right?
-        var statName = b.Operator switch
+        var leftStat = op switch
         {
             LESS => "_$min",
             LESS_EQUAL => "_$min",
@@ -128,24 +151,41 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             GREATER_EQUAL => "_$max",
             _ => null,
         };
-        if (statName == null)
+        if (leftStat == null)
         {
             return false;
         }
 
-        // a > 123 -> max(a) > 123
         // a < 123 -> min(a) < 123
+        // a <= 123 -> min(a) <= 123
+        // a > 123 -> max(a) > 123
+        // a >= 123 -> max(a) > 123
+
         result = b with
         {
-            Left = RebindToStatistic(b.Left),
-            Right = RebindToStatistic(b.Right),
+            Operator = op,
+            OperatorLiteral = opLiteral,
+            Left = RebindToStatistic(left, leftStat),
+            Right = right,
         };
 
         result = _binder.Bind(result, statTable.Schema);
 
         return true;
 
-        BaseExpression RebindToStatistic(BaseExpression expr)
+        (TokenType, string) FlipOperator(TokenType op)
+        {
+            return op switch
+            {
+                LESS => (GREATER, ">"),
+                LESS_EQUAL => (GREATER_EQUAL, ">="),
+                GREATER => (LESS, "<"),
+                GREATER_EQUAL => (LESS_EQUAL, "<="),
+                _ => throw new QueryPlanException($"Unexpected operator {op}"),
+            };
+        }
+
+        BaseExpression RebindToStatistic(BaseExpression expr, string statName)
         {
             if (expr is LiteralExpression)
             {
@@ -177,11 +217,6 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                 };
             }
             throw new QueryPlanException($"Expression {expr} is not supported for pushdown predicate");
-        }
-
-        bool IsSupportedExpression(BaseExpression expr)
-        {
-            return expr is ColumnExpression or LiteralExpression;
         }
     }
 

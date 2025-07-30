@@ -39,7 +39,7 @@ public record Catalog(ParquetPool BufferPool)
         for (var i = 0; i < reader.RowGroupCount; i++)
         {
             var stats = new List<Statistics>(numColumns);
-            var rg = reader.RowGroups[0];
+            var rg = reader.RowGroups[i];
             for (var c = 0; c < numColumns; c++)
             {
                 var field = handle.DataFields[c];
