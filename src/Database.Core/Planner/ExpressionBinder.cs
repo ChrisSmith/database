@@ -46,6 +46,14 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             Alias = alias,
         };
 
+        if (expression is UnaryExpression ue)
+        {
+            return ue with
+            {
+                Expression = Bind(ue.Expression, columns, ignoreMissingColumns),
+            };
+        }
+
         if (expression is BinaryExpression be)
         {
             return be with
@@ -130,6 +138,17 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             return new SelectFunction(columnRef, colType!.Value, bufferPool);
         }
 
+        if (expression is UnaryExpression unary)
+        {
+            var expr = Bind(unary.Expression, columns, ignoreMissingColumns);
+            var args = new[] { expr };
+            return (unary.Operator) switch
+            {
+                NOT => functions.BindFunction("not", args),
+                _ => throw new QueryPlanException($"unary operator '{unary.Operator}' not setup for binding yet"),
+            };
+        }
+
         if (expression is BinaryExpression be)
         {
             var left = Bind(be.Left, columns, ignoreMissingColumns);
@@ -155,6 +174,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 MINUS => functions.BindFunction("-", args),
                 SLASH => functions.BindFunction("/", args),
                 PERCENT => functions.BindFunction("%", args),
+                AND => functions.BindFunction("and", args),
+                OR => functions.BindFunction("or", args),
                 _ => throw new QueryPlanException($"operator '{be.Operator}' not setup for binding yet"),
             };
         }

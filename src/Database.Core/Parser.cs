@@ -263,13 +263,12 @@ public class Parser
 
     private BaseExpression ParseNot()
     {
-        var equality = ParseEquality();
         if (Match(NOT, out var token))
         {
             var right = ParseNot();
-            return new BinaryExpression(token.TokenType, token.Lexeme, equality, right);
+            return new UnaryExpression(token.TokenType, right);
         }
-
+        var equality = ParseEquality();
         return equality;
     }
 

@@ -8,6 +8,11 @@ public abstract record BoolFunction : IFunction
     public DataType ReturnType => DataType.Bool;
 }
 
+public interface IFilterFunctionOne<In> : IFunction
+{
+    public bool[] Ok(In[] values);
+}
+
 public interface IFilterFunctionTwo<In> : IFunction
 {
     public bool[] Ok(In[] left, In[] right);

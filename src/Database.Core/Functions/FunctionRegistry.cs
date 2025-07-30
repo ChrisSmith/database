@@ -124,6 +124,46 @@ public class FunctionRegistry
             { DataType.Float, typeof(Between<float>)},
             { DataType.Double, typeof(Between<double>)},
         }));
+        _funcs.Add("cast_int", new("cast_int", 1, new()
+        {
+            { DataType.Int, typeof(CastInt<int>)},
+            { DataType.Long, typeof(CastInt<long>)},
+            { DataType.Float, typeof(CastInt<float>)},
+            { DataType.Double, typeof(CastInt<double>)},
+        }));
+        _funcs.Add("cast_long", new("cast_long", 1, new()
+        {
+            { DataType.Int, typeof(CastLong<int>)},
+            { DataType.Long, typeof(CastLong<long>)},
+            { DataType.Float, typeof(CastLong<float>)},
+            { DataType.Double, typeof(CastLong<double>)},
+        }));
+        _funcs.Add("cast_float", new("cast_float", 1, new()
+        {
+            { DataType.Int, typeof(CastFloat<int>)},
+            { DataType.Long, typeof(CastFloat<long>)},
+            { DataType.Float, typeof(CastFloat<float>)},
+            { DataType.Double, typeof(CastFloat<double>)},
+        }));
+        _funcs.Add("cast_double", new("cast_double", 1, new()
+        {
+            { DataType.Int, typeof(CastDouble<int>)},
+            { DataType.Long, typeof(CastDouble<long>)},
+            { DataType.Float, typeof(CastDouble<float>)},
+            { DataType.Double, typeof(CastDouble<double>)},
+        }));
+        _funcs.Add("and", new("and", 2, new()
+        {
+            { DataType.Bool, typeof(LogicalAnd) },
+        }));
+        _funcs.Add("or", new("or", 2, new()
+        {
+            { DataType.Bool, typeof(LogicalOr) },
+        }));
+        _funcs.Add("not", new("not", 1, new()
+        {
+            { DataType.Bool, typeof(LogicalNot) },
+        }));
     }
 
     [Pure]

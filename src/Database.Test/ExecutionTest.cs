@@ -194,6 +194,15 @@ public class ExecutionTest
         result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
     }
 
+    [TestCase("Id < 110 and Id >= 10")]
+    [TestCase("Id <= 10 or Id > 100000 - 90")]
+    [TestCase("not Id <= 99899")]
+    public void Where_CompoundExpressions(string expr)
+    {
+        var result = Query($"SELECT Id FROM table where {expr};").AsRowList();
+        result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
+    }
+
     [TestCase("select Id from table")]
     [TestCase("select Id / 2 as foo from table")]
     [TestCase("select 1 + 1 from table")]

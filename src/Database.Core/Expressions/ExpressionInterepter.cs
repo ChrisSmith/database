@@ -15,6 +15,12 @@ public class ExpressionInterpreter
             return Execute(exp, be.BoundFunction!, left, right);
         }
 
+        if (exp is UnaryExpression ue)
+        {
+            var col = Execute(ue.Expression, rowGroup);
+            return Execute(exp, ue.BoundFunction!, col);
+        }
+
         if (exp is BetweenExpression bt)
         {
             var value = Execute(bt.Value, rowGroup);
@@ -51,6 +57,27 @@ public class ExpressionInterpreter
         }
 
         throw new ExpressionEvaluationException($"expression {exp} is not supported for evaluation");
+    }
+
+    public IColumn Execute(BaseExpression expr, IFunction fun, IColumn col)
+    {
+        Array outputArray = null;
+
+        if (fun is IFilterFunctionOne<bool> fb)
+        {
+            outputArray = fb.Ok((bool[])col.ValuesArray);
+        }
+        else
+        {
+            throw new NotImplementedException($"Unary function {fun.GetType().Name} not implemented");
+        }
+
+        var column = ColumnHelper.CreateColumn(
+            fun.ReturnType.ClrTypeFromDataType(),
+            expr.Alias,
+            outputArray
+        );
+        return column;
     }
 
     // Assumes the expression has already been bound
@@ -97,6 +124,10 @@ public class ExpressionInterpreter
         else if (fun is IFilterFunctionTwo<DateOnly> dto)
         {
             outputArray = dto.Ok((DateOnly[])left.ValuesArray, (DateOnly[])right.ValuesArray);
+        }
+        else if (fun is IFilterFunctionTwo<bool> fb)
+        {
+            outputArray = fb.Ok((bool[])left.ValuesArray, (bool[])right.ValuesArray);
         }
         else
         {
