@@ -92,11 +92,6 @@ public record Catalog(ParquetPool BufferPool)
         {
             var column = table.Columns[i];
             var columnType = column.ClrType;
-            // TODO type hack for decimal
-            if (columnType == typeof(decimal))
-            {
-                columnType = typeof(double);
-            }
 
             var s = i * 4;
             var minColumn = statsColumns[s];

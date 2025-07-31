@@ -330,7 +330,7 @@ public class Parser
             {
                 return new IntegerLiteral(literal);
             }
-            return new DoubleLiteral((double)num.Literal!);
+            return new DecimalLiteral((decimal)num.Literal!);
         }
         if (Match(STRING, out var str))
         {

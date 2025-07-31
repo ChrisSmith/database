@@ -65,3 +65,16 @@ public record CastDouble<T>() : Cast<T, double>(DataType.Double)
         return result;
     }
 }
+
+public record CastDecimal<T>() : Cast<T, decimal>(DataType.Decimal)
+{
+    public override decimal[] Execute(T[] values)
+    {
+        var result = new decimal[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = Convert.ToDecimal(values[i]);
+        }
+        return result;
+    }
+}

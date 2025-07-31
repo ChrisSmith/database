@@ -170,10 +170,10 @@ public class Scanner
             Advance();
         }
 
-        var isDouble = false;
+        var isDecimal = false;
         if (Peek() == '.' && IsDigit(PeekNext()))
         {
-            isDouble = true;
+            isDecimal = true;
             // consume .
             Advance();
 
@@ -184,9 +184,9 @@ public class Scanner
         }
 
         var literal = _source.SubstringPos(_start, _current);
-        if (isDouble)
+        if (isDecimal)
         {
-            AddToken(NUMBER, double.Parse(literal));
+            AddToken(NUMBER, decimal.Parse(literal));
         }
         else
         {

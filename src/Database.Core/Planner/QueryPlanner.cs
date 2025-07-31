@@ -556,7 +556,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                 };
             }
 
-            if (expr is ColumnExpression or IntegerLiteral or DoubleLiteral or StringLiteral or BoolLiteral or NullLiteral)
+            if (expr is ColumnExpression or IntegerLiteral or DecimalLiteral or StringLiteral or BoolLiteral or NullLiteral)
             {
                 return expr;
             }

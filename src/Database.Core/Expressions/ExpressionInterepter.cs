@@ -133,6 +133,42 @@ public class ExpressionInterpreter
         {
             outputArray = smdf.Execute((double[])col.ValuesArray);
         }
+        else if (fun is IScalarMathOne<decimal, int> smdmi)
+        {
+            outputArray = smdmi.Execute((decimal[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<decimal, long> smdml)
+        {
+            outputArray = smdml.Execute((decimal[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<decimal, float> smdfm)
+        {
+            outputArray = smdfm.Execute((decimal[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<decimal, double> smddm)
+        {
+            outputArray = smddm.Execute((decimal[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<decimal, decimal> smddcm)
+        {
+            outputArray = smddcm.Execute((decimal[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<int, decimal> smidcm)
+        {
+            outputArray = smidcm.Execute((int[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<long, decimal> smldcm)
+        {
+            outputArray = smldcm.Execute((long[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<float, decimal> smfdcm)
+        {
+            outputArray = smfdcm.Execute((float[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<double, decimal> smddcm2)
+        {
+            outputArray = smddcm2.Execute((double[])col.ValuesArray);
+        }
         else if (fun is IFilterFunctionOne<bool> fb)
         {
             outputArray = fb.Ok((bool[])col.ValuesArray);
@@ -171,6 +207,10 @@ public class ExpressionInterpreter
         {
             outputArray = std.Execute((double[])left.ValuesArray, (double[])right.ValuesArray);
         }
+        else if (fun is IScalarMathTwo<decimal> stdm)
+        {
+            outputArray = stdm.Execute((decimal[])left.ValuesArray, (decimal[])right.ValuesArray);
+        }
         else if (fun is IFilterFunctionTwo<int> fi)
         {
             outputArray = fi.Ok((int[])left.ValuesArray, (int[])right.ValuesArray);
@@ -198,6 +238,10 @@ public class ExpressionInterpreter
         else if (fun is IFilterFunctionTwo<bool> fb)
         {
             outputArray = fb.Ok((bool[])left.ValuesArray, (bool[])right.ValuesArray);
+        }
+        else if (fun is IFilterFunctionTwo<decimal> fdm)
+        {
+            outputArray = fdm.Ok((decimal[])left.ValuesArray, (decimal[])right.ValuesArray);
         }
         else
         {
@@ -231,6 +275,10 @@ public class ExpressionInterpreter
         else if (fun is IFilterThreeColsThree<double> std)
         {
             outputArray = std.Ok((double[])value.ValuesArray, (double[])lower.ValuesArray, (double[])upper.ValuesArray);
+        }
+        else if (fun is IFilterThreeColsThree<decimal> stdm)
+        {
+            outputArray = stdm.Ok((decimal[])value.ValuesArray, (decimal[])lower.ValuesArray, (decimal[])upper.ValuesArray);
         }
         else if (fun is IFilterThreeColsThree<DateTime> dt)
         {

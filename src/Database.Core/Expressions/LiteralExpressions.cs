@@ -12,7 +12,7 @@ public abstract record LiteralExpression : BaseExpression
 }
 
 [DebuggerDisplay("{Literal}")]
-public record DoubleLiteral(double Literal) : LiteralExpression
+public record DecimalLiteral(decimal Literal) : LiteralExpression
 {
     public override string ToString()
     {

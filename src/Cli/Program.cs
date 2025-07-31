@@ -224,18 +224,8 @@ void PrintTable(List<MaterializedRowGroup> result)
     {
         for (var col = 0; col < rg.Columns.Count; col++)
         {
-            switch (rg.Columns[col])
-            {
-                case Column<int> c:
-                    Console.Write(c.Values[row]);
-                    break;
-                case Column<double> c:
-                    Console.Write(c.Values[row]);
-                    break;
-                case Column<string> c:
-                    Console.Write(c.Values[row]);
-                    break;
-            }
+            var column = rg.Columns[col];
+            Console.Write(column[row]);
 
             if (col < rg.Columns.Count - 1)
             {

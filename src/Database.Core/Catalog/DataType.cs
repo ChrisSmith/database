@@ -7,6 +7,7 @@ public enum DataType
     String,
     Float,
     Double,
+    Decimal,
     Date,
     DateTime,
     Interval,
@@ -39,8 +40,7 @@ public static class DataTypeExtensions
         }
         if (clrType == typeof(decimal))
         {
-            // TODO need to support decimal types natively
-            return DataType.Double;
+            return DataType.Decimal;
         }
         if (clrType == typeof(DateOnly))
         {
@@ -71,6 +71,7 @@ public static class DataTypeExtensions
             case DataType.Long: return typeof(long);
             case DataType.Float: return typeof(float);
             case DataType.Double: return typeof(double);
+            case DataType.Decimal: return typeof(decimal);
             case DataType.Date: return typeof(DateOnly);
             case DataType.DateTime: return typeof(DateTime);
             case DataType.Interval: return typeof(TimeSpan);

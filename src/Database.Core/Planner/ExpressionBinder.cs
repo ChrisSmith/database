@@ -35,7 +35,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         IFunction? function = expression switch
         {
             IntegerLiteral numInt => new LiteralFunction(numInt.Literal, DataType.Int),
-            DoubleLiteral num => new LiteralFunction(num.Literal, DataType.Double),
+            DecimalLiteral num => new LiteralFunction(num.Literal, DataType.Decimal),
             StringLiteral str => new LiteralFunction(str.Literal, DataType.String),
             BoolLiteral b => new LiteralFunction(b.Literal, DataType.Bool),
             DateLiteral d => new LiteralFunction(d.Literal, DataType.Date),
@@ -178,51 +178,38 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
 
         if (integers.Contains(leftType) && integers.Contains(rightType))
         {
-            if (leftType == DataType.Int)
-            {
-                return (DoCast(left, DataType.Long), right);
-            }
-            if (rightType == DataType.Int)
-            {
-                return (left, DoCast(right, DataType.Long));
-            }
+            return (DoCast(left, DataType.Long), DoCast(right, DataType.Long));
+        }
+
+        if (integers.Contains(leftType) && rightType == DataType.Decimal)
+        {
+            return (DoCast(left, DataType.Decimal), right);
+        }
+
+        if (integers.Contains(rightType) && leftType == DataType.Decimal)
+        {
+            return (left, DoCast(right, leftType));
         }
 
         var floating = new[] { DataType.Float, DataType.Double };
         if (floating.Contains(leftType) && floating.Contains(rightType))
         {
-            if (leftType == DataType.Float)
-            {
-                return (DoCast(left, DataType.Double), right);
-            }
-            if (rightType == DataType.Float)
-            {
-                return (left, DoCast(right, DataType.Double));
-            }
+            return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
         }
 
-        if (floating.Contains(leftType))
+        if (ExpressionIsNonLiteralDecimal(left) || ExpressionIsNonLiteralDecimal(right))
         {
-            if (rightType == DataType.Int)
-            {
-                return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
-            }
-            if (rightType == DataType.Long)
-            {
-                return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
-            }
+            return (DoCast(left, DataType.Decimal), DoCast(right, DataType.Decimal));
         }
 
-        if (floating.Contains(rightType))
+        if (floating.Contains(leftType) && rightType == DataType.Decimal)
         {
-            if (leftType == DataType.Int)
-            {
-                return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
-            }
-            if (leftType == DataType.Long)
-            {
-                return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
-            }
+            return (left, DoCast(right, leftType));
+        }
+
+        if (floating.Contains(rightType) && leftType == DataType.Decimal)
+        {
+            return (DoCast(left, rightType), right);
         }
 
         throw new QueryPlanException($"unable to automatically convert types '{leftType}' and '{rightType}' to a compatible type.");
@@ -239,6 +226,11 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 Alias = expr.Alias,
             }, columns, ignoreMissingColumns);
         }
+
+        bool ExpressionIsNonLiteralDecimal(BaseExpression expr)
+        {
+            return expr is not DecimalLiteral && expr.BoundDataType!.Value == DataType.Decimal;
+        }
     }
 
     private string CastFnForType(DataType targetType)
@@ -249,6 +241,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             DataType.Long => "cast_long",
             DataType.Float => "cast_float",
             DataType.Double => "cast_double",
+            DataType.Decimal => "cast_decimal",
             _ => throw new QueryPlanException($"unsupported cast type '{targetType}'"),
         };
     }
