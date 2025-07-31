@@ -118,17 +118,94 @@ public class Parser
 
     private FromStatement ParseFromStatement()
     {
-        var table = Consume(IDENTIFIER, "Expected table name");
-        var tableName = table.Lexeme;
 
-        // as is optional in an alias
-        if (Match(AS) || Check(IDENTIFIER))
+        var table = ParseTableOrSubquery();
+        var tables = new List<ITableStatement> { table };
+
+        if (Match(COMMA))
         {
-            var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
-            return new FromStatement(tableName, alias);
+            // from table1, table2 syntax
+            do
+            {
+                table = ParseTableOrSubquery();
+                tables.Add(table);
+            } while (Match(COMMA));
+
+            return new FromStatement(tables);
         }
 
-        return new FromStatement(tableName);
+        var joins = new List<JoinStatement>();
+        // from table1 join table2 syntax
+        while (Check(JOIN, LEFT, RIGHT, FULL, INNER))
+        {
+            var joinType = ParseJoinType();
+            var table2 = ParseTableOrSubquery();
+            var constraint = ParseJoinConstraint();
+            joins.Add(new JoinStatement(joinType, table2, constraint));
+        }
+
+        return new FromStatement(tables, joins);
+    }
+
+    private BaseExpression ParseJoinConstraint()
+    {
+        Consume(ON, "Expected ON before join constraint");
+        return ParseExpr();
+    }
+
+    private JoinType ParseJoinType()
+    {
+        if (!Match(out var token, JOIN, LEFT, RIGHT, FULL, INNER))
+        {
+            throw new ParseException(Peek(), "Expected join type");
+        }
+
+        switch (token.TokenType)
+        {
+            case INNER:
+                Consume(JOIN, "Expected JOIN after INNER");
+                return JoinType.Inner;
+            case JOIN:
+                return JoinType.Inner;
+            case LEFT:
+                Match(OUTER);
+                return JoinType.Left;
+            case RIGHT:
+                Match(OUTER);
+                return JoinType.Right;
+            case FULL:
+                Match(OUTER);
+                return JoinType.Full;
+            default:
+                throw new ParseException(token, "Expected join type");
+        }
+    }
+
+    private ITableStatement ParseTableOrSubquery()
+    {
+        if (Match(IDENTIFIER, out var table))
+        {
+            var tableName = table.Lexeme;
+
+            // as is optional in an alias
+            if (Match(AS) || Check(IDENTIFIER))
+            {
+                var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
+                return new TableStatement(tableName, alias);
+            }
+
+            return new TableStatement(tableName);
+        }
+
+        // Will need to add subquery support here
+        // https://www.sqlite.org/syntax/table-or-subquery.html
+
+        if (Match(LEFT_PAREN))
+        {
+            throw new NotImplementedException("subqueries are not implemented yet");
+        }
+
+        throw new ParseException(Peek(), "Expected table or subquery");
     }
 
     private SelectListStatement ParseSelectListStatement()

@@ -37,6 +37,14 @@ public class Scanner
         {"between", BETWEEN},
         {"is", IS},
         {"not", NOT},
+        {"join", JOIN},
+        {"left", LEFT},
+        {"right", RIGHT},
+        {"full", FULL},
+        {"outer", OUTER},
+        {"inner", INNER},
+        {"on", ON},
+        {"using", USING},
     };
 
     public Scanner(string source)

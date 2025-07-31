@@ -7,4 +7,4 @@ public record SelectStatement(
     FromStatement From,
     BaseExpression? Where,
     GroupByStatement? Group,
-    OrderByStatement? Order) : IStatement;
+    OrderByStatement? Order) : ITableStatement;

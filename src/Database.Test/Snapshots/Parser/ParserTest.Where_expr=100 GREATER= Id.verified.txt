@@ -9,8 +9,12 @@
     ]
   },
   From: {
-    Table: table,
-    Alias: t
+    TableStatements: [
+      {
+        Table: table,
+        Alias: t
+      }
+    ]
   },
   Where: {
     Operator: GREATER_EQUAL,

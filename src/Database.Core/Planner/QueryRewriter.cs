@@ -9,15 +9,18 @@ public static class QueryRewriter
         SelectStatement statement,
         Catalog.Catalog catalog)
     {
+        if (statement.From.TableStatements.Single() is not TableStatement singleTable)
+        {
+            throw new QueryPlanException("Expected a single table in FROM clause.");
+        }
 
         var expressions = statement.SelectList.Expressions;
         var result = new List<BaseExpression>(expressions.Count);
 
-        var from = statement.From;
-        var table = catalog.Tables.FirstOrDefault(t => t.Name == from.Table);
+        var table = catalog.Tables.FirstOrDefault(t => t.Name == singleTable.Table);
         if (table == null)
         {
-            throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
+            throw new QueryPlanException($"Table '{singleTable.Table}' not found in catalog.");
         }
 
         foreach (var expr in expressions)

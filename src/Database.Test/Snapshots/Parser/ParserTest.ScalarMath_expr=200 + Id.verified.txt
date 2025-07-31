@@ -18,6 +18,10 @@
     ]
   },
   From: {
-    Table: table
+    TableStatements: [
+      {
+        Table: table
+      }
+    ]
   }
 }

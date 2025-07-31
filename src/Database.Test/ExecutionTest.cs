@@ -225,4 +225,21 @@ public class ExecutionTest
         var result = Query(query + ";").AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
+
+    [TestCase(@"
+            FROM table t1
+            join table t2 on t1.Id = t2.Id
+            where t1.Id < 100
+            "
+        )]
+    [TestCase(@"
+            FROM table t1, table t2
+            where t1.Id = t2.Id and t1.Id < 100
+            "
+    )]
+    public void Join_Inner_Join(string join)
+    {
+        var result = Query($"SELECT t1.Id, t2.Id {join};").AsRowList();
+        result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
+    }
 }

@@ -1,6 +1,25 @@
+using Database.Core.Expressions;
+
 namespace Database.Core;
 
-public record FromStatement(string Table, string? Alias = null) : IStatement
+public interface ITableStatement : IStatement
 {
 
 }
+
+public record FromStatement(List<ITableStatement> TableStatements, List<JoinStatement>? JoinStatements = null) : IStatement
+{
+
+}
+
+public record TableStatement(string Table, string? Alias = null) : ITableStatement { }
+
+
+public enum JoinType
+{
+    Inner,
+    Left,
+    Right,
+    Full,
+}
+public record JoinStatement(JoinType JoinType, ITableStatement Table, BaseExpression JoinConstraint) : IStatement;

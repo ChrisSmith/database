@@ -97,4 +97,27 @@ public class ParserTest
         var parameters = CleanStringForFileName(expr);
         return Verify(result, Settings).UseParameters(parameters);
     }
+
+    [TestCase(@"
+            FROM table t1
+            join table t2 on t1.Id = t2.Id
+            where t1.Id < 100
+            "
+    )]
+    [TestCase(@"
+            FROM table t1, table t2
+            where t1.Id = t2.Id and t1.Id < 100
+            "
+    )]
+    public Task Joins(string join)
+    {
+        var scanner = new Scanner($"SELECT t1.Id, t2.Id {join};");
+        var tokens = scanner.ScanTokens();
+
+        var parser = new Parser(tokens);
+        var result = parser.Parse();
+
+        var parameters = CleanStringForFileName(join);
+        return Verify(result, Settings).UseParameters(parameters);
+    }
 }

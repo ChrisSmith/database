@@ -51,5 +51,14 @@ public enum TokenType
     NULLS,
     FIRST,
     LAST,
+    // joins
+    JOIN,
+    LEFT,
+    RIGHT,
+    FULL,
+    INNER,
+    OUTER,
+    ON,
+    USING,
     EOF,
 }
