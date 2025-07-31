@@ -90,7 +90,7 @@ public class ExecutionTest
     [TestCase("0 + 1 * 6 / 2")]
     [TestCase("0 as foo")]
     [TestCase("0 + 1 as foo")]
-    // [TestCase("Id / 8.0")] // This doesn't work yet because we don't have upcasts
+    [TestCase("Id / 8.0")]
     public void Select_Expressions(string expr)
     {
         var result = Query($"SELECT {expr} FROM table").AsRowList();
@@ -113,7 +113,7 @@ public class ExecutionTest
     [TestCase("0 + 1 * 6 / 2", ExpectedResult = 3)]
     [TestCase("0 as foo", ExpectedResult = 0)]
     [TestCase("0 + 1 as foo", ExpectedResult = 1)]
-    // [TestCase("Id / 8.0", ExpectedResult = 1.25)] // This doesn't work yet because we don't have upcasts
+    [TestCase("Id / 8.0", ExpectedResult = 1.25)]
     public object Select_Expressions_With_Filter(string expr)
     {
         var result = Query($"SELECT {expr} FROM table where Id = 10;").AsRowList();
@@ -178,7 +178,6 @@ public class ExecutionTest
         // rg.Columns[4].Should().BeOfType<Column<double>>();
     }
 
-    // passing
     [TestCase("Id < 100")]
     [TestCase("Id <= 99")]
     [TestCase("100 > Id")]

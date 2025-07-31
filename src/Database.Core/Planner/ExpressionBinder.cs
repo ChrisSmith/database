@@ -32,179 +32,225 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         bool ignoreMissingColumns = false
         )
     {
-        var fun = FunctionForExpression(expression, columns, ignoreMissingColumns);
+        IFunction? function = expression switch
+        {
+            IntegerLiteral numInt => new LiteralFunction(numInt.Literal, DataType.Int),
+            DoubleLiteral num => new LiteralFunction(num.Literal, DataType.Double),
+            StringLiteral str => new LiteralFunction(str.Literal, DataType.String),
+            BoolLiteral b => new LiteralFunction(b.Literal, DataType.Bool),
+            DateLiteral d => new LiteralFunction(d.Literal, DataType.Date),
+            DateTimeLiteral dt => new LiteralFunction(dt.Literal, DataType.DateTime),
+            IntervalLiteral il => new LiteralFunction(il.Literal, DataType.Interval),
+            StarExpression => new LiteralFunction(1, DataType.Int), // TODO this is a bit of a hack
+            _ => null,
+        };
+
+        if (function == null)
+        {
+            if (expression is ColumnExpression column)
+            {
+                var (_, columnRef, colType) = FindColumnIndex(columns, column, ignoreMissingColumns);
+                function = new SelectFunction(columnRef, colType!.Value, bufferPool);
+            }
+            else if (expression is UnaryExpression unary)
+            {
+                var expr = Bind(unary.Expression, columns, ignoreMissingColumns);
+                var args = new[] { expr };
+                expression = unary with
+                {
+                    Expression = expr
+                };
+                function = (unary.Operator) switch
+                {
+                    NOT => functions.BindFunction("not", args),
+                    _ => throw new QueryPlanException($"unary operator '{unary.Operator}' not setup for binding yet"),
+                };
+            }
+            else if (expression is CastExpression cast)
+            {
+                var expr = Bind(cast.Expression, columns, ignoreMissingColumns);
+                var args = new[] { expr };
+                expression = cast with
+                {
+                    Expression = expr
+                };
+                function = functions.BindFunction(CastFnForType(cast.BoundDataType!.Value), args);
+            }
+            else if (expression is BinaryExpression be)
+            {
+                var left = Bind(be.Left, columns, ignoreMissingColumns);
+                var right = Bind(be.Right, columns, ignoreMissingColumns);
+
+                (left, right) = MakeCompatibleTypes(left, right, columns, ignoreMissingColumns);
+
+                expression = be with
+                {
+                    Left = left,
+                    Right = right,
+                };
+
+                var args = new[] { left, right };
+                function = (be.Operator) switch
+                {
+                    EQUAL => functions.BindFunction("=", args),
+                    GREATER => functions.BindFunction(">", args),
+                    GREATER_EQUAL => functions.BindFunction(">=", args),
+                    LESS => functions.BindFunction("<", args),
+                    LESS_EQUAL => functions.BindFunction("<=", args),
+                    STAR => functions.BindFunction("*", args),
+                    PLUS => functions.BindFunction("+", args),
+                    MINUS => functions.BindFunction("-", args),
+                    SLASH => functions.BindFunction("/", args),
+                    PERCENT => functions.BindFunction("%", args),
+                    AND => functions.BindFunction("and", args),
+                    OR => functions.BindFunction("or", args),
+                    _ => throw new QueryPlanException($"operator '{be.Operator}' not setup for binding yet"),
+                };
+            }
+            else if (expression is BetweenExpression bt)
+            {
+                var value = Bind(bt.Value, columns, ignoreMissingColumns);
+                var lower = Bind(bt.Lower, columns, ignoreMissingColumns);
+                var upper = Bind(bt.Upper, columns, ignoreMissingColumns);
+
+                expression = bt with
+                {
+                    Value = value,
+                    Lower = lower,
+                    Upper = upper,
+                };
+                function = functions.BindFunction("between", [value, lower, upper]);
+            }
+            else if (expression is FunctionExpression fn)
+            {
+                var boundArgs = new BaseExpression[fn.Args.Length];
+                for (var i = 0; i < fn.Args.Length; i++)
+                {
+                    boundArgs[i] = Bind(fn.Args[i], columns, ignoreMissingColumns);
+                }
+
+                expression = fn with
+                {
+                    Args = boundArgs,
+                };
+                function = functions.BindFunction(fn.Name, boundArgs);
+            }
+            else
+            {
+                throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");
+            }
+        }
+
         var alias = expression.Alias;
         if (alias == "")
         {
             alias = expression.ToString();
         }
-
-        expression = expression with
+        return expression with
         {
-            BoundFunction = fun,
-            BoundDataType = fun.ReturnType,
+            BoundFunction = function,
+            BoundDataType = function.ReturnType,
             Alias = alias,
         };
-
-        if (expression is UnaryExpression ue)
-        {
-            return ue with
-            {
-                Expression = Bind(ue.Expression, columns, ignoreMissingColumns),
-            };
-        }
-
-        if (expression is BinaryExpression be)
-        {
-            return be with
-            {
-                Left = Bind(be.Left, columns, ignoreMissingColumns),
-                Right = Bind(be.Right, columns, ignoreMissingColumns),
-            };
-        }
-
-        if (expression is BetweenExpression bt)
-        {
-            return bt with
-            {
-                Value = Bind(bt.Value, columns, ignoreMissingColumns),
-                Lower = Bind(bt.Lower, columns, ignoreMissingColumns),
-                Upper = Bind(bt.Upper, columns, ignoreMissingColumns),
-            };
-        }
-
-        if (expression is FunctionExpression fn)
-        {
-            var boundArgs = new BaseExpression[fn.Args.Length];
-            for (var i = 0; i < fn.Args.Length; i++)
-            {
-                boundArgs[i] = Bind(fn.Args[i], columns, ignoreMissingColumns);
-            }
-
-            return fn with
-            {
-                Args = boundArgs,
-            };
-        }
-
-        return expression;
     }
 
-    [Pure]
-    private IFunction FunctionForExpression(
-        BaseExpression expression,
+    private (BaseExpression left, BaseExpression right) MakeCompatibleTypes(
+        BaseExpression left,
+        BaseExpression right,
         IReadOnlyList<ColumnSchema> columns,
         bool ignoreMissingColumns
         )
     {
-        if (expression is IntegerLiteral numInt)
+        if (left.BoundDataType == null || right.BoundDataType == null)
         {
-            return new LiteralFunction(numInt.Literal, DataType.Int);
+            throw new QueryPlanException(
+                $"data type was not bound. {left.BoundDataType}, {right.BoundDataType}");
+        }
+        if (left.BoundDataType.Value == right.BoundDataType.Value)
+        {
+            return (left, right);
         }
 
-        if (expression is DoubleLiteral num)
-        {
-            return new LiteralFunction(num.Literal, DataType.Double);
-        }
+        var leftType = left.BoundDataType.Value;
+        var rightType = right.BoundDataType.Value;
 
-        if (expression is StringLiteral str)
-        {
-            return new LiteralFunction(str.Literal, DataType.String);
-        }
+        var integers = new[] { DataType.Int, DataType.Long };
 
-        if (expression is BoolLiteral b)
+        if (integers.Contains(leftType) && integers.Contains(rightType))
         {
-            return new LiteralFunction(b.Literal, DataType.Bool);
-        }
-
-        if (expression is DateLiteral d)
-        {
-            return new LiteralFunction(d.Literal, DataType.Date);
-        }
-
-        if (expression is DateTimeLiteral dt)
-        {
-            return new LiteralFunction(dt.Literal, DataType.DateTime);
-        }
-
-        if (expression is IntervalLiteral il)
-        {
-            return new LiteralFunction(il.Literal, DataType.Interval);
-        }
-
-        if (expression is ColumnExpression column)
-        {
-            var (_, columnRef, colType) = FindColumnIndex(columns, column, ignoreMissingColumns);
-            return new SelectFunction(columnRef, colType!.Value, bufferPool);
-        }
-
-        if (expression is UnaryExpression unary)
-        {
-            var expr = Bind(unary.Expression, columns, ignoreMissingColumns);
-            var args = new[] { expr };
-            return (unary.Operator) switch
+            if (leftType == DataType.Int)
             {
-                NOT => functions.BindFunction("not", args),
-                _ => throw new QueryPlanException($"unary operator '{unary.Operator}' not setup for binding yet"),
-            };
+                return (DoCast(left, DataType.Long), right);
+            }
+            if (rightType == DataType.Int)
+            {
+                return (left, DoCast(right, DataType.Long));
+            }
         }
 
-        if (expression is BinaryExpression be)
+        var floating = new[] { DataType.Float, DataType.Double };
+        if (floating.Contains(leftType) && floating.Contains(rightType))
         {
-            var left = Bind(be.Left, columns, ignoreMissingColumns);
-            var right = Bind(be.Right, columns, ignoreMissingColumns);
-
-            if (left.BoundDataType == null || left.BoundDataType != right.BoundDataType)
+            if (leftType == DataType.Float)
             {
-                // TODO automatic type casts?
-                throw new QueryPlanException(
-                    $"left and right expression types do not match. got {left.BoundDataType} != {right.BoundDataType}");
+                return (DoCast(left, DataType.Double), right);
+            }
+            if (rightType == DataType.Float)
+            {
+                return (left, DoCast(right, DataType.Double));
+            }
+        }
+
+        if (floating.Contains(leftType))
+        {
+            if (rightType == DataType.Int)
+            {
+                return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
+            }
+            if (rightType == DataType.Long)
+            {
+                return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
+            }
+        }
+
+        if (floating.Contains(rightType))
+        {
+            if (leftType == DataType.Int)
+            {
+                return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
+            }
+            if (leftType == DataType.Long)
+            {
+                return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
+            }
+        }
+
+        throw new QueryPlanException($"unable to automatically convert types '{leftType}' and '{rightType}' to a compatible type.");
+
+        BaseExpression DoCast(BaseExpression expr, DataType targetType)
+        {
+            if (expr.BoundDataType.Value == targetType)
+            {
+                return expr;
             }
 
-            var args = new[] { left, right };
-            return (be.Operator) switch
+            return Bind(new CastExpression(expr, targetType)
             {
-                EQUAL => functions.BindFunction("=", args),
-                GREATER => functions.BindFunction(">", args),
-                GREATER_EQUAL => functions.BindFunction(">=", args),
-                LESS => functions.BindFunction("<", args),
-                LESS_EQUAL => functions.BindFunction("<=", args),
-                STAR => functions.BindFunction("*", args),
-                PLUS => functions.BindFunction("+", args),
-                MINUS => functions.BindFunction("-", args),
-                SLASH => functions.BindFunction("/", args),
-                PERCENT => functions.BindFunction("%", args),
-                AND => functions.BindFunction("and", args),
-                OR => functions.BindFunction("or", args),
-                _ => throw new QueryPlanException($"operator '{be.Operator}' not setup for binding yet"),
-            };
+                Alias = expr.Alias,
+            }, columns, ignoreMissingColumns);
         }
+    }
 
-        if (expression is BetweenExpression bt)
+    private string CastFnForType(DataType targetType)
+    {
+        return targetType switch
         {
-            var value = Bind(bt.Value, columns, ignoreMissingColumns);
-            var lower = Bind(bt.Lower, columns, ignoreMissingColumns);
-            var upper = Bind(bt.Upper, columns, ignoreMissingColumns);
-            return functions.BindFunction("between", [value, lower, upper]);
-        }
-
-        if (expression is FunctionExpression fn)
-        {
-            var boundArgs = new BaseExpression[fn.Args.Length];
-            for (var i = 0; i < fn.Args.Length; i++)
-            {
-                boundArgs[i] = Bind(fn.Args[i], columns, ignoreMissingColumns);
-            }
-            return functions.BindFunction(fn.Name, boundArgs);
-        }
-
-        if (expression is StarExpression)
-        {
-            // TODO this is a bit of a hack
-            return new LiteralFunction(1, DataType.Int);
-        }
-
-        throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");
+            DataType.Int => "cast_int",
+            DataType.Long => "cast_long",
+            DataType.Float => "cast_float",
+            DataType.Double => "cast_double",
+            _ => throw new QueryPlanException($"unsupported cast type '{targetType}'"),
+        };
     }
 
     private static (string, ColumnRef, DataType?) FindColumnIndex(

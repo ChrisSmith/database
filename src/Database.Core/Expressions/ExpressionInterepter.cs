@@ -15,6 +15,12 @@ public class ExpressionInterpreter
             return Execute(exp, be.BoundFunction!, left, right);
         }
 
+        if (exp is CastExpression cast)
+        {
+            var col = Execute(cast.Expression, rowGroup);
+            return Execute(exp, cast.BoundFunction!, col);
+        }
+
         if (exp is UnaryExpression ue)
         {
             var col = Execute(ue.Expression, rowGroup);
@@ -63,7 +69,71 @@ public class ExpressionInterpreter
     {
         Array outputArray = null;
 
-        if (fun is IFilterFunctionOne<bool> fb)
+        if (fun is IScalarMathOne<int, int> smii)
+        {
+            outputArray = smii.Execute((int[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<long, long> smll)
+        {
+            outputArray = smll.Execute((long[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<float, float> smff)
+        {
+            outputArray = smff.Execute((float[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<double, double> smdd)
+        {
+            outputArray = smdd.Execute((double[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<int, long> smil)
+        {
+            outputArray = smil.Execute((int[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<long, int> smli)
+        {
+            outputArray = smli.Execute((long[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<float, double> smfd)
+        {
+            outputArray = smfd.Execute((float[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<int, float> smif)
+        {
+            outputArray = smif.Execute((int[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<int, double> smid)
+        {
+            outputArray = smid.Execute((int[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<long, float> smlf)
+        {
+            outputArray = smlf.Execute((long[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<long, double> smld)
+        {
+            outputArray = smld.Execute((long[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<double, int> smdi)
+        {
+            outputArray = smdi.Execute((double[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<double, long> smdl)
+        {
+            outputArray = smdl.Execute((double[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<float, int> smfi)
+        {
+            outputArray = smfi.Execute((float[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<float, long> smfl)
+        {
+            outputArray = smfl.Execute((float[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<double, float> smdf)
+        {
+            outputArray = smdf.Execute((double[])col.ValuesArray);
+        }
+        else if (fun is IFilterFunctionOne<bool> fb)
         {
             outputArray = fb.Ok((bool[])col.ValuesArray);
         }

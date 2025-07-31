@@ -10,7 +10,7 @@ namespace Database.Test.TPCH;
 public partial class TPCHTests
 {
     [Test]
-    public void Runs()
+    public void Q05()
     {
         var query = @"
             select
