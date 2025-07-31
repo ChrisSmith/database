@@ -67,11 +67,15 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
     private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateFileScan(SelectStatement select)
     {
-        var from = select.From;
-        var table = catalog.Tables.FirstOrDefault(t => t.Name == from.Table);
+        if (select.From.TableStatements.Single() is not TableStatement singleTable)
+        {
+            throw new QueryPlanException("Expected a single table in FROM clause.");
+        }
+
+        var table = catalog.Tables.FirstOrDefault(t => t.Name == singleTable.Table);
         if (table == null)
         {
-            throw new QueryPlanException($"Table '{from.Table}' not found in catalog.");
+            throw new QueryPlanException($"Table '{singleTable.Table}' not found in catalog.");
         }
 
         IReadOnlyList<ColumnSchema> inputColumns = table.Columns.Select(c => c).ToList();

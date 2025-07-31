@@ -24,7 +24,11 @@
     ]
   },
   From: {
-    Table: table,
-    Alias: t
+    TableStatements: [
+      {
+        Table: table,
+        Alias: t
+      }
+    ]
   }
 }

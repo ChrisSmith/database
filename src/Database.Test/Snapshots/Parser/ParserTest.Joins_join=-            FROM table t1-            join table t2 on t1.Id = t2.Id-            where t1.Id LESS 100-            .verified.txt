@@ -1,0 +1,62 @@
+﻿{
+  SelectList: {
+    Distinct: false,
+    Expressions: [
+      {
+        Column: Id,
+        Table: t1,
+        Alias: Id
+      },
+      {
+        Column: Id,
+        Table: t2,
+        Alias: Id
+      }
+    ]
+  },
+  From: {
+    TableStatements: [
+      {
+        Table: table,
+        Alias: t1
+      }
+    ],
+    JoinStatements: [
+      {
+        Table: {
+          Table: table,
+          Alias: t2
+        },
+        JoinConstraint: {
+          Operator: EQUAL,
+          OperatorLiteral: =,
+          Left: {
+            Column: Id,
+            Table: t1,
+            Alias: Id
+          },
+          Right: {
+            Column: Id,
+            Table: t2,
+            Alias: Id
+          },
+          Alias: 
+        }
+      }
+    ]
+  },
+  Where: {
+    Operator: LESS,
+    OperatorLiteral: <,
+    Left: {
+      Column: Id,
+      Table: t1,
+      Alias: Id
+    },
+    Right: {
+      Literal: 100,
+      Alias: 
+    },
+    Alias: 
+  }
+}
