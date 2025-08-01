@@ -12,7 +12,10 @@ public record FileScanFusedFilter(
     string Path,
     Catalog.Catalog Catalog,
     BaseExpression Expression,
-    IReadOnlyList<ColumnRef> OutputColumnRefs) : IOperation
+    IReadOnlyList<ColumnSchema> OutputColumns,
+    IReadOnlyList<ColumnRef> OutputColumnRefs
+    )
+    : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     private ParquetReader? _reader = null;
     private TableSchema _table;
@@ -22,7 +25,7 @@ public record FileScanFusedFilter(
     private ExpressionInterpreter _interpreter = new();
     private List<int> RowGroupsKeep;
 
-    public RowGroup? Next()
+    public override RowGroup? Next()
     {
         if (_done)
         {

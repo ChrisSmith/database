@@ -202,6 +202,45 @@ public class ExecutionTest
         result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
     }
 
+    [Test]
+    public void GroupBy()
+    {
+        var result = Query(@$"
+            select CategoricalInt, count(*) as count
+            from table
+            group by CategoricalInt;
+        ").AsRowList();
+
+        var values = result.Select(r => new Tuple<int, int>((int)r.Values[0], (int)r.Values[1])).ToList();
+        values.Should().HaveCount(5);
+        values.Should().BeEquivalentTo(new List<Tuple<int, int>>
+        {
+            new(0, 20114),
+            new(1, 20038),
+            new(2, 20121),
+            new(3, 19639),
+            new(4, 20088),
+        });
+    }
+
+    [TestCase("order by Id", false)]
+    [TestCase("order by Id asc", false)]
+    [TestCase("order by Id desc", true)]
+    public void OrderBy(string expr, bool reverse)
+    {
+        var result = Query($"SELECT Id FROM table where Id < 5 {expr};").AsRowList();
+        var values = result.Select(r => r.Values.Single()).ToList();
+        values.Should().HaveCount(5);
+        if (reverse)
+        {
+            values.Should().BeInDescendingOrder();
+        }
+        else
+        {
+            values.Should().BeInAscendingOrder();
+        }
+    }
+
     [TestCase("select Id from table")]
     [TestCase("select Id / 2 as foo from table")]
     [TestCase("select 1 + 1 from table")]

@@ -1,23 +1,25 @@
 using Database.Core.BufferPool;
+using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Filter(
+public record FilterOperation(
     ParquetPool BufferPool,
     MemoryBasedTable MemoryTable,
     IOperation Source,
     BaseExpression Expression,
-    List<ColumnRef> OutputColumns
-    ) : IOperation
+    IReadOnlyList<ColumnSchema> OutputColumns,
+    IReadOnlyList<ColumnRef> OutputColumnRefs
+    ) : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     private bool _done = false;
 
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
-    public RowGroup? Next()
+    public override RowGroup? Next()
     {
         if (_done)
         {
@@ -69,7 +71,7 @@ public record Filter(
                 var expected = string.Join(", ", OutputColumns);
 
                 var gotSet = new HashSet<ColumnRef>(next.Columns);
-                var expectedSet = new HashSet<ColumnRef>(OutputColumns);
+                var expectedSet = new HashSet<ColumnRef>(OutputColumnRefs);
                 var additional = string.Join(", ", gotSet.Except(expectedSet));
                 var missing = string.Join(", ", expectedSet.Except(gotSet));
 
@@ -93,7 +95,7 @@ public record Filter(
                     values);
                 column.SetValues(sourceColumn.ValuesArray, keep);
 
-                var outputRef = OutputColumns[i];
+                var outputRef = OutputColumnRefs[i];
                 BufferPool.WriteColumn(outputRef, column, targetRowGroup.RowGroup);
             }
 
@@ -103,7 +105,7 @@ public record Filter(
             return new RowGroup(
                 count,
                 targetRowGroup,
-                OutputColumns
+                OutputColumnRefs
                 );
         }
     }

@@ -135,6 +135,15 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 };
                 function = functions.BindFunction(fn.Name, boundArgs);
             }
+            else if (expression is OrderingExpression order)
+            {
+                var inner = Bind(order.Expression, columns, ignoreMissingColumns);
+                function = inner.BoundFunction; // Is this ok?
+                expression = order with
+                {
+                    Expression = inner,
+                };
+            }
             else
             {
                 throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");

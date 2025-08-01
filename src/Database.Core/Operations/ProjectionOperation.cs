@@ -6,24 +6,30 @@ using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Projection(
+public record ProjectionOperation(
     ParquetPool BufferPool,
     MemoryBasedTable MemoryTable,
     IOperation Source,
-    IReadOnlyList<BaseExpression> Expressions) : IOperation
+    IReadOnlyList<BaseExpression> Expressions,
+    IReadOnlyList<ColumnSchema> OutputColumns,
+    IReadOnlyList<ColumnRef> OutputColumnRefs,
+    bool Materialize)
+    : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     private ExpressionInterpreter _interpreter = new();
 
-    public RowGroup? Next()
+    public override RowGroup? Next()
     {
-        var rowGroup = Source.Next();
-        if (rowGroup == null)
+        var next = Source.Next();
+        if (next == null)
         {
             return null;
         }
 
-        var newColumns = new List<ColumnRef>(Expressions.Count);
-        var group = rowGroup.RowGroupRef.RowGroup;
+        // TODO this doesn't feel quite right
+        var targetRg = Materialize
+            ? MemoryTable.AddRowGroup()
+            : next.RowGroupRef;
 
         for (var i = 0; i < Expressions.Count; i++)
         {
@@ -32,21 +38,20 @@ public record Projection(
 
             // Other functions will need to be materialized
             // Drop them into the buffer pool
-            var columnRes = _interpreter.Execute(expr, rowGroup);
+            var columnRes = _interpreter.Execute(expr, next);
             var column = ColumnHelper.CreateColumn(
                 fun.ReturnType.ClrTypeFromDataType(),
                 expr.Alias,
                 columnRes.ValuesArray
             );
-            var columnRef = expr.BoundOutputColumn;
-            BufferPool.WriteColumn(columnRef, column, group);
-            newColumns.Add(columnRef);
+            var columnRef = OutputColumnRefs[i];
+            BufferPool.WriteColumn(columnRef, column, targetRg.RowGroup);
         }
 
         return new RowGroup(
-            rowGroup.NumRows,
-            rowGroup.RowGroupRef,
-            newColumns
+            next.NumRows,
+            targetRg,
+            OutputColumnRefs
             );
     }
 }

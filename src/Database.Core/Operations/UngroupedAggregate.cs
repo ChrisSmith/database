@@ -1,23 +1,25 @@
 using Database.Core.BufferPool;
+using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 
 namespace Database.Core.Operations;
 
-public record Aggregate(
+public record UngroupedAggregate(
     ParquetPool BufferPool,
     MemoryBasedTable MemoryTable,
     IOperation Source,
     IReadOnlyList<BaseExpression> Expressions,
-    List<ColumnRef> OutputColumns
-    ) : IOperation
+    IReadOnlyList<ColumnSchema> OutputColumns,
+    IReadOnlyList<ColumnRef> OutputColumnRefs
+    ) : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     private bool _done = false;
 
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
-    public RowGroup? Next()
+    public override RowGroup? Next()
     {
         if (_done)
         {
@@ -78,11 +80,11 @@ public record Aggregate(
                 expression.Alias,
                 values);
 
-            var outputRef = OutputColumns[i];
+            var outputRef = OutputColumnRefs[i];
             BufferPool.WriteColumn(outputRef, column, targetRowGroup.RowGroup);
         }
 
         _done = true;
-        return new RowGroup(1, targetRowGroup, OutputColumns);
+        return new RowGroup(1, targetRowGroup, OutputColumnRefs);
     }
 }

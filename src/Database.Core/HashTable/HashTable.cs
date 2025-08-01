@@ -10,7 +10,7 @@ public class HashTable<T>
 
     private int _keyColumns;
 
-    public HashTable(int keyColumns, int size = 7)
+    public HashTable(int keyColumns, int size = 13)
     {
         _keyColumns = keyColumns;
         Size = 0;

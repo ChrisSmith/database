@@ -14,13 +14,13 @@ public record HashAggregate(
     List<BaseExpression> OutputExpressions, // grouping columns + aggregates
     List<ColumnSchema> OutputColumns,
     List<ColumnRef> OutputColumnRefs
-    ) : IOperation
+    ) : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     private bool _done = false;
 
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
-    public RowGroup? Next()
+    public override RowGroup? Next()
     {
         if (_done)
         {
