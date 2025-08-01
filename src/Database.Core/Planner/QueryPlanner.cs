@@ -23,13 +23,8 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         select = ConstantFolding.Fold(select);
         select = QueryRewriter.ExpandStarStatements(select, catalog);
 
-        if (select.From.TableStatements.Single() is not TableStatement singleTable)
-        {
-            throw new QueryPlanException("Expected a single table in FROM clause.");
-        }
-
         var expressions = select.SelectList.Expressions;
-        var plan = BindLogicalScan(singleTable, select);
+        var plan = BindRelations(select);
 
         if (select.Where != null)
         {
@@ -85,33 +80,69 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                 default,
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
-                expr.BoundFunction!.ReturnType.ClrTypeFromDataType()
+                expr.BoundFunction!.ReturnType.ClrTypeFromDataType(),
+                SourceTableName: "",
+                SourceTableAlias: ""
                 ));
         }
 
         return schema;
     }
 
-    private LogicalPlan BindLogicalScan(TableStatement singleTable, SelectStatement select)
+    private LogicalPlan BindRelations(SelectStatement select)
     {
-        var table = catalog.Tables.FirstOrDefault(t => t.Name == singleTable.Table);
-        if (table == null)
+        var firstTable = (TableStatement)select.From.TableStatements.First();
+        LogicalPlan plan = CreateScanForTable(firstTable);
+
+        // TODO Projection Push Down
+        // tableColumns = FilterToUsedColumns(select, tableColumns);
+
+        if (select.From.TableStatements.Count > 1)
         {
-            throw new QueryPlanException($"Table '{singleTable.Table}' not found in catalog.");
+            // let's see if they are helping us with the join type
+            if (select.From.JoinStatements == null)
+            {
+                throw new QueryPlanException("Cross joins not supported yet");
+            }
         }
 
-        IReadOnlyList<ColumnSchema> tableColumns = table.Columns.Select(c => c).ToList();
+        if (select.From.JoinStatements != null)
+        {
+            // create a left deep tree
+            foreach (var join in select.From.JoinStatements)
+            {
+                var tableStmt = (TableStatement)join.Table;
+                var right = CreateScanForTable(tableStmt);
+                var extendedSchema = ExtendSchema(plan.OutputSchema, right.OutputSchema);
+                plan = new Join(
+                    plan,
+                    right,
+                    join.JoinType,
+                    join.JoinConstraint,
+                    extendedSchema
+                    );
+            }
+        }
 
-        // Projection Push Down
-        tableColumns = FilterToUsedColumns(select, tableColumns);
-
-        LogicalPlan plan = new Scan(
-            singleTable.Table,
-            table.Id,
-            select.Where,
-            tableColumns,
-            singleTable.Alias);
         return plan;
+
+        Scan CreateScanForTable(TableStatement tableStmt)
+        {
+            var table = catalog.GetTable(tableStmt.Table);
+            var tableAlias = tableStmt.Alias ?? "";
+            var tableColumns = table.Columns.Select(c => c with
+            {
+                // Add the table alias here so the select from a join can disambiguate
+                SourceTableAlias = tableAlias,
+            }).ToList();
+
+            return new Scan(
+                table.Name,
+                table.Id,
+                select.Where,
+                tableColumns,
+                tableStmt.Alias);
+        }
     }
 
     public QueryPlan CreatePlan(IStatement statement)
@@ -156,7 +187,9 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                 default,
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
-                expr.BoundFunction!.ReturnType.ClrTypeFromDataType()
+                expr.BoundFunction!.ReturnType.ClrTypeFromDataType(),
+                SourceTableName: "",
+                SourceTableAlias: ""
             );
             expr = expr with
             {
@@ -285,6 +318,20 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
     private bool ExpressionContainsAggregate(BaseExpression expr)
     {
         return expr.AnyChildOrSelf(e => e.BoundFunction is IAggregateFunction);
+    }
+
+    private IReadOnlyList<ColumnSchema> ExtendSchema(
+        IReadOnlyList<ColumnSchema> left,
+        IReadOnlyList<ColumnSchema> right
+        )
+    {
+        // TODO what about duplicates?
+        // I need a way to keep track of the source table to disambiguate
+        // Do i/should I unbind anything here?
+        var result = new List<ColumnSchema>(left.Count + right.Count);
+        result.AddRange(left);
+        result.AddRange(right);
+        return result;
     }
 }
 

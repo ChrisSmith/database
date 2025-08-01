@@ -48,5 +48,7 @@ public record ColumnSchema(
     ColumnId Id,
     string Name,
     DataType DataType,
-    Type ClrType
+    Type ClrType,
+    string SourceTableName,
+    string SourceTableAlias
     );

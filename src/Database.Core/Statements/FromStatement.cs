@@ -17,6 +17,7 @@ public record TableStatement(string Table, string? Alias = null) : ITableStateme
 
 public enum JoinType
 {
+    Cross,
     Inner,
     Left,
     Right,

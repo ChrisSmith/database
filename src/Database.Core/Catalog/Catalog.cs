@@ -10,6 +10,17 @@ public record Catalog(ParquetPool BufferPool)
 
     private int _nextTableId = 0;
     private int _nextColumnId = 0;
+
+    public TableSchema GetTable(string name)
+    {
+        var table = Tables.FirstOrDefault(t => t.Name == name);
+        if (table == null)
+        {
+            throw new Exception($"Table '{name}' not found in catalog.");
+        }
+        return table;
+    }
+
     public void LoadTable(string name, string path)
     {
         var id = (TableId)(++_nextTableId);
@@ -31,7 +42,9 @@ public record Catalog(ParquetPool BufferPool)
                 columnId,
                 field.Name,
                 field.ClrType.DataTypeFromClrType(),
-                field.ClrType
+                field.ClrType,
+                SourceTableName: name,
+                SourceTableAlias: ""
                 ));
         }
 
@@ -80,10 +93,10 @@ public record Catalog(ParquetPool BufferPool)
         {
             var column = table.Columns[i];
             var columnType = column.ClrType;
-            var minColumn = memTable.AddColumnToSchema(column.Name + "_$min", column.DataType);
-            var maxColumn = memTable.AddColumnToSchema(column.Name + "_$max", column.DataType);
-            var distinctCountColumn = memTable.AddColumnToSchema(column.Name + "_$distinct_count", DataType.Int);
-            var nullCountColumn = memTable.AddColumnToSchema(column.Name + "_$null_count", DataType.Int);
+            var minColumn = memTable.AddColumnToSchema(column.Name + "_$min", column.DataType, "", "");
+            var maxColumn = memTable.AddColumnToSchema(column.Name + "_$max", column.DataType, "", "");
+            var distinctCountColumn = memTable.AddColumnToSchema(column.Name + "_$distinct_count", DataType.Int, "", "");
+            var nullCountColumn = memTable.AddColumnToSchema(column.Name + "_$null_count", DataType.Int, "", "");
         }
 
         var statsColumns = memTable.Schema;

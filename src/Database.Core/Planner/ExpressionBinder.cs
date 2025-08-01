@@ -276,10 +276,28 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         bool ignoreMissingColumns
         )
     {
-        // TODO we need to actually handle * and alias
         if (exp is ColumnExpression column)
         {
-            var col = columns.SingleOrDefault(c => c.Name == column.Column);
+            ColumnSchema? col = null;
+            // TODO I'm not super happy with how aliases are handled
+            var matchingColumns = columns.Where(c => c.Name == column.Column).ToList();
+
+            if (matchingColumns.Count > 1)
+            {
+                if (column.Table != null)
+                {
+                    matchingColumns = matchingColumns.Where(c => c.SourceTableAlias == column.Table || c.SourceTableName == column.Table).ToList();
+                    if (matchingColumns.Count == 1)
+                    {
+                        col = matchingColumns[0];
+                    }
+                }
+            }
+            else
+            {
+                col = matchingColumns[0];
+            }
+
             if (col == null)
             {
                 if (ignoreMissingColumns)
@@ -287,6 +305,11 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     return (column.Column, default, DataType.Int);
                 }
 
+                if (matchingColumns.Count > 1)
+                {
+                    var duplicates = string.Join(", ", matchingColumns.Select(c => c.Name));
+                    throw new QueryPlanException($"Unable to disambiguate duplicate Column '{column.Column}' from list of available columns {duplicates}");
+                }
                 var columnNames = string.Join(", ", columns.Select(c => c.Name));
                 throw new QueryPlanException($"Column '{column.Column}' was not found in list of available columns {columnNames}");
             }

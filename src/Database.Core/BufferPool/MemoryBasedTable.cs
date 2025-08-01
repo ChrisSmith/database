@@ -21,7 +21,7 @@ public class MemoryBasedTable(MemoryStorage storage)
         return new RowGroupRef(id);
     }
 
-    public ColumnSchema AddColumnToSchema(string name, DataType type)
+    public ColumnSchema AddColumnToSchema(string name, DataType type, string tableName, string tableAlias)
     {
         if (name == "")
         {
@@ -35,7 +35,10 @@ public class MemoryBasedTable(MemoryStorage storage)
             (ColumnId)columnId,
             name,
             type,
-            type.ClrTypeFromDataType());
+            type.ClrTypeFromDataType(),
+            SourceTableName: tableName,
+            SourceTableAlias: tableAlias
+            );
         _schema.Add(newColumn);
         return newColumn;
     }
