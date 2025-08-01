@@ -25,5 +25,9 @@ public partial class TPCHTests
         ";
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new([123141078.2283m])
+        });
     }
 }
