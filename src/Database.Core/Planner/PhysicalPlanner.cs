@@ -224,7 +224,11 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         for (var i = 0; i < groupingExprs.Count; i++)
         {
             var expr = groupingExprs[i];
-            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            var newColumn = memTable.AddColumnToSchema(
+                expr.Alias,
+                expr.BoundFunction!.ReturnType,
+                "",
+                "");
 
             outputExpressions.Add(expr with
             {
@@ -239,7 +243,12 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         foreach (var expr in aggregateExpressions)
         {
-            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            var newColumn = memTable.AddColumnToSchema(
+                expr.Alias,
+                expr.BoundFunction!.ReturnType,
+                "",
+                ""
+                );
             outputExpressions.Add(expr with
             {
                 BoundOutputColumn = newColumn.ColumnRef,
@@ -282,7 +291,12 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         for (var i = 0; i < inputColumns.Count; i++)
         {
             var existingColumn = inputColumns[i];
-            var newColumn = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
+            var newColumn = memTable.AddColumnToSchema(
+                existingColumn.Name,
+                existingColumn.DataType,
+                existingColumn.SourceTableName,
+                existingColumn.SourceTableAlias
+                );
             outputColumns.Add(newColumn);
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
@@ -292,7 +306,12 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         for (var i = 0; i < sort.OrderBy.Count; i++)
         {
             var expr = sort.OrderBy[i];
-            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            var newColumn = memTable.AddColumnToSchema(
+                expr.Alias,
+                expr.BoundFunction!.ReturnType,
+                "",
+                ""
+                );
             sortColumns.Add(newColumn);
         }
 
@@ -317,7 +336,12 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         for (var i = 0; i < inputColumns.Count; i++)
         {
             var existingColumn = inputColumns[i];
-            var newColumn = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
+            var newColumn = memTable.AddColumnToSchema(
+                existingColumn.Name,
+                existingColumn.DataType,
+                "",
+                ""
+                );
             outputColumns.Add(newColumn);
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
@@ -359,7 +383,12 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         for (var i = 0; i < expressions.Count; i++)
         {
             var expr = expressions[i];
-            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            var newColumn = memTable.AddColumnToSchema(
+                expr.Alias,
+                expr.BoundFunction!.ReturnType,
+                "",
+                ""
+                );
 
             outputExpressions.Add(expr with
             {
@@ -398,7 +427,12 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         for (var i = 0; i < inputColumns.Count; i++)
         {
             var existingColumn = inputColumns[i];
-            var newColumn = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
+            var newColumn = memTable.AddColumnToSchema(
+                existingColumn.Name,
+                existingColumn.DataType,
+                existingColumn.SourceTableName,
+                existingColumn.SourceTableAlias
+                );
             outputColumns.Add(newColumn);
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }

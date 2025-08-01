@@ -136,7 +136,7 @@ public class Parser
 
         var joins = new List<JoinStatement>();
         // from table1 join table2 syntax
-        while (Check(JOIN, LEFT, RIGHT, FULL, INNER))
+        while (Check(CROSS, JOIN, LEFT, RIGHT, FULL, INNER))
         {
             var joinType = ParseJoinType();
             var table2 = ParseTableOrSubquery();
@@ -155,13 +155,16 @@ public class Parser
 
     private JoinType ParseJoinType()
     {
-        if (!Match(out var token, JOIN, LEFT, RIGHT, FULL, INNER))
+        if (!Match(out var token, CROSS, JOIN, LEFT, RIGHT, FULL, INNER))
         {
             throw new ParseException(Peek(), "Expected join type");
         }
 
         switch (token.TokenType)
         {
+            case CROSS:
+                Consume(JOIN, "Expected JOIN after CROSS");
+                return JoinType.Cross;
             case INNER:
                 Consume(JOIN, "Expected JOIN after INNER");
                 return JoinType.Inner;

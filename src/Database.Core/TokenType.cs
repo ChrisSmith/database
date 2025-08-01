@@ -52,6 +52,7 @@ public enum TokenType
     FIRST,
     LAST,
     // joins
+    CROSS,
     JOIN,
     LEFT,
     RIGHT,

@@ -13,8 +13,8 @@ public class ParquetPoolTests
         var pool = new ParquetPool();
         var memRef = pool.OpenMemoryTable();
         var table = pool.GetMemoryTable(memRef.TableId);
-        table.AddColumnToSchema("foo", DataType.Int);
-        table.AddColumnToSchema("bar", DataType.String);
+        table.AddColumnToSchema("foo", DataType.Int, "", "");
+        table.AddColumnToSchema("bar", DataType.String, "", "");
 
         var colRef1 = new ColumnRef(memRef, 0, 0);
         table.PutColumn(colRef1, ColumnHelper.CreateColumn(typeof(int), "foo", new int[] { 1, 2, 3 }));
