@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Database.Core.BufferPool;
 using Database.Core.Execution;
 
@@ -41,6 +42,7 @@ public enum ColumnId : int { }
 /// <summary>
 /// Represents the schema for a column within a database table.
 /// </summary>
+[DebuggerDisplay("{Name} ({DataType}) {ColumnRef}")]
 public record ColumnSchema(
     ColumnRef ColumnRef,
     ColumnId Id,

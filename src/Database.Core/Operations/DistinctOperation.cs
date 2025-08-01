@@ -1,22 +1,20 @@
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
-using Database.Core.Expressions;
 
 namespace Database.Core.Operations;
 
-public record Distinct(
+public record DistinctOperation(
     ParquetPool BufferPool,
     MemoryBasedTable MemoryTable,
     IOperation Source,
-    IReadOnlyList<BaseExpression> Expressions,
     List<ColumnSchema> OutputColumns,
     List<ColumnRef> OutputColumnRefs
-    ) : IOperation
+    ) : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     private HashSet<Row> _unique = null;
 
-    public RowGroup? Next()
+    public override RowGroup? Next()
     {
         var rowGroup = Source.Next();
         if (rowGroup == null)

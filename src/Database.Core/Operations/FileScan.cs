@@ -9,14 +9,16 @@ namespace Database.Core.Operations;
 public record FileScan(
     ParquetPool BufferPool,
     string Path,
-    IReadOnlyList<ColumnRef> OutputColumnRefs) : IOperation
+    IReadOnlyList<ColumnSchema> OutputColumns,
+    IReadOnlyList<ColumnRef> OutputColumnRefs)
+    : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     private ParquetReader? _reader = null;
     private int _group = -1;
     private bool _done = false;
     private ParquetFileHandle _handle;
 
-    public RowGroup? Next()
+    public override RowGroup? Next()
     {
         if (_done)
         {

@@ -1,4 +1,3 @@
-using System.Numerics;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
@@ -10,14 +9,14 @@ public record SortOperator(
     ParquetPool BufferPool,
     MemoryBasedTable MemoryTable,
     IOperation Source,
-    IReadOnlyList<OrderingExpression> OrderExpressions,
+    IReadOnlyList<BaseExpression> OrderExpressions, // TODO
     List<ColumnSchema> OutputColumns,
     List<ColumnRef> OutputColumnRefs
-    ) : IOperation
+    ) : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     bool _done = false;
 
-    public RowGroup? Next()
+    public override RowGroup? Next()
     {
         if (_done)
         {

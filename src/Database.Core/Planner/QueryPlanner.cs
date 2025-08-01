@@ -1,4 +1,3 @@
-using System.Net;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
@@ -13,7 +12,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 {
     private ExpressionBinder _binder = new(bufferPool, new FunctionRegistry());
 
-    public QueryPlan CreatePlan(IStatement statement)
+    public LogicalPlan CreateLogicalPlan(IStatement statement)
     {
         if (statement is not SelectStatement select)
         {
@@ -24,85 +23,219 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         select = ConstantFolding.Fold(select);
         select = QueryRewriter.ExpandStarStatements(select, catalog);
 
-        (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) = CreateFileScan(select);
-
-        var memRef = bufferPool.OpenMemoryTable();
-        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
-
-        (source, expressions, inputColumns) = MaterializeAdditionalColumns(memTable, inputColumns, expressions, source);
-
-        if (select.Where != null)
-        {
-            (source, expressions, inputColumns) = FilterTable(select.Where, source, inputColumns, expressions);
-        }
-
-        // grouping
-        var groupingExprs = _binder.Bind(select.Group?.Expressions ?? [], inputColumns);
-
-        if (expressions.Any(ExpressionContainsAggregate) || groupingExprs.Count > 0)
-        {
-            if (groupingExprs.Count > 0)
-            {
-                (source, expressions, inputColumns) = CreateHashAggregate(source, inputColumns, expressions, groupingExprs);
-            }
-            else
-            {
-                (source, expressions, inputColumns) = CreateAggregate(source, inputColumns, expressions);
-            }
-        }
-
-        if (select.Order != null)
-        {
-            // (source, expressions, inputColumns) = CreateSort(source, inputColumns, expressions, select.Order.Expressions);
-        }
-
-        (source, expressions, inputColumns) = MaterializeProjection(source, inputColumns, expressions);
-        if (select.SelectList.Distinct)
-        {
-            (source, expressions, inputColumns) = CreateDistinct(source, expressions, inputColumns);
-        }
-
-        return new QueryPlan(source);
-    }
-
-    private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateFileScan(SelectStatement select)
-    {
         if (select.From.TableStatements.Single() is not TableStatement singleTable)
         {
             throw new QueryPlanException("Expected a single table in FROM clause.");
         }
 
+        var expressions = select.SelectList.Expressions;
+        var plan = BindLogicalScan(singleTable);
+
+        if (select.Where != null)
+        {
+            (var extendedSchema, expressions, var forEval) =
+                ExtendedSchemaWithExpressions(plan.OutputSchema, expressions);
+
+            if (forEval.Any())
+            {
+                plan = new Projection(plan, forEval, extendedSchema, AppendExpressions: true);
+                expressions = _binder.Bind(expressions, plan.OutputSchema);
+            }
+            var where = _binder.Bind(select.Where, extendedSchema);
+            plan = new Filter(plan, where, extendedSchema);
+            expressions = _binder.Bind(expressions, plan.OutputSchema);
+        }
+
+        // Must bind here before ExpressionContainsAggregate so there are functions to check
+        expressions = _binder.Bind(expressions, plan.OutputSchema);
+        if (select.Group?.Expressions != null || expressions.Any(ExpressionContainsAggregate))
+        {
+            var groupingExprs = _binder.Bind(select.Group?.Expressions ?? [], plan.OutputSchema);
+            // TODO if the groupings are not in the expressions, add them
+            plan = new Aggregate(plan, groupingExprs, expressions, SchemaFromExpressions(expressions));
+            expressions = RemoveAggregatesFromExpressions(expressions);
+            expressions = _binder.Bind(expressions, plan.OutputSchema);
+        }
+
+        if (select.Order != null)
+        {
+            var orderBy = _binder.Bind(select.Order.Expressions, plan.OutputSchema);
+            plan = new Sort(plan, orderBy, plan.OutputSchema);
+            expressions = _binder.Bind(expressions, plan.OutputSchema);
+        }
+
+        expressions = _binder.Bind(expressions, plan.OutputSchema);
+        plan = new Projection(plan, expressions, SchemaFromExpressions(expressions));
+
+        if (select.SelectList.Distinct)
+        {
+            plan = new Distinct(plan, SchemaFromExpressions(expressions));
+        }
+
+        return plan;
+    }
+
+    private IReadOnlyList<ColumnSchema> SchemaFromExpressions(IReadOnlyList<BaseExpression> expressions)
+    {
+        var schema = new List<ColumnSchema>(expressions.Count);
+        foreach (var expr in expressions)
+        {
+            schema.Add(new ColumnSchema(
+                default,
+                default,
+                expr.Alias,
+                expr.BoundFunction!.ReturnType,
+                expr.BoundFunction!.ReturnType.ClrTypeFromDataType()
+                ));
+        }
+
+        return schema;
+    }
+
+    private LogicalPlan BindLogicalScan(TableStatement singleTable)
+    {
         var table = catalog.Tables.FirstOrDefault(t => t.Name == singleTable.Table);
         if (table == null)
         {
             throw new QueryPlanException($"Table '{singleTable.Table}' not found in catalog.");
         }
 
-        IReadOnlyList<ColumnSchema> inputColumns = table.Columns.Select(c => c).ToList();
-        inputColumns = FilterToUsedColumns(select, inputColumns);
-        var expressions = _binder.Bind(select.SelectList.Expressions, inputColumns);
+        IReadOnlyList<ColumnSchema> tableColumns = table.Columns.Select(c => c).ToList();
 
-        var columnRefs = inputColumns.Select(c => c.ColumnRef).ToList();
+        LogicalPlan plan = new Scan(singleTable.Table, table.Id, tableColumns, singleTable.Alias);
+        return plan;
+    }
 
-        if (TryBindPushFilterDown(table, select.Where, out var filter))
+    public IOperation CreatePhysicalPlan(LogicalPlan plan)
+    {
+        if (plan is Scan scan)
         {
-            var pop = new FileScanFusedFilter(
-                bufferPool,
-                table.Location,
-                catalog,
-                filter!,
-                columnRefs
-            );
-            return (pop, expressions, inputColumns);
+            return CreateScan(scan);
+        }
+        if (plan is Filter filter)
+        {
+            var input = CreatePhysicalPlan(filter.Input);
+            return CreateFilter(filter, input);
         }
 
+        if (plan is Join join)
+        {
+            return CreateJoin(join);
+        }
 
-        var op = new FileScan(
+        if (plan is Aggregate aggregate)
+        {
+            var input = CreatePhysicalPlan(aggregate.Input);
+            return CreateAggregate(aggregate, input);
+        }
+
+        if (plan is Projection project)
+        {
+            var input = CreatePhysicalPlan(project.Input);
+            return CreateProjection(project, input);
+        }
+
+        if (plan is Distinct distinct)
+        {
+            var input = CreatePhysicalPlan(distinct.Input);
+            return CreateDistinct(distinct, input);
+        }
+
+        if (plan is Sort sort)
+        {
+            var input = CreatePhysicalPlan(sort.Input);
+            return CreateSort(sort, input);
+        }
+
+        throw new NotImplementedException();
+    }
+
+    public QueryPlan CreatePlan(IStatement statement)
+    {
+        var logicalPlan = CreateLogicalPlan(statement);
+        var physicalPlan = CreatePhysicalPlan(logicalPlan);
+        return new QueryPlan(physicalPlan);
+    }
+
+    private (
+        List<ColumnSchema> outputColumns,
+        List<BaseExpression> outputExpressions,
+        List<BaseExpression> expressionsForEval
+        ) ExtendedSchemaWithExpressions(
+        IReadOnlyList<ColumnSchema> inputColumns,
+        IReadOnlyList<BaseExpression> expressions)
+    {
+        // If any projections require the computation of a new column, do it prior to the filters/aggregations
+        // so that we can filter/aggregate on them too
+        var outputColumns = new List<ColumnSchema>(inputColumns);
+        var expressionsForEval = new List<BaseExpression>(expressions.Count);
+        var outputExpressions = new List<BaseExpression>(expressions.Count);
+
+        for (var i = 0; i < expressions.Count; i++)
+        {
+            var expr = _binder.Bind(expressions[i], inputColumns);
+            if (expr is ColumnExpression c && c.Alias == c.Column)
+            {
+                outputExpressions.Add(expr);
+                continue;
+            }
+
+            if (ExpressionContainsAggregate(expr))
+            {
+                // At this point we can't materialize the aggregate, so skip it
+                outputExpressions.Add(expr);
+                continue;
+            }
+
+            var column = new ColumnSchema(
+                default,
+                default,
+                expr.Alias,
+                expr.BoundFunction!.ReturnType,
+                expr.BoundFunction!.ReturnType.ClrTypeFromDataType()
+            );
+            expr = expr with
+            {
+                // TODO binding just the output column here is kinda weird?
+                // It might be better to rewerite the ast so this becomes a column
+                // select in the rest of the pipeline
+                BoundOutputColumn = column.ColumnRef,
+            };
+            outputExpressions.Add(expr);
+            expressionsForEval.Add(expr);
+            outputColumns.Add(column);
+        }
+
+        return (outputColumns, outputExpressions, expressionsForEval);
+    }
+
+    private IOperation CreateScan(Scan scan)
+    {
+        var outputColumns = scan.OutputColumns;
+
+        // inputColumns = FilterToUsedColumns(select, inputColumns);
+
+        var table = catalog.Tables.Single(t => t.Id == scan.TableId);
+        var columnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
+
+        // if (TryBindPushFilterDown(table, select.Where, out var filter))
+        // {
+        //     var pop = new FileScanFusedFilter(
+        //         bufferPool,
+        //         table.Location,
+        //         catalog,
+        //         filter!,
+        //         columnRefs
+        //     );
+        //     return (pop, expressions, inputColumns);
+        // }
+
+        return new FileScan(
             bufferPool,
             table.Location,
+            outputColumns,
             columnRefs
             );
-        return (op, expressions, inputColumns);
     }
 
     private bool TryBindPushFilterDown(
@@ -271,24 +404,28 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
     }
 
-    private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateHashAggregate(
-        IOperation source,
-        IReadOnlyList<ColumnSchema> inputColumns,
-        IReadOnlyList<BaseExpression> expressions,
-        IReadOnlyList<BaseExpression> groupingExprs)
+    private IOperation CreateJoin(Join join)
     {
-        groupingExprs = _binder.Bind(groupingExprs, inputColumns);
+        throw new NotImplementedException();
+    }
+
+    private IOperation CreateAggregate(Aggregate aggregate, IOperation source)
+    {
+        var inputColumns = source.Columns;
+        var expressions = _binder.Bind(aggregate.Aggregates, inputColumns);
+        var groupingExprs = _binder.Bind(aggregate.GroupBy, inputColumns);
+
 
         // Transformation 1. Grouping + Aggregation
         var memRef1 = bufferPool.OpenMemoryTable();
-        var memTable1 = bufferPool.GetMemoryTable(memRef1.TableId);
+        var memTable = bufferPool.GetMemoryTable(memRef1.TableId);
 
         var outputExpressions = new List<BaseExpression>(expressions.Count);
         var outputColumns = new List<ColumnSchema>(expressions.Count);
         for (var i = 0; i < groupingExprs.Count; i++)
         {
             var expr = groupingExprs[i];
-            var newColumn = memTable1.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
 
             outputExpressions.Add(expr with
             {
@@ -303,7 +440,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         foreach (var expr in aggregateExpressions)
         {
-            var newColumn = memTable1.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
             outputExpressions.Add(expr with
             {
                 BoundOutputColumn = newColumn.ColumnRef,
@@ -311,26 +448,60 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumns.Add(newColumn);
         }
 
-        var op = new HashAggregate(
+        var outputColumnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
+
+        if (aggregate.GroupBy.Count == 0)
+        {
+            return new UngroupedAggregate(
+                bufferPool,
+                memTable,
+                source,
+                outputExpressions,
+                outputColumns,
+                outputColumnRefs);
+        }
+
+        return new HashAggregate(
             bufferPool,
             source,
-            memTable1,
+            memTable,
             outputExpressions,
             outputColumns,
-            outputColumns.Select(c => c.ColumnRef).ToList());
-
-        expressions = RemoveAggregatesFromExpressions(expressions);
-        expressions = _binder.Bind(expressions, outputColumns);
-
-        return (op, expressions, outputColumns);
+            outputColumnRefs);
     }
 
-    private (IOperation source, IReadOnlyList<BaseExpression> expressions, IReadOnlyList<ColumnSchema> inputColumns) CreateSort(
-        IOperation source,
-        IReadOnlyList<ColumnSchema> inputColumns,
-        IReadOnlyList<BaseExpression> expressions,
-        List<OrderingExpression> orderExpressions)
+    private IOperation CreateSort(
+        Sort sort,
+        IOperation input)
     {
+        var memRef = bufferPool.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        var inputColumns = input.Columns;
+        var outputColumns = new List<ColumnSchema>(inputColumns.Count);
+        var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
+        for (var i = 0; i < inputColumns.Count; i++)
+        {
+            var existingColumn = inputColumns[i];
+            var newColumn = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
+            outputColumns.Add(newColumn);
+            outputColumnsRefs.Add(newColumn.ColumnRef);
+        }
+
+        var orderExpressions = _binder.Bind(sort.OrderBy, inputColumns);
+
+        return new SortOperator(
+            bufferPool,
+            memTable,
+            input,
+            orderExpressions,
+            outputColumns,
+            outputColumnsRefs);
+    }
+
+    private IOperation CreateDistinct(Distinct distinct, IOperation source)
+    {
+        var inputColumns = source.Columns;
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
@@ -344,82 +515,40 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
 
-        // orderExpressions = _binder.Bind(orderExpressions, inputColumns);
-
-        var outputExpressions = _binder.Bind(expressions, outputColumns);
-        var op = new SortOperator(bufferPool, memTable, source, orderExpressions, outputColumns, outputColumnsRefs);
-        return (op, outputExpressions, outputColumns);
+        return new DistinctOperation(
+            bufferPool,
+            memTable,
+            source,
+            outputColumns,
+            outputColumnsRefs);
     }
 
-    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) CreateDistinct(
-        IOperation source,
-        IReadOnlyList<BaseExpression> expressions,
-        IReadOnlyList<ColumnSchema> inputColumns)
+    private IOperation CreateProjection(Projection projection, IOperation input)
     {
-        var memRef = bufferPool.OpenMemoryTable();
-        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+        var expressions = _binder.Bind(projection.Expressions, input.Columns);
+        var usedColumns = expressions.Select(e => e.Alias).ToHashSet();
 
-        var outputColumns = new List<ColumnSchema>(inputColumns.Count);
-        var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
-        for (var i = 0; i < inputColumns.Count; i++)
+        var mutExprssions = expressions.ToList();
+
+        // TODO I still kinda dislike this
+        if (projection.AppendExpressions)
         {
-            var existingColumn = inputColumns[i];
-            var newColumn = memTable.AddColumnToSchema(existingColumn.Name, existingColumn.DataType);
-            outputColumns.Add(newColumn);
-            outputColumnsRefs.Add(newColumn.ColumnRef);
-        }
-
-        var outputExpressions = _binder.Bind(expressions, outputColumns);
-        var op = new Distinct(bufferPool, memTable, source, expressions, outputColumns, outputColumnsRefs);
-        return (op, outputExpressions, outputColumns);
-    }
-
-    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) CreateAggregate(
-        IOperation source,
-        IReadOnlyList<ColumnSchema> inputColumns,
-        IReadOnlyList<BaseExpression> expressions
-    )
-    {
-        var memRef = bufferPool.OpenMemoryTable();
-        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
-
-        var outputExpressions = new List<BaseExpression>(expressions.Count);
-        var outputColumnRefs = new List<ColumnRef>(expressions.Count);
-        var outputColumns = new List<ColumnSchema>(expressions.Count);
-        for (var i = 0; i < expressions.Count; i++)
-        {
-            var expr = expressions[i];
-            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
-
-            outputExpressions.Add(expr with
+            foreach (var col in input.Columns)
             {
-                BoundOutputColumn = newColumn.ColumnRef,
-            });
-            outputColumns.Add(newColumn);
-            outputColumnRefs.Add(newColumn.ColumnRef);
+                if (!usedColumns.Contains(col.Name))
+                {
+                    mutExprssions.Add(new ColumnExpression(col.Name));
+                }
+            }
+            expressions = _binder.Bind(mutExprssions, input.Columns);
         }
-
-        var op = new Aggregate(bufferPool, memTable, source, outputExpressions, outputColumnRefs);
-
-        expressions = RemoveAggregatesFromExpressions(expressions);
-        expressions = _binder.Bind(expressions, outputColumns);
-
-        return (op, expressions, outputColumns);
-    }
-
-    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) MaterializeProjection(
-        IOperation source,
-        IReadOnlyList<ColumnSchema> inputColumns,
-        IReadOnlyList<BaseExpression> expressions
-        )
-    {
-        expressions = _binder.Bind(expressions, inputColumns);
 
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
         var outputExpressions = new List<BaseExpression>(expressions.Count);
         var outputColumns = new List<ColumnSchema>(expressions.Count);
+
         for (var i = 0; i < expressions.Count; i++)
         {
             var expr = expressions[i];
@@ -432,68 +561,26 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumns.Add(newColumn);
         }
 
-        var op = new Projection(bufferPool, memTable, source, outputExpressions);
-        return (op, outputExpressions, outputColumns);
+        var outputColumnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
+        return new ProjectionOperation(
+            bufferPool,
+            memTable,
+            input,
+            outputExpressions,
+            outputColumns,
+            outputColumnRefs,
+            Materialize: false
+            );
     }
 
-    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) MaterializeAdditionalColumns(
-        MemoryBasedTable memTable,
-        IReadOnlyList<ColumnSchema> inputColumns,
-        IReadOnlyList<BaseExpression> expressions,
-        IOperation source)
+    private IOperation CreateFilter(Filter filter, IOperation input)
     {
-        // If any projections require the computation of a new column, do it prior to the filters/aggregations
-        // so that we can filter/aggregate on them too
-        var outputColumns = new List<ColumnSchema>(inputColumns);
-        var outputExpressions = new List<BaseExpression>(inputColumns.Count);
-        var expressionsForEval = new List<BaseExpression>(expressions.Count);
-
-        for (var i = 0; i < expressions.Count; i++)
-        {
-            var expr = _binder.Bind(expressions[i], inputColumns);
-            if (expr is ColumnExpression c && c.Alias == c.Column)
-            {
-                // If this is a basic column expression without an alias,
-                // we can reference the source directly
-                outputExpressions.Add(expr);
-                continue;
-            }
-
-            if (ExpressionContainsAggregate(expr))
-            {
-                // At this point we can't materialize the aggregate, so skip it
-                outputExpressions.Add(expr);
-                continue;
-            }
-
-            var column = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
-            expr = expr with
-            {
-                BoundOutputColumn = column.ColumnRef,
-            };
-
-            expressionsForEval.Add(expr);
-            outputExpressions.Add(expr);
-            outputColumns.Add(column);
-        }
-
-        if (expressionsForEval.Count == 0)
-        {
-            return (source, outputExpressions, inputColumns);
-        }
-
-        var op = new ProjectionBinaryEval(bufferPool, source, expressionsForEval);
-        return (op, outputExpressions, outputColumns);
-    }
-
-    private (IOperation, IReadOnlyList<BaseExpression>, IReadOnlyList<ColumnSchema>) FilterTable(BaseExpression where, IOperation source,
-        IReadOnlyList<ColumnSchema> inputColumns, IReadOnlyList<BaseExpression> expressions)
-    {
-        var whereExpr = _binder.Bind(where, inputColumns);
+        var inputColumns = input.Columns;
+        var whereExpr = _binder.Bind(filter.Predicate, inputColumns);
         if (whereExpr.BoundFunction is not BoolFunction predicate)
         {
             // TODO cast values to "truthy"
-            throw new QueryPlanException($"Filter expression '{where}' is not a boolean expression");
+            throw new QueryPlanException($"Filter expression '{filter.Predicate}' is not a boolean expression");
         }
 
         var memRef = bufferPool.OpenMemoryTable();
@@ -509,10 +596,13 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
 
-        var outputExpressions = _binder.Bind(expressions, outputColumns);
-
-        var op = new Filter(bufferPool, memTable, source, whereExpr, outputColumnsRefs);
-        return (op, outputExpressions, outputColumns);
+        return new FilterOperation(
+            bufferPool,
+            memTable,
+            input,
+            whereExpr,
+            outputColumns,
+            outputColumnsRefs);
     }
 
     private List<BaseExpression> RemoveAggregatesFromExpressions(IReadOnlyList<BaseExpression> expressions)
