@@ -11,6 +11,21 @@ namespace Database.Core.Planner;
 public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions)
 {
     [Pure]
+    public IReadOnlyList<OrderingExpression> Bind(
+        IReadOnlyList<OrderingExpression> expressions,
+        IReadOnlyList<ColumnSchema> columns,
+        bool ignoreMissingColumns = false
+    )
+    {
+        var result = new List<OrderingExpression>(expressions.Count);
+        foreach (var expr in expressions)
+        {
+            result.Add((OrderingExpression)Bind(expr, columns, ignoreMissingColumns));
+        }
+        return result;
+    }
+
+    [Pure]
     public IReadOnlyList<BaseExpression> Bind(
         IReadOnlyList<BaseExpression> expressions,
         IReadOnlyList<ColumnSchema> columns,
