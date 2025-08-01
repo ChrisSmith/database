@@ -489,12 +489,20 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
 
         var orderExpressions = _binder.Bind(sort.OrderBy, inputColumns);
+        var sortColumns = new List<ColumnSchema>(sort.OrderBy.Count);
+        for (var i = 0; i < sort.OrderBy.Count; i++)
+        {
+            var expr = sort.OrderBy[i];
+            var newColumn = memTable.AddColumnToSchema(expr.Alias, expr.BoundFunction!.ReturnType);
+            sortColumns.Add(newColumn);
+        }
 
         return new SortOperator(
             bufferPool,
             memTable,
             input,
             orderExpressions,
+            sortColumns,
             outputColumns,
             outputColumnsRefs);
     }

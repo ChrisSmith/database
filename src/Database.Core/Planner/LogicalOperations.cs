@@ -65,7 +65,7 @@ public record Aggregate(
 
 public record Sort(
     LogicalPlan Input,
-    IReadOnlyList<BaseExpression> OrderBy,
+    IReadOnlyList<OrderingExpression> OrderBy,
     IReadOnlyList<ColumnSchema> OutputColumns
 ) : LogicalPlan
 {

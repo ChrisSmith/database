@@ -241,6 +241,17 @@ public class ExecutionTest
         }
     }
 
+    [Test]
+    public void OrderBy_Not_In_Select()
+    {
+        var result = Query("select CategoricalInt from table order by Id;").AsRowList();
+        var values = result.Select(r => (int)r.Values.Single()).Take(100).ToList();
+        foreach (var value in values)
+        {
+            value.Should().BeInRange(0, 5);
+        }
+    }
+
     [TestCase("select Id from table")]
     [TestCase("select Id / 2 as foo from table")]
     [TestCase("select 1 + 1 from table")]

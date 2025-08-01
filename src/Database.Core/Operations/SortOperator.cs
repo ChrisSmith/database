@@ -9,12 +9,15 @@ public record SortOperator(
     ParquetPool BufferPool,
     MemoryBasedTable MemoryTable,
     IOperation Source,
-    IReadOnlyList<BaseExpression> OrderExpressions, // TODO
+    IReadOnlyList<OrderingExpression> OrderExpressions,
+    List<ColumnSchema> SortColumns,
     List<ColumnSchema> OutputColumns,
     List<ColumnRef> OutputColumnRefs
     ) : BaseOperation(OutputColumns, OutputColumnRefs)
 {
     bool _done = false;
+
+    private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
     public override RowGroup? Next()
     {
@@ -25,17 +28,29 @@ public record SortOperator(
 
         var allRows = new List<Row>();
         var next = Source.Next();
+
         while (next != null)
         {
-            allRows.AddRange(next.MaterializeRows(BufferPool));
+            var updatedColumnRefs = new List<ColumnRef>(next.Columns);
+            for (var i = 0; i < OrderExpressions.Count; i++)
+            {
+                var expression = OrderExpressions[i];
+                var column = _interpreter.Execute(expression, next);
+
+                var columnRef = SortColumns[i].ColumnRef;
+                BufferPool.WriteColumn(columnRef, column, next.RowGroupRef.RowGroup);
+                updatedColumnRefs.Add(columnRef);
+            }
+
+            // Need to re-write this operator to use a b+ tree
+            var updatedRg = next with { Columns = updatedColumnRefs };
+            allRows.AddRange(updatedRg.MaterializeRows(BufferPool));
             next = Source.Next();
         }
         _done = true;
 
-        // TODO pull these out of the materialized expressions
-        var columns = new List<int>() { 0, 1 };
         var asArray = allRows.ToArray();
-        Array.Sort(asArray, new RowComparer(columns));
+        Array.Sort(asArray, new RowComparer(Source.Columns.Count, OrderExpressions));
 
         return FromRows(asArray);
     }
@@ -65,20 +80,31 @@ public record SortOperator(
         return new RowGroup(rows.Count, targetRowGroup, OutputColumnRefs);
     }
 
-    public class RowComparer(List<int> indexes) : IComparer<Row>
+    public class RowComparer(int offset, IReadOnlyList<OrderingExpression> expressions) : IComparer<Row>
     {
         public int Compare(Row x, Row y)
         {
-            for (var i = 0; i < indexes.Count; i++)
+            for (var i = 0; i < expressions.Count; i++)
             {
-                var index = indexes[i];
+                var index = offset + i;
                 var xVal = (IComparable)x.Values[index]!;
                 var yVal = (IComparable)y.Values[index]!;
 
-                var res = xVal.CompareTo(yVal);
-                if (res != 0)
+                if (expressions[i].Ascending)
                 {
-                    return res;
+                    var res = xVal.CompareTo(yVal);
+                    if (res != 0)
+                    {
+                        return res;
+                    }
+                }
+                else
+                {
+                    var res = yVal.CompareTo(xVal);
+                    if (res != 0)
+                    {
+                        return res;
+                    }
                 }
             }
             return 0;
