@@ -14,6 +14,7 @@ public abstract record LogicalPlan(IOperation? BoundOperation = null)
 public record Scan(
     string Table,
     TableId TableId,
+    BaseExpression? Filter,
     IReadOnlyList<ColumnSchema> OutputColumns,
     string? Alias = null) : LogicalPlan
 {
