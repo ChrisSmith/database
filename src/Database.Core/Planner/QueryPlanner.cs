@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
@@ -29,7 +30,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
 
         var expressions = select.SelectList.Expressions;
-        var plan = BindLogicalScan(singleTable);
+        var plan = BindLogicalScan(singleTable, select);
 
         if (select.Where != null)
         {
@@ -92,7 +93,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         return schema;
     }
 
-    private LogicalPlan BindLogicalScan(TableStatement singleTable)
+    private LogicalPlan BindLogicalScan(TableStatement singleTable, SelectStatement select)
     {
         var table = catalog.Tables.FirstOrDefault(t => t.Name == singleTable.Table);
         if (table == null)
@@ -102,7 +103,15 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         IReadOnlyList<ColumnSchema> tableColumns = table.Columns.Select(c => c).ToList();
 
-        LogicalPlan plan = new Scan(singleTable.Table, table.Id, tableColumns, singleTable.Alias);
+        // Projection Push Down
+        tableColumns = FilterToUsedColumns(select, tableColumns);
+
+        LogicalPlan plan = new Scan(
+            singleTable.Table,
+            table.Id,
+            select.Where,
+            tableColumns,
+            singleTable.Alias);
         return plan;
     }
 
@@ -213,22 +222,20 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
     {
         var outputColumns = scan.OutputColumns;
 
-        // inputColumns = FilterToUsedColumns(select, inputColumns);
-
         var table = catalog.Tables.Single(t => t.Id == scan.TableId);
         var columnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
 
-        // if (TryBindPushFilterDown(table, select.Where, out var filter))
-        // {
-        //     var pop = new FileScanFusedFilter(
-        //         bufferPool,
-        //         table.Location,
-        //         catalog,
-        //         filter!,
-        //         columnRefs
-        //     );
-        //     return (pop, expressions, inputColumns);
-        // }
+        if (TryBindPushFilterDown(table, scan.Filter, out var filter))
+        {
+            return new FileScanFusedFilter(
+                bufferPool,
+                table.Location,
+                catalog,
+                filter,
+                outputColumns,
+                columnRefs
+            );
+        }
 
         return new FileScan(
             bufferPool,
@@ -241,7 +248,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
     private bool TryBindPushFilterDown(
         TableSchema table,
         BaseExpression? where,
-        out BaseExpression? result)
+        [NotNullWhen(true)] out BaseExpression? result)
     {
         result = null;
         if (where is not BinaryExpression b)
@@ -669,7 +676,6 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         var result = new List<BaseExpression>(expressions.Count);
         for (var i = 0; i < expressions.Count; i++)
         {
-            // TODO I probably need to rebind some positional information?
             result.Add(ReplaceAggregate(expressions[i]));
         }
 
