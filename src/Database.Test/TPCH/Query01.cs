@@ -24,8 +24,8 @@ public partial class TPCHTests
                 avg(l_extendedprice) as avg_price,
                 avg(l_discount) as avg_disc,
                 -- should be 1, but need automatic casts
-                sum(l_extendedprice*(1.0-l_discount)*(1.0+l_tax)) as sum_charge,
-                sum(l_extendedprice*(1.0-l_discount)) as sum_disc_price
+                sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
+                sum(l_extendedprice*(1-l_discount)) as sum_disc_price
             from lineitem
             where l_shipdate <= date '1998-12-01' - interval '30' day
             group by l_returnflag, l_linestatus
@@ -34,6 +34,14 @@ public partial class TPCHTests
 
         var result = Query(query).AsRowList();
         result.Should().HaveCount(4);
+
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new(["A", "F", 1478493, 37734107.00m, 56586554400.73m, 25.522005853257337, 38273.129734621674, 0.049985295838397614, 55909065222.827692m, 53758257134.8700m]),
+            new(["N", "F", 38854, 991417.00m, 1487504710.38m, 25.516471920522985, 38284.4677608483, 0.0500934266742163, 1469649223.194375m, 1413082168.0541m]),
+            new(["N", "O", 2995314, 76385881.00m, 114563004757.36m, 25.501794135773412, 38247.410707979194, 0.05000143223715443, 113193138614.045709m, 108835868867.4998m]),
+            new(["R", "F", 1478870, 37719753.00m, 56568041380.90m, 25.50579361269077, 38250.85462609966, 0.05000940583012706, 55889619119.831932m, 53741292684.6040m])
+        });
     }
 
     // Null value handling is weird. Either we're losing it in the write from duckdb, or we're parsing it unconditionally?
