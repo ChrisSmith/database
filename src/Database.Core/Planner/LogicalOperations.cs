@@ -46,7 +46,7 @@ public record Join(
     LogicalPlan Left,
     LogicalPlan Right,
     JoinType JoinType,
-    BaseExpression Condition,
+    BaseExpression? Condition,
     IReadOnlyList<ColumnSchema> OutputColumns
 ) : LogicalPlan
 {

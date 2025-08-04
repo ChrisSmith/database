@@ -99,13 +99,22 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         if (select.From.TableStatements.Count > 1)
         {
-            // let's see if they are helping us with the join type
-            if (select.From.JoinStatements == null)
+            foreach (var table in select.From.TableStatements.Skip(1))
             {
-                throw new QueryPlanException("Cross joins not supported yet");
+                var tableStmt = (TableStatement)table;
+                var right = CreateScanForTable(tableStmt);
+                var extendedSchema = ExtendSchema(plan.OutputSchema, right.OutputSchema);
+                plan = new Join(
+                    plan,
+                    right,
+                    JoinType.Cross,
+                    null,
+                    extendedSchema
+                );
             }
         }
 
+        // let's see if they are helping us with the join type
         if (select.From.JoinStatements != null)
         {
             // create a left deep tree
