@@ -27,7 +27,9 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         if (plan is Join join)
         {
-            return CreateJoin(join);
+            var left = CreatePhysicalPlan(join.Left);
+            var right = CreatePhysicalPlan(join.Right);
+            return CreateJoin(join, left, right);
         }
 
         if (plan is Aggregate aggregate)
@@ -203,9 +205,57 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
     }
 
-    private IOperation CreateJoin(Join join)
+    private IOperation CreateJoin(Join join, IOperation left, IOperation right)
     {
-        throw new NotImplementedException();
+        var inputColumns = join.OutputColumns;
+        var expressions = _binder.Bind(join.Condition, inputColumns);
+        // TODO split join condition
+        if (expressions is not BinaryExpression b || b.Operator != EQUAL)
+        {
+            throw new QueryPlanException($"Join condition must be a binary expression with EQUAL operator");
+        }
+        if (b.Left is not ColumnExpression leftCol || b.Right is not ColumnExpression rightCol)
+        {
+            throw new QueryPlanException($"Join condition must be a simple binary expression with EQUAL operator" +
+                                         $"on column expressions");
+        }
+
+        // TODO the left/right on the plan have aliases attached (Scan op, might need to expose more generically)
+        // maybe I can use them to figureout which side to bind
+        ColumnExpression probeExpr;
+        ColumnExpression scanExpr;
+        scanExpr = leftCol;
+        probeExpr = rightCol;
+
+        var memRef = bufferPool.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        var outputColumns = new List<ColumnSchema>(inputColumns.Count);
+        var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
+        for (var i = 0; i < inputColumns.Count; i++)
+        {
+            var existingColumn = inputColumns[i];
+            var newColumn = memTable.AddColumnToSchema(
+                existingColumn.Name,
+                existingColumn.DataType,
+                existingColumn.SourceTableName,
+                existingColumn.SourceTableAlias
+            );
+            outputColumns.Add(newColumn);
+            outputColumnsRefs.Add(newColumn.ColumnRef);
+        }
+
+        return new HashJoinOperator(
+            bufferPool,
+            right,
+            left,
+            memTable,
+            [probeExpr],
+            [scanExpr],
+            outputColumns,
+            outputColumnsRefs
+        );
+
     }
 
     private IOperation CreateAggregate(Aggregate aggregate, IOperation source)
