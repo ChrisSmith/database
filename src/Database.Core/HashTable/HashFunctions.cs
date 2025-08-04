@@ -42,6 +42,27 @@ public static class HashFunctions
         return new Column<int>("hash", values);
     }
 
+    public static int[] Hash(object?[,] keys, bool[] mask)
+    {
+        var rows = mask.Length;
+        var values = InitializeResult(rows);
+
+        for (var i = 0; i < rows; i++)
+        {
+            if (!mask[i])
+            {
+                continue;
+            }
+
+            for (var c = 1; c < keys.GetLength(0); c++)
+            {
+                values[i] = values[i] * 31 + (keys[c, i]?.GetHashCode() ?? 0);
+            }
+        }
+
+        return values;
+    }
+
     private static int[] InitializeResult(int rows)
     {
         var values = new int[rows];
