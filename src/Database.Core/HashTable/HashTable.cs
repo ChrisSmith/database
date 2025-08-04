@@ -7,15 +7,92 @@ public class HashTable<T>
     public int Size { get; private set; }
     private object?[,] _keys;
     private T[] _objects;
-
+    private bool[] _occupied;
     private int _keyColumns;
 
-    public HashTable(int keyColumns, int size = 13)
+    public HashTable(int keyColumns, int size = 7)
     {
         _keyColumns = keyColumns;
         Size = 0;
         _keys = new object[keyColumns, size];
         _objects = new T[size];
+        _occupied = new bool[size];
+    }
+
+    public void Add(IReadOnlyList<IColumn> keys, T[] values)
+    {
+        var hashed = HashFunctions.Hash(keys).Values;
+
+        for (var i = 0; i < hashed.Length; i++)
+        {
+            var idx = Math.Abs(hashed[i]) % _objects.Length;
+            var startPos = idx;
+            while (true)
+            {
+                if (_occupied[idx] == false)
+                {
+                    Insert(idx, i);
+                    break;
+                }
+
+                if (KeysMatch(keys, i, idx))
+                {
+                    break;
+                }
+
+                // linear probe
+                idx = (idx + 1) % _objects.Length;
+                if (idx == startPos)
+                {
+                    throw new Exception("Hash table add failed");
+                }
+            }
+        }
+
+        void Insert(int idx, int i)
+        {
+            _objects[idx] = values[i];
+            _occupied[idx] = true;
+            for (var j = 0; j < keys.Count; j++)
+            {
+                var k = keys[j][i];
+                _keys[j, idx] = k;
+            }
+            Size++;
+            ResizeMaybe();
+        }
+    }
+
+    public T[] Get(IReadOnlyList<IColumn> keys)
+    {
+        var hashed = HashFunctions.Hash(keys).Values;
+        var result = new T[hashed.Length];
+
+        for (var i = 0; i < hashed.Length; i++)
+        {
+            var idx = Math.Abs(hashed[i]) % _objects.Length;
+            var startPos = idx;
+            while (true)
+            {
+                if (_occupied[idx] == false)
+                {
+                    // miss
+                    break;
+                }
+                if (KeysMatch(keys, i, idx))
+                {
+                    result[i] = _objects[idx];
+                    break;
+                }
+                // linear probe
+                idx = (idx + 1) % _objects.Length;
+                if (idx == startPos)
+                {
+                    throw new Exception("Hash table get failed");
+                }
+            }
+        }
+        return result;
     }
 
     public List<T> GetOrAdd(IReadOnlyList<IColumn> keys, Func<T> initializer)
@@ -26,9 +103,10 @@ public class HashTable<T>
         for (var i = 0; i < hashed.Length; i++)
         {
             var idx = Math.Abs(hashed[i]) % _objects.Length;
+            var startPos = idx;
             while (true)
             {
-                if (_objects[idx] == null)
+                if (_occupied[idx] == false)
                 {
                     Insert(idx, i);
                     break;
@@ -40,6 +118,10 @@ public class HashTable<T>
                 }
                 // linear probe
                 idx = (idx + 1) % _objects.Length;
+                if (idx == startPos)
+                {
+                    throw new Exception("Hash table get failed");
+                }
             }
         }
 
@@ -49,6 +131,7 @@ public class HashTable<T>
         {
             var value = initializer();
             _objects[idx] = value;
+            _occupied[idx] = true;
             result.Add(value);
             for (var j = 0; j < keys.Count; j++)
             {
@@ -62,14 +145,57 @@ public class HashTable<T>
 
     private void ResizeMaybe()
     {
-        if (ShouldResize())
+        if (!ShouldResize())
         {
-            int newSize = Size * 2;
-            var newKeys = new object[_keyColumns, newSize];
-            var newObjects = new object[newSize];
+            return;
+        }
 
-            // var hashed = HashFunctions.Hash()
-            throw new NotImplementedException();
+        var newSize = _objects.Length * 2;
+        var newKeys = new object[_keyColumns, newSize];
+        var newObjects = new T[newSize];
+        var newOccupied = new bool[newSize];
+
+        var hashed = HashFunctions.Hash(_keys, _occupied);
+
+        for (var i = 0; i < _occupied.Length; i++)
+        {
+            if (!_occupied[i])
+            {
+                continue;
+            }
+
+            var idx = Math.Abs(hashed[i]) % newObjects.Length;
+            var startPos = idx;
+            while (true)
+            {
+                if (newOccupied[idx] == false)
+                {
+                    Insert(idx, i);
+                    break;
+                }
+
+                // linear probe
+                idx = (idx + 1) % newOccupied.Length;
+                if (idx == startPos)
+                {
+                    throw new Exception("Hash table resize failed");
+                }
+            }
+        }
+
+        _keys = newKeys;
+        _objects = newObjects;
+        _occupied = newOccupied;
+
+        void Insert(int idx, int i)
+        {
+            newObjects[idx] = _objects[i]!;
+            newOccupied[idx] = true;
+            for (var j = 0; j < _keys.GetLength(0); j++)
+            {
+                var k = _keys[j, i];
+                newKeys[j, idx] = k!;
+            }
         }
     }
 
@@ -78,7 +204,7 @@ public class HashTable<T>
         var result = new List<KeyValuePair<List<object?>, T>>(Size);
         for (var i = 0; i < _objects.Length; i++)
         {
-            if (_objects[i] == null)
+            if (_occupied[i] == false)
             {
                 continue;
             }
