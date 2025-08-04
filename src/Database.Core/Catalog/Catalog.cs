@@ -93,10 +93,10 @@ public record Catalog(ParquetPool BufferPool)
         {
             var column = table.Columns[i];
             var columnType = column.ClrType;
-            var minColumn = memTable.AddColumnToSchema(column.Name + "_$min", column.DataType, "", "");
-            var maxColumn = memTable.AddColumnToSchema(column.Name + "_$max", column.DataType, "", "");
-            var distinctCountColumn = memTable.AddColumnToSchema(column.Name + "_$distinct_count", DataType.Int, "", "");
-            var nullCountColumn = memTable.AddColumnToSchema(column.Name + "_$null_count", DataType.Int, "", "");
+            var minColumn = memTable.AddColumnToSchema(column.Name + "_$min", column.DataType, table.Name, "");
+            var maxColumn = memTable.AddColumnToSchema(column.Name + "_$max", column.DataType, table.Name, "");
+            var distinctCountColumn = memTable.AddColumnToSchema(column.Name + "_$distinct_count", DataType.Int, table.Name, "");
+            var nullCountColumn = memTable.AddColumnToSchema(column.Name + "_$null_count", DataType.Int, table.Name, "");
         }
 
         var statsColumns = memTable.Schema;

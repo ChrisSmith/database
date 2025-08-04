@@ -197,6 +197,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
                 return c with
                 {
+                    Table = null, // TODO should be bound to the stat table name or something
                     Column = expectedName,
                     BoundOutputColumn = colRef,
                 };
@@ -257,8 +258,8 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
             // TODO the left/right on the plan have aliases attached (Scan op, might need to expose more generically)
             // maybe I can use them to figureout which side to bind
-            var scanExpr = leftCol;
-            var probeExpr = rightCol;
+            var scanExpr = _binder.Bind(leftCol, left.Columns);
+            var probeExpr = _binder.Bind(rightCol, right.Columns);
 
             return new HashJoinOperator(
                 bufferPool,

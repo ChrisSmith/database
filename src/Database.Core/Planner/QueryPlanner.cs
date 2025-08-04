@@ -7,10 +7,22 @@ using Database.Core.Functions;
 
 namespace Database.Core.Planner;
 
-public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
+public class QueryPlanner
 {
-    private ExpressionBinder _binder = new(bufferPool, new FunctionRegistry());
-    private PhysicalPlanner _physicalPlanner = new PhysicalPlanner(catalog, bufferPool);
+    private ExpressionBinder _binder;
+    private PhysicalPlanner _physicalPlanner;
+    private QueryOptimizer _optimizer;
+    private readonly Catalog.Catalog _catalog;
+    private readonly ParquetPool _bufferPool;
+
+    public QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
+    {
+        _catalog = catalog;
+        _bufferPool = bufferPool;
+        _binder = new ExpressionBinder(bufferPool, new FunctionRegistry());
+        _optimizer = new QueryOptimizer(_binder);
+        _physicalPlanner = new PhysicalPlanner(catalog, bufferPool);
+    }
 
     public LogicalPlan CreateLogicalPlan(IStatement statement)
     {
@@ -21,7 +33,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
 
         select = ConstantFolding.Fold(select);
-        select = QueryRewriter.ExpandStarStatements(select, catalog);
+        select = QueryRewriter.ExpandStarStatements(select, _catalog);
 
         var expressions = select.SelectList.Expressions;
         var plan = BindRelations(select);
@@ -137,7 +149,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         Scan CreateScanForTable(TableStatement tableStmt)
         {
-            var table = catalog.GetTable(tableStmt.Table);
+            var table = _catalog.GetTable(tableStmt.Table);
             var tableAlias = tableStmt.Alias ?? "";
             var tableColumns = table.Columns.Select(c => c with
             {
@@ -157,6 +169,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
     public QueryPlan CreatePlan(IStatement statement)
     {
         var logicalPlan = CreateLogicalPlan(statement);
+        logicalPlan = _optimizer.OptimizeBlah(logicalPlan);
         var physicalPlan = _physicalPlanner.CreatePhysicalPlan(logicalPlan);
         return new QueryPlan(physicalPlan);
     }
@@ -280,7 +293,7 @@ public class QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                     return new ColumnExpression(f.Alias)
                     {
                         Alias = f.Alias,
-                        BoundFunction = new SelectFunction(f.BoundOutputColumn, f.BoundDataType!.Value, bufferPool),
+                        BoundFunction = new SelectFunction(f.BoundOutputColumn, f.BoundDataType!.Value, _bufferPool),
                         BoundDataType = f.BoundDataType!.Value,
                     };
                 }
