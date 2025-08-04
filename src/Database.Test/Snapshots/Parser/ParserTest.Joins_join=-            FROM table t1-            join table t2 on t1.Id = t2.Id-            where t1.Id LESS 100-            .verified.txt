@@ -23,6 +23,7 @@
     ],
     JoinStatements: [
       {
+        JoinType: Inner,
         Table: {
           Table: table,
           Alias: t2

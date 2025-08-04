@@ -290,6 +290,14 @@ public class ExecutionTest
     public void Join_Inner_Join(string join)
     {
         var result = Query($"SELECT t1.Id, t2.Id {join};").AsRowList();
-        result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
+        var ids = result.Select(r => (new Tuple<int, int>((int)r.Values[0], (int)r.Values[1])))
+            .OrderBy(t => t.Item1)
+            .ToList();
+        ids.Should().HaveCount(100);
+
+        for (var i = 0; i < 100; i++)
+        {
+            ids[i].Should().BeEquivalentTo(new Tuple<int, int>(i, i));
+        }
     }
 }
