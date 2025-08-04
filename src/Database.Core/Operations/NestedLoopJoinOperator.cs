@@ -106,7 +106,7 @@ public record NestedLoopJoinOperator(
                 {
                     for (var j = 0; j < rightNext.NumRows; j++)
                     {
-                        outputArray.SetValue(sourceCol[i], i * j + j);
+                        outputArray.SetValue(sourceCol[i], i * rightNext.NumRows + j);
                     }
                 }
             }
@@ -122,7 +122,7 @@ public record NestedLoopJoinOperator(
                 {
                     for (var j = 0; j < rightNext.NumRows; j++)
                     {
-                        outputArray.SetValue(sourceCol[j], i * j + j);
+                        outputArray.SetValue(sourceCol[j], i * rightNext.NumRows + j);
                     }
                 }
             }

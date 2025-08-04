@@ -280,23 +280,20 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         {
             ColumnSchema? col = null;
             // TODO I'm not super happy with how aliases are handled
-            var matchingColumns = columns.Where(c => c.Name == column.Column).ToList();
-
-            if (matchingColumns.Count > 1)
+            var matchingColumns = columns.Where(c =>
             {
-                if (column.Table != null)
-                {
-                    matchingColumns = matchingColumns.Where(c => c.SourceTableAlias == column.Table || c.SourceTableName == column.Table).ToList();
-                    if (matchingColumns.Count == 1)
-                    {
-                        col = matchingColumns[0];
-                    }
-                }
-            }
-            else
+                return c.Name == column.Column && (column.Table == null || column.Table == c.SourceTableAlias || column.Table == c.SourceTableName);
+            }).ToList();
+
+            if (matchingColumns.Count == 1)
             {
                 col = matchingColumns[0];
             }
+
+            // if (col != null && col.SourceTableAlias == "" && col.SourceTableName == "")
+            // {
+            //     throw new QueryPlanException($"Column '{column.Column}' doesn't have a source table name or alias defined");
+            // }
 
             if (col == null)
             {
@@ -310,8 +307,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     var duplicates = string.Join(", ", matchingColumns.Select(c => c.Name));
                     throw new QueryPlanException($"Unable to disambiguate duplicate Column '{column.Column}' from list of available columns {duplicates}");
                 }
-                var columnNames = string.Join(", ", columns.Select(c => c.Name));
-                throw new QueryPlanException($"Column '{column.Column}' was not found in list of available columns {columnNames}");
+                var columnNames = string.Join(", ", columns.Select(c => $"{c.SourceTableAlias}.{c.Name}"));
+                throw new QueryPlanException($"Column '{column.Table}.{column.Column}' was not found in list of available columns {columnNames}");
             }
 
             return (column.Column, col.ColumnRef, col.DataType);

@@ -1,0 +1,18 @@
+﻿select t1.Id FROM table t1 join table t2 on t1.Id = t2.Id where t1.Id = 1
+
+Original
+Project(Id) -> .Id
+Filter(Id = 1) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString
+Join(Inner)
+Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString
+Scan(table) -> t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString
+ -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString
+
+Optimized
+Project(Id) -> .Id
+Join(Inner)
+Filter(Id = 1) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString
+Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString
+Scan(table) -> t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString
+ -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString
+

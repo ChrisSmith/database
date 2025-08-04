@@ -53,6 +53,7 @@ public static class QueryRewriter
                     results.Add(new ColumnExpression(c.Name)
                     {
                         Alias = c.Name,
+                        Table = table.Name,
                     });
                 }
             }

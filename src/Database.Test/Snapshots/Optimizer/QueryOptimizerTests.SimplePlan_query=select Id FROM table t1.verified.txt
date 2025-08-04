@@ -1,0 +1,10 @@
+﻿select Id FROM table t1
+
+Original
+Project(Id) -> .Id
+Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString
+
+Optimized
+Project(Id) -> .Id
+Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString
+
