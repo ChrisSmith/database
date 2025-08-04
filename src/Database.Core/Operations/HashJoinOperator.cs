@@ -80,7 +80,7 @@ public record HashJoinOperator(
 
         for (var i = 0; i < ids.Length; i++)
         {
-            if (ids[i] != default)
+            if (ids[i] != null)
             {
                 count++;
             }
