@@ -115,6 +115,17 @@ public class QueryOptimizer(ExpressionBinder _binder)
         {
             return updated;
         }
+
+        if (filter.Input is Join { JoinType: JoinType.Cross } join
+            && filter.Predicate is BinaryExpression { Operator: TokenType.EQUAL } b)
+        {
+            if (TryBind(b.Left, join.Left.OutputSchema, out var _)
+                && TryBind(b.Right, join.Right.OutputSchema, out var _))
+            {
+                return new Join(join.Left, join.Right, JoinType.Inner, filter.Predicate, join.OutputColumns);
+            }
+        }
+
         return filter;
     }
 

@@ -68,6 +68,7 @@ public class QueryOptimizerTests
     [TestCase("select Id FROM table t1 where t1.Id = 1")]
     [TestCase("select t1.Id FROM table t1 join table t2 on t1.Id = t2.Id where t1.Id = 1")]
     [TestCase("select t1.Id FROM table t1, table t2 where t1.Id = t2.Id and t1.Id = 1")]
+    [TestCase("select t1.Id FROM table t1, table t2 where t1.Id = t1.CategoricalInt and t1.Id = 1")]
     public Task PushDownPredicate(string query)
     {
         var plan = OptimizeAndExplain(query);
