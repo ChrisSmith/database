@@ -79,6 +79,11 @@ public class QueryPlanner
             plan = new Distinct(plan, SchemaFromExpressions(expressions));
         }
 
+        if (select.Limit != null)
+        {
+            plan = new Limit(plan, select.Limit.Count, plan.OutputSchema);
+        }
+
         return plan;
     }
 
