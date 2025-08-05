@@ -42,6 +42,7 @@ public class Parser
             BaseExpression? where = null;
             GroupByStatement? group = null;
             OrderByStatement? order = null;
+            LimitStatement? limit = null;
 
             if (Match(WHERE))
             {
@@ -58,10 +59,21 @@ public class Parser
                 order = ParseOrderByStatement();
             }
 
-            return new SelectStatement(selectList, from, where, group, order);
+            if (Match(LIMIT))
+            {
+                limit = ParseLimit();
+            }
+
+            return new SelectStatement(selectList, from, where, group, order, limit);
         }
 
         throw new ParseException(Peek(), "Expected statement");
+    }
+
+    private LimitStatement ParseLimit()
+    {
+        var num = Consume(NUMBER, "Expected number after LIMIT");
+        return new LimitStatement((int)num.Literal);
     }
 
     private GroupByStatement ParseGroupByStatement()

@@ -63,7 +63,8 @@ public record NestedLoopJoinOperator(
 
         if (Expression == null)
         {
-            count = _leftNext.NumRows * rightNext.NumRows;
+            count = checked(_leftNext.NumRows * rightNext.NumRows);
+
             var columnValues = new IColumn[leftColumns.Count + rightColumns.Count];
             for (var c = 0; c < leftColumns.Count; c++)
             {

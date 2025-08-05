@@ -56,6 +56,16 @@ public record Catalog(ParquetPool BufferPool)
             for (var c = 0; c < numColumns; c++)
             {
                 var field = handle.DataFields[c];
+
+                if (rg.GetMetadata(field) == null)
+                {
+                    // hmm whats up with the nation file?
+
+                    stats.Add(new Statistics(0, int.MaxValue, int.MinValue, int.MaxValue));
+                    continue;
+                    // throw new Exception($"No metadata for {field.Name} in row group {i} of table {name}");
+                }
+
                 var pstats = rg.GetStatistics(field) ?? throw new Exception($"No stats for {field.Name} in row group {i}");
                 stats.Add(new Statistics(pstats.NullCount, pstats.DistinctCount, pstats.MinValue, pstats.MaxValue));
             }

@@ -81,6 +81,14 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
             return;
         }
 
+        if (plan is Limit limit)
+        {
+            Write($"Limit(n={limit.Count})", writer, ident);
+            WriteOutputColumns(limit.OutputColumns, writer);
+            Explain(limit.Input, writer, ident + 1);
+            return;
+        }
+
         throw new NotImplementedException("Explain not implemented for this plan: {" + plan + "}");
     }
 
@@ -206,6 +214,15 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
             WriteOutputColumns(uga.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(uga.Source, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is LimitOperator limit)
+        {
+            Write($"Limit({limit.LimitCount})", writer, ident);
+            WriteOutputColumns(limit.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(limit.Source, writer, ident + 1);
             return;
         }
 

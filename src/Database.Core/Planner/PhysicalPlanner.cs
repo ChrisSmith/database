@@ -56,7 +56,44 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             return CreateSort(sort, input);
         }
 
+        if (plan is Limit limit)
+        {
+            var input = CreatePhysicalPlan(limit.Input);
+            return CreateLimit(limit, input);
+        }
+
         throw new NotImplementedException();
+    }
+
+    private IOperation CreateLimit(Limit limit, IOperation input)
+    {
+        var inputColumns = input.Columns;
+
+        var memRef = bufferPool.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        var outputColumns = new List<ColumnSchema>(inputColumns.Count);
+        var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
+        for (var i = 0; i < inputColumns.Count; i++)
+        {
+            var existingColumn = inputColumns[i];
+            var newColumn = memTable.AddColumnToSchema(
+                existingColumn.Name,
+                existingColumn.DataType,
+                existingColumn.SourceTableName,
+                existingColumn.SourceTableAlias
+            );
+            outputColumns.Add(newColumn);
+            outputColumnsRefs.Add(newColumn.ColumnRef);
+        }
+
+        return new LimitOperator(
+            bufferPool,
+            memTable,
+            input,
+            limit.Count,
+            outputColumns,
+            outputColumnsRefs);
     }
 
     private IOperation CreateScan(Scan scan)

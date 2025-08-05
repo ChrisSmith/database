@@ -101,6 +101,19 @@ public record EqualTwo<T>() : BoolFunction(), IFilterFunctionTwo<T>
     }
 }
 
+public record EqualTwoString() : BoolFunction(), IFilterFunctionTwo<string>
+{
+    public bool[] Ok(string[] left, string[] right)
+    {
+        var result = new bool[left.Length];
+        for (var i = 0; i < left.Length; i++)
+        {
+            result[i] = left[i] == right[i];
+        }
+        return result;
+    }
+}
+
 public record NotEqualTwo<T> : BoolFunction, IFilterFunctionTwo<T>
     where T : INumber<T>
 {

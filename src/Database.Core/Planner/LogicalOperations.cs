@@ -80,3 +80,12 @@ public record Distinct(
 {
     public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
 }
+
+public record Limit(
+    LogicalPlan Input,
+    int Count,
+    IReadOnlyList<ColumnSchema> OutputColumns
+) : LogicalPlan
+{
+    public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+}

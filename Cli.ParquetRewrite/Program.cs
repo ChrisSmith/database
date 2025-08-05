@@ -5,8 +5,11 @@ using Parquet.Schema;
 using Parquet.Serialization;
 
 var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-var inputPath = Path.Combine(homeDir, "src/database/tpch/1/lineitem.parquet");
-var outputPath = Path.Combine(homeDir, "src/database/tpch/1/lineitem2.parquet");
+
+// region, nation don't work yet. destination is too short
+var table = "supplier";
+var inputPath = Path.Combine(homeDir, $"src/database/tpch/1/{table}.parquet");
+var outputPath = Path.Combine(homeDir, $"src/database/tpch/1/{table}2.parquet");
 
 if (File.Exists(outputPath))
 {

@@ -49,6 +49,7 @@ public class FunctionRegistry
             { DataType.Date, typeof(EqualTwoDateOnly) },
             { DataType.DateTime, typeof(EqualTwoDateTime) },
             { DataType.Decimal, typeof(EqualTwo<decimal>) },
+            { DataType.String, typeof(EqualTwoString) },
         }));
         _funcs.Add(">", new(">", 2, new()
         {
