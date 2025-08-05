@@ -276,15 +276,19 @@ public class ExecutionTest
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
+    // TODO this second condition on t2.Id shouldn't be necessary
+    // we can 1. flip the join order or 2. duplicate the filter
     [TestCase(@"
             FROM table t1
             join table t2 on t1.Id = t2.Id
             where t1.Id < 100
+            and t2.Id < 100
             "
         )]
     [TestCase(@"
             FROM table t1, table t2
             where t1.Id = t2.Id and t1.Id < 100
+            and t2.Id < 100
             "
     )]
     public void Join_Inner_Join(string join)

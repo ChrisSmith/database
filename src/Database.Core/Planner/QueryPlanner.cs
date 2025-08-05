@@ -160,7 +160,7 @@ public class QueryPlanner
             return new Scan(
                 table.Name,
                 table.Id,
-                select.Where,
+                null,
                 tableColumns,
                 tableStmt.Alias);
         }
