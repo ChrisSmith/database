@@ -158,40 +158,51 @@ public class QueryOptimizer(ExpressionBinder _binder)
             return updated;
         }
 
-        if (filter.Input is Join { JoinType: JoinType.Cross } join1
-            && filter.Predicate is BinaryExpression { Operator: TokenType.EQUAL } b)
-        {
-            if (TryCreateInnerJoin(join1.Left, join1.Right, out var innerJoin))
-            {
-                return innerJoin;
-            }
-        }
+
 
         return filter with
         {
             Input = Optimize(filter.Input),
         };
+    }
 
-        bool TryCreateInnerJoin(LogicalPlan l, LogicalPlan r, [NotNullWhen(true)] out Join? innerJoin)
+    private bool TryCreateInnerJoin(
+        LogicalPlan l,
+        LogicalPlan r,
+        BinaryExpression binExpr,
+        [NotNullWhen(true)] out Join? innerJoin)
+    {
+        innerJoin = null;
+
+        if (TryBind(binExpr.Left, l.OutputSchema, out var _)
+            && TryBind(binExpr.Right, r.OutputSchema, out var _))
         {
-            innerJoin = null;
-
-            if (TryBind(b.Left, l.OutputSchema, out var _)
-                && TryBind(b.Right, r.OutputSchema, out var _))
-            {
-                var schema = QueryPlanner.ExtendSchema(l.OutputSchema, r.OutputSchema);
-                innerJoin = new Join(
-                    l,
-                    r,
-                    JoinType.Inner,
-                    filter.Predicate,
-                    schema
-                );
-                return true;
-            }
-
-            return false;
+            var schema = QueryPlanner.ExtendSchema(l.OutputSchema, r.OutputSchema);
+            innerJoin = new Join(
+                l,
+                r,
+                JoinType.Inner,
+                binExpr,
+                schema
+            );
+            return true;
         }
+
+        if (TryBind(binExpr.Left, r.OutputSchema, out var _)
+            && TryBind(binExpr.Right, l.OutputSchema, out var _))
+        {
+            var schema = QueryPlanner.ExtendSchema(r.OutputSchema, l.OutputSchema);
+            innerJoin = new Join(
+                r,
+                l,
+                JoinType.Inner,
+                binExpr,
+                schema
+            );
+            return true;
+        }
+
+        return false;
     }
 
     private bool TrySplitPredicate(
@@ -269,6 +280,16 @@ public class QueryOptimizer(ExpressionBinder _binder)
                     Right = right
                 };
                 return true;
+            }
+
+            if (plan is Join { JoinType: JoinType.Cross } join1
+                && predicate is BinaryExpression { Operator: TokenType.EQUAL } binExpr)
+            {
+                if (TryCreateInnerJoin(join1.Left, join1.Right, binExpr, out var innerJoin))
+                {
+                    updated = innerJoin;
+                    return true;
+                }
             }
         }
 
