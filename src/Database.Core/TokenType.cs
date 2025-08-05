@@ -3,6 +3,7 @@ namespace Database.Core;
 public enum TokenType
 {
     UNDEFINED,
+    EXPLAIN,
     WITH,
     RECURSIVE,
     SELECT,

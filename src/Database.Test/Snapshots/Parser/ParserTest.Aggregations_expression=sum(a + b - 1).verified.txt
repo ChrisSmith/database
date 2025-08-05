@@ -1,43 +1,46 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
-        Name: sum,
-        Args: [
-          {
-            Operator: PLUS,
-            OperatorLiteral: +,
-            Left: {
-              Column: a,
-              Alias: a
-            },
-            Right: {
-              Operator: STAR,
-              OperatorLiteral: *,
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Name: sum,
+          Args: [
+            {
+              Operator: PLUS,
+              OperatorLiteral: +,
               Left: {
-                Column: b,
-                Alias: b
+                Column: a,
+                Alias: a
               },
               Right: {
-                Literal: 1,
+                Operator: STAR,
+                OperatorLiteral: *,
+                Left: {
+                  Column: b,
+                  Alias: b
+                },
+                Right: {
+                  Literal: 1,
+                  Alias: 
+                },
                 Alias: 
               },
               Alias: 
-            },
-            Alias: 
-          }
-        ],
-        Alias: 
-      }
-    ]
+            }
+          ],
+          Alias: 
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table,
+          Alias: t
+        }
+      ]
+    }
   },
-  From: {
-    TableStatements: [
-      {
-        Table: table,
-        Alias: t
-      }
-    ]
-  }
+  Explain: false
 }

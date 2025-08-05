@@ -2,9 +2,11 @@
 
 Original
 Project(Id, Unordered, Name, CategoricalInt, CategoricalString) -> .Id, .Unordered, .Name, .CategoricalInt, .CategoricalString
-Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString
+ Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString 
+
 
 Optimized
 Project(Id, Unordered, Name, CategoricalInt, CategoricalString) -> .Id, .Unordered, .Name, .CategoricalInt, .CategoricalString
-Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString
+ Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString 
+
 

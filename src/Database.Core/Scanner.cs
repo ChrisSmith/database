@@ -12,6 +12,7 @@ public class Scanner
     private readonly List<Token> _tokens = new List<Token>();
 
     private static readonly IReadOnlyDictionary<string, TokenType> Keywords = new Dictionary<string, TokenType>(StringComparer.OrdinalIgnoreCase){
+        {"explain", EXPLAIN},
         {"with", WITH},
         {"recursive", RECURSIVE},
         {"select", SELECT},

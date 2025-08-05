@@ -9,4 +9,9 @@ public record OrderingExpression(BaseExpression Expression, bool Ascending = tru
     {
         yield return Expression;
     }
+
+    public override string ToString()
+    {
+        return $"{Expression} {(Ascending ? "ASC" : "DESC")}";
+    }
 }

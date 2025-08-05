@@ -30,7 +30,7 @@ public class ExecutionTest
 
         var it = new Interpreter(_bufferPool);
         var planner = new QueryPlanner(_catalog, _bufferPool);
-        var plan = planner.CreatePlan(statement);
+        var plan = planner.CreatePlan(statement.Statement);
         var result = it.Execute(plan).ToList();
         return result;
     }

@@ -45,13 +45,13 @@ public class QueryOptimizerTests
 
         var it = new Interpreter(_bufferPool);
         var planner = new QueryPlanner(_catalog, _bufferPool);
-        return planner.CreateLogicalPlan(statement);
+        return planner.CreateLogicalPlan(statement.Statement);
     }
 
     private string OptimizeAndExplain(string query)
     {
         var plan = Plan(query);
-        var optimized = _optimizer.OptimizeBlah(plan);
+        var optimized = _optimizer.OptimizePlan(plan);
 
         var diff = $"{query}\n\nOriginal\n{_explain.Explain(plan)}\n\nOptimized\n{_explain.Explain(optimized)}\n\n";
         return diff;

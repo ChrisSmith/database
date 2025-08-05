@@ -1,19 +1,22 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
-        Column: a,
-        Alias: a
-      }
-    ]
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Column: a,
+          Alias: a
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table,
+          Alias: t
+        }
+      ]
+    }
   },
-  From: {
-    TableStatements: [
-      {
-        Table: table,
-        Alias: t
-      }
-    ]
-  }
+  Explain: false
 }
