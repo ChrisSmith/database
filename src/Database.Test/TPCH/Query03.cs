@@ -1,8 +1,4 @@
-using Database.Core;
-using Database.Core.BufferPool;
-using Database.Core.Catalog;
 using Database.Core.Execution;
-using Database.Core.Planner;
 using FluentAssertions;
 
 namespace Database.Test.TPCH;
@@ -27,8 +23,7 @@ public partial class TPCHTests
                 and l_shipdate > date '1995-03-15'
             group by l_orderkey, o_orderdate, o_shippriority
             order by revenue desc, o_orderdate
-            limit 10
-            ;
+            limit 10;
         ";
 
         var result = Query(query).AsRowList();
