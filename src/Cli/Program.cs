@@ -91,12 +91,7 @@ string ReadLineWithHistory(List<string> previousLines)
     {
         var keyInfo = Console.ReadKey(intercept: true);
 
-        if (keyInfo.Key == ConsoleKey.Enter)
-        {
-            Console.WriteLine();
-            break;
-        }
-        else if (keyInfo.Key == ConsoleKey.UpArrow)
+        if (keyInfo.Key == ConsoleKey.UpArrow)
         {
             if (previousLines.Count > 0 && historyIndex > 0)
             {
@@ -177,8 +172,19 @@ string ReadLineWithHistory(List<string> previousLines)
                 RenderInput();
             }
         }
-        else if (!char.IsControl(keyInfo.KeyChar))
+        else if (!char.IsControl(keyInfo.KeyChar) || keyInfo.Key == ConsoleKey.Enter)
         {
+            if (keyInfo.Key == ConsoleKey.Enter)
+            {
+                Console.WriteLine();
+
+                var inputStr = input.Count == 0 ? "" : new string(input.ToArray()).Trim();
+                if (inputStr.EndsWith(';') || inputStr.StartsWith('.') || inputStr.Length == 0)
+                {
+                    break;
+                }
+            }
+
             input.Insert(cursorPos, keyInfo.KeyChar);
             cursorPos++;
             currentInput = new string(input.ToArray());
