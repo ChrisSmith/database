@@ -347,7 +347,7 @@ public class QueryPlanner
         return expr.AnyChildOrSelf(e => e.BoundFunction is IAggregateFunction);
     }
 
-    private IReadOnlyList<ColumnSchema> ExtendSchema(
+    public static IReadOnlyList<ColumnSchema> ExtendSchema(
         IReadOnlyList<ColumnSchema> left,
         IReadOnlyList<ColumnSchema> right
         )

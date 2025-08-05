@@ -80,7 +80,25 @@ public class QueryOptimizer(ExpressionBinder _binder)
             return OptimizeSort(sort);
         }
 
-        return plan;
+        if (plan is Limit limit)
+        {
+            return OptimizeLimit(limit);
+        }
+
+        if (plan is Scan scan)
+        {
+            return scan;
+        }
+
+        throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer");
+    }
+
+    private LogicalPlan OptimizeLimit(Limit limit)
+    {
+        return limit with
+        {
+            Input = Optimize(limit.Input),
+        };
     }
 
     private LogicalPlan OptimizeSort(Sort sort)
@@ -134,23 +152,46 @@ public class QueryOptimizer(ExpressionBinder _binder)
             return f2;
         }
 
-        // egh null is not correct
-        if (TryPushDownFilter(filter.Input, filter.Predicate, [], out var updated))
+        // This is not correct, need to look higher up the tree
+        if (filter.Input is not Scan && TryPushDownFilter(filter.Input, filter.Predicate, [], out var updated))
         {
             return updated;
         }
 
-        if (filter.Input is Join { JoinType: JoinType.Cross } join
+        if (filter.Input is Join { JoinType: JoinType.Cross } join1
             && filter.Predicate is BinaryExpression { Operator: TokenType.EQUAL } b)
         {
-            if (TryBind(b.Left, join.Left.OutputSchema, out var _)
-                && TryBind(b.Right, join.Right.OutputSchema, out var _))
+            if (TryCreateInnerJoin(join1.Left, join1.Right, out var innerJoin))
             {
-                return new Join(join.Left, join.Right, JoinType.Inner, filter.Predicate, join.OutputColumns);
+                return innerJoin;
             }
         }
 
-        return filter;
+        return filter with
+        {
+            Input = Optimize(filter.Input),
+        };
+
+        bool TryCreateInnerJoin(LogicalPlan l, LogicalPlan r, [NotNullWhen(true)] out Join? innerJoin)
+        {
+            innerJoin = null;
+
+            if (TryBind(b.Left, l.OutputSchema, out var _)
+                && TryBind(b.Right, r.OutputSchema, out var _))
+            {
+                var schema = QueryPlanner.ExtendSchema(l.OutputSchema, r.OutputSchema);
+                innerJoin = new Join(
+                    l,
+                    r,
+                    JoinType.Inner,
+                    filter.Predicate,
+                    schema
+                );
+                return true;
+            }
+
+            return false;
+        }
     }
 
     private bool TrySplitPredicate(
