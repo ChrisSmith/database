@@ -7,20 +7,44 @@ namespace Database.Core.Planner;
 
 public class QueryOptimizer(ExpressionBinder _binder)
 {
-    public LogicalPlan OptimizePlan(LogicalPlan plan)
+    public LogicalPlan OptimizePlan(LogicalPlan plan, int maxIters = 10)
     {
         LogicalPlan previous = plan;
-        LogicalPlan updated = Optimize(previous);
+        LogicalPlan updated;
         var iters = 0;
-        // TODO fix this
-        while (iters < 5)
+        while (iters < maxIters)
         {
             iters++;
-            previous = updated;
             updated = Optimize(previous);
+            if (updated.Equals(previous))
+            {
+                break;
+            }
+            previous = updated;
         }
 
-        return updated;
+        return previous;
+    }
+
+    public List<LogicalPlan> OptimizePlanWithHistory(LogicalPlan plan, int maxIters = 10)
+    {
+        var history = new List<LogicalPlan>() { plan };
+        LogicalPlan previous = plan;
+        LogicalPlan updated;
+        var iters = 0;
+        while (iters < maxIters)
+        {
+            iters++;
+            updated = Optimize(previous);
+            if (updated.Equals(previous))
+            {
+                break;
+            }
+            previous = updated;
+            history.Add(updated);
+        }
+
+        return history;
     }
 
 

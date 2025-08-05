@@ -1,5 +1,6 @@
 using Database.Core.Catalog;
 using Database.Core.Expressions;
+using Database.Core.Operations;
 
 namespace Database.Core.Planner;
 
@@ -107,5 +108,107 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
     private string Expressions(IReadOnlyList<BaseExpression> expressions)
     {
         return string.Join(", ", expressions.Select(e => e.ToString()));
+    }
+
+    public string Explain(IOperation physicalPlan)
+    {
+        var writer = new StringWriter();
+        Explain(physicalPlan, writer, 0);
+        return writer.ToString();
+    }
+
+    public void Explain(IOperation physicalPlan, StringWriter writer, int ident)
+    {
+        if (physicalPlan is DistinctOperation d)
+        {
+            Write($"Distinct()", writer, ident);
+            WriteOutputColumns(d.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(d.Source, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is FilterOperation f)
+        {
+            Write($"Filter({f.Expression})", writer, ident);
+            WriteOutputColumns(f.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(f.Source, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is NestedLoopJoinOperator nlj)
+        {
+            Write($"NestedLoopJoin()", writer, ident);
+            WriteOutputColumns(nlj.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(nlj.LeftSource, writer, ident + 1);
+            WriteLine("", writer, ident);
+            Explain(nlj.RightSource, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is ProjectionOperation p)
+        {
+            Write($"Project({Expressions(p.Expressions)})", writer, ident);
+            WriteOutputColumns(p.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(p.Source, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is FileScanFusedFilter fsf)
+        {
+            Write($"FileScanFusedFilter({fsf.Expression}) on {fsf.Path}", writer, ident);
+            WriteOutputColumns(fsf.OutputColumns, writer);
+            return;
+        }
+
+        if (physicalPlan is HashJoinOperator hj)
+        {
+            Write($"HashJoin({Expressions(hj.ProbeKeys)}, {Expressions(hj.ScanKeys)})", writer, ident);
+            WriteOutputColumns(hj.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(hj.ScanSource, writer, ident + 1);
+            WriteLine("", writer, ident);
+            Explain(hj.ProbeSource, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is FileScan fs)
+        {
+            Write($"FileScan({fs.Path})", writer, ident);
+            WriteOutputColumns(fs.OutputColumns, writer);
+            return;
+        }
+
+        if (physicalPlan is HashAggregate ha)
+        {
+            Write($"HashAggregate({Expressions(ha.OutputExpressions)})", writer, ident);
+            WriteOutputColumns(ha.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(ha.Source, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is SortOperator so)
+        {
+            Write($"Sort({Expressions(so.OrderExpressions)})", writer, ident);
+            WriteOutputColumns(so.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(so.Source, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is UngroupedAggregate uga)
+        {
+            Write($"UngroupedAggregate({Expressions(uga.Expressions)})", writer, ident);
+            WriteOutputColumns(uga.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(uga.Source, writer, ident + 1);
+            return;
+        }
+
+        throw new NotImplementedException("Explain not implemented for this plan: {" + physicalPlan + "}");
     }
 }
