@@ -14,7 +14,8 @@ public class ExplainQuery
 
         if (plan is Join join)
         {
-            return $"Join({join.JoinType})" + '\n' + Explain(join.Left) + '\n' + Explain(join.Right) + "\n -> " +
+            var joinCon = join.Condition != null ? " on " + join.Condition : "";
+            return $"Join({join.JoinType}{joinCon})" + '\n' + Explain(join.Left) + '\n' + Explain(join.Right) + "\n -> " +
                    OutputColumns(join.OutputColumns);
         }
 
