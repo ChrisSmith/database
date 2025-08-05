@@ -1,27 +1,30 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
-        Operator: STAR,
-        OperatorLiteral: *,
-        Left: {
-          Literal: 200,
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Operator: STAR,
+          OperatorLiteral: *,
+          Left: {
+            Literal: 200,
+            Alias: 
+          },
+          Right: {
+            Literal: 1,
+            Alias: 
+          },
           Alias: 
-        },
-        Right: {
-          Literal: 1,
-          Alias: 
-        },
-        Alias: 
-      }
-    ]
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table
+        }
+      ]
+    }
   },
-  From: {
-    TableStatements: [
-      {
-        Table: table
-      }
-    ]
-  }
+  Explain: false
 }

@@ -3,6 +3,7 @@ using Database.Core;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Functions;
 using Database.Core.Planner;
 
 var bufferPool = new ParquetPool();
@@ -194,17 +195,36 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
     var tokens = scanner.ScanTokens();
     var parser = new Parser(tokens);
     var statement = parser.Parse();
-
-    var plan = queryPlanner.CreatePlan(statement);
-
     var it = new Interpreter(bufferPool);
-    var result = it.Execute(plan).ToList();
-    stopwatch.Stop();
+    var optimizer = new QueryOptimizer(new ExpressionBinder(bufferPool, new FunctionRegistry()));
+    var explainer = new ExplainQuery(IncludeOutputColumns: false);
 
-    PrintTable(result);
 
-    var numRows = result.Sum(r => r.Columns[0].Length);
-    Console.WriteLine($"{numRows} rows in {stopwatch.ElapsedMilliseconds:N}ms");
+    if (statement.Explain)
+    {
+        var plan = queryPlanner.CreateLogicalPlan(statement.Statement);
+        Console.WriteLine("Original Plan");
+        Console.WriteLine("====================");
+        Console.WriteLine(explainer.Explain(plan));
+        Console.WriteLine();
+
+        // TODO show each step along the optimization
+        Console.WriteLine("Optimized Plan");
+        Console.WriteLine("====================");
+        plan = optimizer.OptimizePlan(plan);
+        Console.WriteLine(explainer.Explain(plan));
+    }
+    else
+    {
+        var plan = queryPlanner.CreatePlan(statement.Statement);
+        var result = it.Execute(plan).ToList();
+        stopwatch.Stop();
+
+        PrintTable(result);
+
+        var numRows = result.Sum(r => r.Columns[0].Length);
+        Console.WriteLine($"{numRows} rows in {stopwatch.ElapsedMilliseconds:N}ms");
+    }
 }
 
 void PrintTable(List<MaterializedRowGroup> result)

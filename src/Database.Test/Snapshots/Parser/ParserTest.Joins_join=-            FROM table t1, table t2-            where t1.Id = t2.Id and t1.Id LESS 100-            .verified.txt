@@ -1,63 +1,66 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
-        Column: Id,
-        Table: t1,
-        Alias: Id
-      },
-      {
-        Column: Id,
-        Table: t2,
-        Alias: Id
-      }
-    ]
-  },
-  From: {
-    TableStatements: [
-      {
-        Table: table,
-        Alias: t1
-      },
-      {
-        Table: table,
-        Alias: t2
-      }
-    ]
-  },
-  Where: {
-    Operator: AND,
-    OperatorLiteral: and,
-    Left: {
-      Operator: EQUAL,
-      OperatorLiteral: =,
-      Left: {
-        Column: Id,
-        Table: t1,
-        Alias: Id
-      },
-      Right: {
-        Column: Id,
-        Table: t2,
-        Alias: Id
-      },
-      Alias: 
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Column: Id,
+          Table: t1,
+          Alias: Id
+        },
+        {
+          Column: Id,
+          Table: t2,
+          Alias: Id
+        }
+      ]
     },
-    Right: {
-      Operator: LESS,
-      OperatorLiteral: <,
+    From: {
+      TableStatements: [
+        {
+          Table: table,
+          Alias: t1
+        },
+        {
+          Table: table,
+          Alias: t2
+        }
+      ]
+    },
+    Where: {
+      Operator: AND,
+      OperatorLiteral: and,
       Left: {
-        Column: Id,
-        Table: t1,
-        Alias: Id
+        Operator: EQUAL,
+        OperatorLiteral: =,
+        Left: {
+          Column: Id,
+          Table: t1,
+          Alias: Id
+        },
+        Right: {
+          Column: Id,
+          Table: t2,
+          Alias: Id
+        },
+        Alias: 
       },
       Right: {
-        Literal: 100,
+        Operator: LESS,
+        OperatorLiteral: <,
+        Left: {
+          Column: Id,
+          Table: t1,
+          Alias: Id
+        },
+        Right: {
+          Literal: 100,
+          Alias: 
+        },
         Alias: 
       },
       Alias: 
-    },
-    Alias: 
-  }
+    }
+  },
+  Explain: false
 }

@@ -1,25 +1,28 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
-        Name: sum,
-        Args: [
-          {
-            Literal: 1,
-            Alias: 
-          }
-        ],
-        Alias: 
-      }
-    ]
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Name: sum,
+          Args: [
+            {
+              Literal: 1,
+              Alias: 
+            }
+          ],
+          Alias: 
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table,
+          Alias: t
+        }
+      ]
+    }
   },
-  From: {
-    TableStatements: [
-      {
-        Table: table,
-        Alias: t
-      }
-    ]
-  }
+  Explain: false
 }

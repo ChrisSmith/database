@@ -1,25 +1,28 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
-        Name: count,
-        Args: [
-          {
-            Column: a,
-            Alias: a
-          }
-        ],
-        Alias: 
-      }
-    ]
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Name: count,
+          Args: [
+            {
+              Column: a,
+              Alias: a
+            }
+          ],
+          Alias: 
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table,
+          Alias: t
+        }
+      ]
+    }
   },
-  From: {
-    TableStatements: [
-      {
-        Table: table,
-        Alias: t
-      }
-    ]
-  }
+  Explain: false
 }

@@ -1,27 +1,30 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
-        Operator: SLASH,
-        OperatorLiteral: /,
-        Left: {
-          Column: Id,
-          Alias: Id
-        },
-        Right: {
-          Literal: 100,
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Operator: SLASH,
+          OperatorLiteral: /,
+          Left: {
+            Column: Id,
+            Alias: Id
+          },
+          Right: {
+            Literal: 100,
+            Alias: 
+          },
           Alias: 
-        },
-        Alias: 
-      }
-    ]
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table
+        }
+      ]
+    }
   },
-  From: {
-    TableStatements: [
-      {
-        Table: table
-      }
-    ]
-  }
+  Explain: false
 }

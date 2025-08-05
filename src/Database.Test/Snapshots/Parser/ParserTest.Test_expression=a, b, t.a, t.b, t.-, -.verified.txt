@@ -1,40 +1,43 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
-        Column: a,
-        Alias: a
-      },
-      {
-        Column: b,
-        Alias: b
-      },
-      {
-        Column: a,
-        Table: t,
-        Alias: a
-      },
-      {
-        Column: b,
-        Table: t,
-        Alias: b
-      },
-      {
-        Table: t,
-        Alias: 
-      },
-      {
-        Alias: 
-      }
-    ]
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Column: a,
+          Alias: a
+        },
+        {
+          Column: b,
+          Alias: b
+        },
+        {
+          Column: a,
+          Table: t,
+          Alias: a
+        },
+        {
+          Column: b,
+          Table: t,
+          Alias: b
+        },
+        {
+          Table: t,
+          Alias: 
+        },
+        {
+          Alias: 
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table,
+          Alias: t
+        }
+      ]
+    }
   },
-  From: {
-    TableStatements: [
-      {
-        Table: table,
-        Alias: t
-      }
-    ]
-  }
+  Explain: false
 }

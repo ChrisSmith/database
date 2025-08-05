@@ -7,7 +7,7 @@ namespace Database.Core.Planner;
 
 public class QueryOptimizer(ExpressionBinder _binder)
 {
-    public LogicalPlan OptimizeBlah(LogicalPlan plan)
+    public LogicalPlan OptimizePlan(LogicalPlan plan)
     {
         LogicalPlan previous = plan;
         LogicalPlan updated = Optimize(previous);

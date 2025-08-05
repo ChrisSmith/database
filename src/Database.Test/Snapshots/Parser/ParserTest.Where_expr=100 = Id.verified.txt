@@ -1,32 +1,35 @@
 ﻿{
-  SelectList: {
-    Distinct: false,
-    Expressions: [
-      {
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Column: Id,
+          Alias: Id
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table,
+          Alias: t
+        }
+      ]
+    },
+    Where: {
+      Operator: EQUAL,
+      OperatorLiteral: =,
+      Left: {
+        Literal: 100,
+        Alias: 
+      },
+      Right: {
         Column: Id,
         Alias: Id
-      }
-    ]
-  },
-  From: {
-    TableStatements: [
-      {
-        Table: table,
-        Alias: t
-      }
-    ]
-  },
-  Where: {
-    Operator: EQUAL,
-    OperatorLiteral: =,
-    Left: {
-      Literal: 100,
+      },
       Alias: 
-    },
-    Right: {
-      Column: Id,
-      Alias: Id
-    },
-    Alias: 
-  }
+    }
+  },
+  Explain: false
 }

@@ -169,7 +169,7 @@ public class QueryPlanner
     public QueryPlan CreatePlan(IStatement statement)
     {
         var logicalPlan = CreateLogicalPlan(statement);
-        logicalPlan = _optimizer.OptimizeBlah(logicalPlan);
+        logicalPlan = _optimizer.OptimizePlan(logicalPlan);
         var physicalPlan = _physicalPlanner.CreatePhysicalPlan(logicalPlan);
         return new QueryPlan(physicalPlan);
     }

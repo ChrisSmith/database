@@ -15,8 +15,9 @@ public class Parser
         _tokens = tokens;
     }
 
-    public IStatement Parse()
+    public ParseResult Parse()
     {
+        var explain = Match(EXPLAIN);
         var stmt = ParseStatement();
 
         while (!IsAtEnd() && Match(SEMICOLON))
@@ -28,7 +29,7 @@ public class Parser
         {
             throw new ParseException(Peek(), "Unexpected token. Expected statement to be terminated");
         }
-        return stmt;
+        return new(stmt, explain);
     }
 
     private IStatement ParseStatement()
