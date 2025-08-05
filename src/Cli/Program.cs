@@ -198,7 +198,7 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
     var it = new Interpreter(bufferPool);
     var optimizer = new QueryOptimizer(new ExpressionBinder(bufferPool, new FunctionRegistry()));
     var explainer = new ExplainQuery(IncludeOutputColumns: false);
-
+    var physicalPlanner = new PhysicalPlanner(catalog, bufferPool);
 
     if (statement.Explain)
     {
@@ -208,11 +208,20 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
         Console.WriteLine(explainer.Explain(plan));
         Console.WriteLine();
 
-        // TODO show each step along the optimization
-        Console.WriteLine("Optimized Plan");
+
+        var plans = optimizer.OptimizePlanWithHistory(plan);
+        for (var i = 0; i < plans.Count; i++)
+        {
+            plan = plans[i];
+            Console.WriteLine($"Step {i}");
+            Console.WriteLine("====================");
+            Console.WriteLine(explainer.Explain(plan));
+        }
+
+        var physicalPlan = physicalPlanner.CreatePhysicalPlan(plan);
+        Console.WriteLine($"Physical Plan");
         Console.WriteLine("====================");
-        plan = optimizer.OptimizePlan(plan);
-        Console.WriteLine(explainer.Explain(plan));
+        Console.WriteLine(explainer.Explain(physicalPlan));
     }
     else
     {
