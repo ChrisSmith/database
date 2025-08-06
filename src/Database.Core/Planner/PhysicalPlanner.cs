@@ -246,7 +246,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
     private IOperation CreateJoin(Join join, IOperation left, IOperation right)
     {
-        var inputColumns = join.OutputColumns;
+        var inputColumns = join.OutputSchema;
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 

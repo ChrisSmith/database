@@ -85,8 +85,7 @@ public class CostBasedOptimizer(PhysicalPlanner physicalPlanner)
             {
                 Left = b.Right,
                 Right = b.Left,
-            },
-            QueryPlanner.ExtendSchema(right.OutputSchema, left.OutputSchema)
+            }
         );
 
         // TODO don't throw away the physical plan, allow it to be passed
