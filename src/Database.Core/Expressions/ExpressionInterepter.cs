@@ -243,6 +243,10 @@ public class ExpressionInterpreter
         {
             outputArray = fdm.Ok((decimal[])left.ValuesArray, (decimal[])right.ValuesArray);
         }
+        else if (fun is IFilterFunctionTwo<string> ffts)
+        {
+            outputArray = ffts.Ok((string[])left.ValuesArray, (string[])right.ValuesArray);
+        }
         else
         {
             throw new NotImplementedException($"Function {fun.GetType().Name} not implemented");
