@@ -117,6 +117,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         return new FileScan(
             bufferPool,
+            catalog,
             table.Location,
             outputColumns,
             columnRefs
@@ -295,16 +296,27 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
             // TODO the left/right on the plan have aliases attached (Scan op, might need to expose more generically)
             // maybe I can use them to figureout which side to bind
-            var scanExpr = _binder.Bind(leftCol, left.Columns);
-            var probeExpr = _binder.Bind(rightCol, right.Columns);
+            BaseExpression scanExpr;
+            BaseExpression probeExpr;
+            try
+            {
+                scanExpr = _binder.Bind(leftCol, left.Columns);
+                probeExpr = _binder.Bind(rightCol, right.Columns);
+            }
+            catch (QueryPlanException e) when (e.Message.Contains("was not found in list of available columns"))
+            {
+                // scanExpr = _binder.Bind(leftCol, right.Columns);
+                // probeExpr = _binder.Bind(rightCol, left.Columns);
+                throw;
+            }
 
             return new HashJoinOperator(
                 bufferPool,
-                right,
                 left,
+                right,
                 memTable,
-                [probeExpr],
                 [scanExpr],
+                [probeExpr],
                 outputColumns,
                 outputColumnsRefs
             );

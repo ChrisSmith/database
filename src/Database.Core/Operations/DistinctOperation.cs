@@ -72,4 +72,15 @@ public record DistinctOperation(
 
         return new RowGroup(uniqueList.Count, targetRowGroup, OutputColumnRefs);
     }
+
+    public override Cost EstimateCost()
+    {
+        var sourceCost = Source.EstimateCost();
+        // TODO distinct estimate
+        return sourceCost.Add(new Cost(
+            OutputRows: sourceCost.OutputRows,
+            CpuOperations: sourceCost.OutputRows * Columns.Count,
+            DiskOperations: 0
+        ));
+    }
 }

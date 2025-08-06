@@ -3,6 +3,7 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -53,5 +54,18 @@ public record ProjectionOperation(
             targetRg,
             OutputColumnRefs
             );
+    }
+
+    public override Cost EstimateCost()
+    {
+        var sourceCost = Source.EstimateCost();
+
+        var expressionCost = CostEstimation.EstimateExpressionCost(Expressions);
+
+        return sourceCost.Add(new Cost(
+            OutputRows: sourceCost.OutputRows,
+            CpuOperations: sourceCost.OutputRows * expressionCost,
+            DiskOperations: 0
+        ));
     }
 }

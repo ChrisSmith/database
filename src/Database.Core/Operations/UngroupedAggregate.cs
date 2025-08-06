@@ -87,4 +87,14 @@ public record UngroupedAggregate(
         _done = true;
         return new RowGroup(1, targetRowGroup, OutputColumnRefs);
     }
+
+    public override Cost EstimateCost()
+    {
+        var sourceCost = Source.EstimateCost();
+        return sourceCost.Add(new Cost(
+            OutputRows: sourceCost.OutputRows,
+            CpuOperations: sourceCost.OutputRows * Columns.Count,
+            DiskOperations: 0
+        ));
+    }
 }

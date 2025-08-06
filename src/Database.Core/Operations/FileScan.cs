@@ -8,6 +8,7 @@ namespace Database.Core.Operations;
 
 public record FileScan(
     ParquetPool BufferPool,
+    Catalog.Catalog Catalog,
     string Path,
     IReadOnlyList<ColumnSchema> OutputColumns,
     IReadOnlyList<ColumnRef> OutputColumnRefs)
@@ -44,6 +45,20 @@ public record FileScan(
             (int)rg.RowCount,
             new RowGroupRef(_group),
             OutputColumnRefs
+        );
+    }
+
+    public override Cost EstimateCost()
+    {
+        var table = Catalog.GetTableByPath(Path);
+
+        return new Cost(
+            OutputRows: table.NumRows,
+            CpuOperations: table.NumRows,
+            DiskOperations: table.NumRowGroups,
+            TotalRowsProcessed: table.NumRows,
+            TotalCpuOperations: table.NumRows,
+            TotalDiskOperations: table.NumRowGroups
         );
     }
 }

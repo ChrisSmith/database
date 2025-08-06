@@ -71,4 +71,20 @@ public record FileScanFusedFilter(
             OutputColumnRefs
         );
     }
+
+    public override Cost EstimateCost()
+    {
+        var table = Catalog.GetTableByPath(Path);
+        // TODO need to estimate the selectivity of predicates
+        var outputRows = (long)(table.NumRows * .1);
+
+        return new Cost(
+            OutputRows: outputRows,
+            CpuOperations: table.NumRows,
+            DiskOperations: table.NumRowGroups,
+            TotalRowsProcessed: outputRows,
+            TotalCpuOperations: table.NumRows,
+            TotalDiskOperations: table.NumRowGroups
+        );
+    }
 }
