@@ -4,19 +4,33 @@ namespace Database.Core.Functions;
 
 public class HashTable<T>
 {
+    private readonly IReadOnlyList<Type> _keyTypes;
     public int Size { get; private set; }
-    private object?[,] _keys;
+    private List<Array> _keys;
     private T[] _objects;
     private bool[] _occupied;
     private int _keyColumns;
 
-    public HashTable(int keyColumns, int size = 7)
+    public HashTable(IReadOnlyList<Type> keyTypes, int size = 7)
     {
-        _keyColumns = keyColumns;
+        _keyTypes = keyTypes;
+        _keyColumns = _keyTypes.Count;
         Size = 0;
-        _keys = new object[keyColumns, size];
+        _keys = InitializeKeysArray(size);
         _objects = new T[size];
         _occupied = new bool[size];
+    }
+
+    private List<Array> InitializeKeysArray(int size)
+    {
+        var result = new List<Array>(_keyTypes.Count);
+        for (var i = 0; i < _keyTypes.Count; i++)
+        {
+            var type = _keyTypes[i];
+            var array = Array.CreateInstance(type, size);
+            result.Add(array);
+        }
+        return result;
     }
 
     public void Add(IReadOnlyList<IColumn> keys, T[] values)
@@ -56,7 +70,7 @@ public class HashTable<T>
             for (var j = 0; j < keys.Count; j++)
             {
                 var k = keys[j][i];
-                _keys[j, idx] = k;
+                _keys[j].SetValue(k, idx);
             }
             Size++;
             ResizeMaybe();
@@ -136,7 +150,7 @@ public class HashTable<T>
             for (var j = 0; j < keys.Count; j++)
             {
                 var k = keys[j][i];
-                _keys[j, idx] = k;
+                _keys[j].SetValue(k, idx);
             }
             Size++;
             ResizeMaybe();
@@ -151,7 +165,7 @@ public class HashTable<T>
         }
 
         var newSize = _objects.Length * 2;
-        var newKeys = new object[_keyColumns, newSize];
+        var newKeys = InitializeKeysArray(newSize);
         var newObjects = new T[newSize];
         var newOccupied = new bool[newSize];
 
@@ -191,10 +205,10 @@ public class HashTable<T>
         {
             newObjects[idx] = _objects[i]!;
             newOccupied[idx] = true;
-            for (var j = 0; j < _keys.GetLength(0); j++)
+            for (var j = 0; j < _keys.Count; j++)
             {
-                var k = _keys[j, i];
-                newKeys[j, idx] = k!;
+                var k = _keys[j].GetValue(i);
+                newKeys[j].SetValue(k!, idx);
             }
         }
     }
@@ -212,7 +226,7 @@ public class HashTable<T>
             var key = new List<object?>(_keyColumns);
             for (var j = 0; j < _keyColumns; j++)
             {
-                key.Add(_keys[j, i]);
+                key.Add(_keys[j].GetValue(i));
             }
 
             var kvp = new KeyValuePair<List<object?>, T>(key, _objects[i]);
@@ -231,7 +245,7 @@ public class HashTable<T>
     {
         for (var c = 0; c < keys.Count; c++)
         {
-            var left = _keys[c, hashIndex];
+            var left = _keys[c].GetValue(hashIndex);
             var right = keys[c][keyIndex];
 
             if (left == null && right == null)

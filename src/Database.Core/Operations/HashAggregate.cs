@@ -38,7 +38,8 @@ public record HashAggregate(
 
         var rowGroup = Source.Next();
 
-        var hashToAggState = new HashTable<List<IAggregateState>>(groupingExpressions.Count);
+        var keyTypes = groupingExpressions.Select(g => g.BoundDataType!.Value.ClrTypeFromDataType()).ToArray();
+        var hashToAggState = new HashTable<List<IAggregateState>>(keyTypes);
 
         while (rowGroup != null)
         {
