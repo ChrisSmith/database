@@ -18,7 +18,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (plan is Filter filter)
         {
             Write($"Filter({filter.Predicate})", writer, ident);
-            WriteOutputColumns(filter.OutputColumns, writer);
+            WriteOutputColumns(filter.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(filter.Input, writer, ident + 1);
             return;
@@ -28,7 +28,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         {
             var joinCon = join.Condition != null ? " on " + join.Condition : "";
             Write($"Join({join.JoinType}{joinCon})", writer, ident);
-            WriteOutputColumns(join.OutputColumns, writer);
+            WriteOutputColumns(join.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(join.Left, writer, ident + 1);
             WriteLine("", writer, ident);
@@ -57,7 +57,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (plan is Distinct distinct)
         {
             Write("Distinct", writer, ident);
-            WriteOutputColumns(distinct.OutputColumns, writer);
+            WriteOutputColumns(distinct.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(distinct.Input, writer, ident + 1);
             return;
@@ -66,7 +66,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (plan is Sort sort)
         {
             Write($"Sort({Expressions(sort.OrderBy)})", writer, ident);
-            WriteOutputColumns(sort.OutputColumns, writer);
+            WriteOutputColumns(sort.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(sort.Input, writer, ident + 1);
             return;
@@ -84,7 +84,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (plan is Limit limit)
         {
             Write($"Limit(n={limit.Count})", writer, ident);
-            WriteOutputColumns(limit.OutputColumns, writer);
+            WriteOutputColumns(limit.OutputSchema, writer);
             Explain(limit.Input, writer, ident + 1);
             return;
         }

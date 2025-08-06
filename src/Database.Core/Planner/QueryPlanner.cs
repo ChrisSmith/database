@@ -51,7 +51,7 @@ public class QueryPlanner
                 expressions = _binder.Bind(expressions, plan.OutputSchema);
             }
             var where = _binder.Bind(select.Where, extendedSchema);
-            plan = new Filter(plan, where, extendedSchema);
+            plan = new Filter(plan, where);
             expressions = _binder.Bind(expressions, plan.OutputSchema);
         }
 
@@ -69,7 +69,7 @@ public class QueryPlanner
         if (select.Order != null)
         {
             var orderBy = _binder.Bind(select.Order.Expressions, plan.OutputSchema);
-            plan = new Sort(plan, orderBy, plan.OutputSchema);
+            plan = new Sort(plan, orderBy);
             expressions = _binder.Bind(expressions, plan.OutputSchema);
         }
 
@@ -78,12 +78,12 @@ public class QueryPlanner
 
         if (select.SelectList.Distinct)
         {
-            plan = new Distinct(plan, SchemaFromExpressions(expressions));
+            plan = new Distinct(plan);
         }
 
         if (select.Limit != null)
         {
-            plan = new Limit(plan, select.Limit.Count, plan.OutputSchema);
+            plan = new Limit(plan, select.Limit.Count);
         }
 
         return plan;
@@ -122,13 +122,11 @@ public class QueryPlanner
             {
                 var tableStmt = (TableStatement)table;
                 var right = CreateScanForTable(tableStmt);
-                var extendedSchema = ExtendSchema(plan.OutputSchema, right.OutputSchema);
                 plan = new Join(
                     plan,
                     right,
                     JoinType.Cross,
-                    null,
-                    extendedSchema
+                    null
                 );
             }
         }
@@ -141,13 +139,11 @@ public class QueryPlanner
             {
                 var tableStmt = (TableStatement)join.Table;
                 var right = CreateScanForTable(tableStmt);
-                var extendedSchema = ExtendSchema(plan.OutputSchema, right.OutputSchema);
                 plan = new Join(
                     plan,
                     right,
                     join.JoinType,
-                    join.JoinConstraint,
-                    extendedSchema
+                    join.JoinConstraint
                     );
             }
         }
@@ -177,6 +173,7 @@ public class QueryPlanner
     {
         var logicalPlan = CreateLogicalPlan(statement);
         logicalPlan = _optimizer.OptimizePlan(logicalPlan);
+        // var physicalPlan = _physicalPlanner.CreatePhysicalPlan(logicalPlan);
         var physicalPlan = _costBasedOptimizer.OptimizeAndLower(logicalPlan);
         return new QueryPlan(physicalPlan);
     }

@@ -147,8 +147,8 @@ public class QueryOptimizer(ExpressionBinder _binder)
         if (TrySplitPredicate(filter.Predicate, out var left, out var right))
         {
             var orgInput = filter.Input;
-            var f1 = new Filter(orgInput, left, filter.OutputColumns);
-            var f2 = new Filter(f1, right, f1.OutputColumns);
+            var f1 = new Filter(orgInput, left);
+            var f2 = new Filter(f1, right);
             return f2;
         }
 
@@ -175,13 +175,11 @@ public class QueryOptimizer(ExpressionBinder _binder)
         if (TryBind(binExpr.Left, l.OutputSchema, out var _)
             && TryBind(binExpr.Right, r.OutputSchema, out var _))
         {
-            var schema = QueryPlanner.ExtendSchema(l.OutputSchema, r.OutputSchema);
             innerJoin = new Join(
                 l,
                 r,
                 JoinType.Inner,
-                binExpr,
-                schema
+                binExpr
             );
             return true;
         }
@@ -189,13 +187,11 @@ public class QueryOptimizer(ExpressionBinder _binder)
         if (TryBind(binExpr.Left, r.OutputSchema, out var _)
             && TryBind(binExpr.Right, l.OutputSchema, out var _))
         {
-            var schema = QueryPlanner.ExtendSchema(r.OutputSchema, l.OutputSchema);
             innerJoin = new Join(
                 r,
                 l,
                 JoinType.Inner,
-                binExpr,
-                schema
+                binExpr
             );
             return true;
         }
@@ -237,7 +233,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
 
             if (TryBind(predicate, scan.OutputColumns, out var boundPredicate))
             {
-                updated = new Filter(scan, boundPredicate, scan.OutputColumns);
+                updated = new Filter(scan, boundPredicate);
                 return true;
             }
         }

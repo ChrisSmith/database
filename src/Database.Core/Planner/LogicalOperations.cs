@@ -24,11 +24,10 @@ public record Scan(
 [DebuggerDisplay("filter({Predicate})")]
 public record Filter(
     LogicalPlan Input,
-    BaseExpression Predicate,
-    IReadOnlyList<ColumnSchema> OutputColumns
+    BaseExpression Predicate
     ) : LogicalPlan
 {
-    public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+    public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 }
 
 [DebuggerDisplay("projection({OutputColumns})})")]
@@ -46,11 +45,10 @@ public record Join(
     LogicalPlan Left,
     LogicalPlan Right,
     JoinType JoinType,
-    BaseExpression? Condition,
-    IReadOnlyList<ColumnSchema> OutputColumns
+    BaseExpression? Condition
 ) : LogicalPlan
 {
-    public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+    public override IReadOnlyList<ColumnSchema> OutputSchema => QueryPlanner.ExtendSchema(Left.OutputSchema, Right.OutputSchema);
 }
 
 public record Aggregate(
@@ -66,26 +64,23 @@ public record Aggregate(
 
 public record Sort(
     LogicalPlan Input,
-    IReadOnlyList<OrderingExpression> OrderBy,
-    IReadOnlyList<ColumnSchema> OutputColumns
+    IReadOnlyList<OrderingExpression> OrderBy
 ) : LogicalPlan
 {
-    public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+    public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 }
 
 public record Distinct(
-    LogicalPlan Input,
-    IReadOnlyList<ColumnSchema> OutputColumns
+    LogicalPlan Input
 ) : LogicalPlan
 {
-    public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+    public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 }
 
 public record Limit(
     LogicalPlan Input,
-    int Count,
-    IReadOnlyList<ColumnSchema> OutputColumns
+    int Count
 ) : LogicalPlan
 {
-    public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+    public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 }
