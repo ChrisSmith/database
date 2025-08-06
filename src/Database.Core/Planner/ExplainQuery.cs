@@ -130,6 +130,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is DistinctOperation d)
         {
             Write($"Distinct()", writer, ident);
+            WriteCost(d, writer, ident: 0);
             WriteOutputColumns(d.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(d.Source, writer, ident + 1);
@@ -139,6 +140,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is FilterOperation f)
         {
             Write($"Filter({f.Expression})", writer, ident);
+            WriteCost(f, writer, ident: 0);
             WriteOutputColumns(f.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(f.Source, writer, ident + 1);
@@ -148,6 +150,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is NestedLoopJoinOperator nlj)
         {
             Write($"NestedLoopJoin()", writer, ident);
+            WriteCost(nlj, writer, ident: 0);
             WriteOutputColumns(nlj.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(nlj.LeftSource, writer, ident + 1);
@@ -159,6 +162,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is ProjectionOperation p)
         {
             Write($"Project({Expressions(p.Expressions)})", writer, ident);
+            WriteCost(p, writer, ident: 0);
             WriteOutputColumns(p.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(p.Source, writer, ident + 1);
@@ -168,6 +172,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is FileScanFusedFilter fsf)
         {
             Write($"FileScanFusedFilter({fsf.Expression}) on {fsf.Path}", writer, ident);
+            WriteCost(fsf, writer, ident: 0);
             WriteOutputColumns(fsf.OutputColumns, writer);
             return;
         }
@@ -175,6 +180,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is HashJoinOperator hj)
         {
             Write($"HashJoin({Expressions(hj.ProbeKeys)}, {Expressions(hj.ScanKeys)})", writer, ident);
+            WriteCost(hj, writer, ident: 0);
             WriteOutputColumns(hj.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(hj.ScanSource, writer, ident + 1);
@@ -186,6 +192,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is FileScan fs)
         {
             Write($"FileScan({fs.Path})", writer, ident);
+            WriteCost(fs, writer, ident: 0);
             WriteOutputColumns(fs.OutputColumns, writer);
             return;
         }
@@ -193,6 +200,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is HashAggregate ha)
         {
             Write($"HashAggregate({Expressions(ha.OutputExpressions)})", writer, ident);
+            WriteCost(ha, writer, ident: 0);
             WriteOutputColumns(ha.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(ha.Source, writer, ident + 1);
@@ -202,6 +210,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is SortOperator so)
         {
             Write($"Sort({Expressions(so.OrderExpressions)})", writer, ident);
+            WriteCost(so, writer, ident: 0);
             WriteOutputColumns(so.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(so.Source, writer, ident + 1);
@@ -211,6 +220,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is UngroupedAggregate uga)
         {
             Write($"UngroupedAggregate({Expressions(uga.Expressions)})", writer, ident);
+            WriteCost(uga, writer, ident: 0);
             WriteOutputColumns(uga.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(uga.Source, writer, ident + 1);
@@ -220,6 +230,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (physicalPlan is LimitOperator limit)
         {
             Write($"Limit({limit.LimitCount})", writer, ident);
+            WriteCost(limit, writer, ident: 0);
             WriteOutputColumns(limit.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(limit.Source, writer, ident + 1);
@@ -227,5 +238,11 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         }
 
         throw new NotImplementedException("Explain not implemented for this plan: {" + physicalPlan + "}");
+    }
+
+    private void WriteCost(BaseOperation op, StringWriter writer, int ident)
+    {
+        var cost = op.EstimateCost();
+        Write($" cost (output_rows={cost.OutputRows}, cpu={cost.CpuOperations}, disk={cost.DiskOperations}, total={cost.TotalCost()})", writer, ident);
     }
 }

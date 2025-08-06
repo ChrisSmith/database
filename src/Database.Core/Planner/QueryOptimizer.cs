@@ -158,8 +158,6 @@ public class QueryOptimizer(ExpressionBinder _binder)
             return updated;
         }
 
-
-
         return filter with
         {
             Input = Optimize(filter.Input),

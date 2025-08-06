@@ -140,4 +140,21 @@ public record NestedLoopJoinOperator(
 
         return new RowGroup(count, targetRg, OutputColumnRefs);
     }
+
+    public override Cost EstimateCost()
+    {
+        var leftSource = LeftSource.EstimateCost();
+        var rightSource = RightSource.EstimateCost();
+
+        var outputRows = checked(leftSource.OutputRows * rightSource.OutputRows);
+
+        return leftSource.Add(new Cost(
+            OutputRows: outputRows,
+            CpuOperations: outputRows,
+            DiskOperations: rightSource.DiskOperations,
+            TotalCpuOperations: rightSource.TotalCpuOperations,
+            TotalDiskOperations: rightSource.TotalDiskOperations,
+            TotalRowsProcessed: rightSource.TotalRowsProcessed
+        ));
+    }
 }

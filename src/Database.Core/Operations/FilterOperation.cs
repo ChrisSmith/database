@@ -109,4 +109,14 @@ public record FilterOperation(
                 );
         }
     }
+
+    public override Cost EstimateCost()
+    {
+        var sourceCost = Source.EstimateCost();
+        return sourceCost.Add(new Cost(
+            OutputRows: (long)(sourceCost.OutputRows * .1), // TODO need to estimate the selectivity of predicates
+            CpuOperations: sourceCost.OutputRows * Columns.Count,
+            DiskOperations: 0
+            ));
+    }
 }

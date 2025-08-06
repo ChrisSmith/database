@@ -80,6 +80,18 @@ public record SortOperator(
         return new RowGroup(rows.Count, targetRowGroup, OutputColumnRefs);
     }
 
+    public override Cost EstimateCost()
+    {
+        var sourceCost = Source.EstimateCost();
+        var sortCost = sourceCost.OutputRows * Math.Log(sourceCost.OutputRows) * OrderExpressions.Count;
+
+        return sourceCost.Add(new Cost(
+            OutputRows: sourceCost.OutputRows,
+            CpuOperations: (long)sortCost,
+            DiskOperations: 0
+        ));
+    }
+
     public class RowComparer(int offset, IReadOnlyList<OrderingExpression> expressions) : IComparer<Row>
     {
         public int Compare(Row x, Row y)

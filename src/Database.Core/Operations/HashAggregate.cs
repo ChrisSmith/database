@@ -4,6 +4,7 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -177,9 +178,20 @@ public record HashAggregate(
             BufferPool.WriteColumn(columnRef, column, targetRowGroup.RowGroup);
         }
 
-
-
-
         return new RowGroup(rows.Count, targetRowGroup, OutputColumnRefs);
+    }
+
+    public override Cost EstimateCost()
+    {
+        var sourceCost = Source.EstimateCost();
+        var expressionCost = CostEstimation.EstimateExpressionCost(OutputExpressions) * sourceCost.OutputRows;
+        // TODO cardinality estimates of the grouping keys
+        var numGroups = 10;
+
+        return sourceCost.Add(new Cost(
+            OutputRows: numGroups,
+            CpuOperations: expressionCost * 2,
+            DiskOperations: 0
+        ));
     }
 }

@@ -33,3 +33,21 @@ speedscope2:
 		and l_shipdate < date '1994-01-01' + interval '1' year \
 		and l_discount between 0.06 and 0.06 + 0.01 \
 		and l_quantity < 24;"
+
+speedscope3:
+	dotnet-trace collect --format SpeedScope --duration "00:00:00:30" -- ./bin/cli/Cli "\
+		select \
+            l_orderkey, \
+            sum(l_extendedprice*(1-l_discount)) as revenue, \
+            o_orderdate, \
+            o_shippriority \
+            from customer, orders, lineitem \
+            where \
+                c_mktsegment = 'BUILDING' \
+                and c_custkey = o_custkey \
+                and l_orderkey = o_orderkey \
+                and o_orderdate < date '1995-03-15' \
+                group by l_orderkey, o_orderdate, o_shippriority \
+                order by revenue desc, o_orderdate \
+                limit 10;"
+            

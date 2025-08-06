@@ -71,4 +71,14 @@ public record LimitOperator(
             OutputColumnRefs
         );
     }
+
+    public override Cost EstimateCost()
+    {
+        var sourceCost = Source.EstimateCost();
+        return sourceCost.Add(new Cost(
+            OutputRows: LimitCount,
+            CpuOperations: LimitCount * Columns.Count,
+            DiskOperations: 0
+        ));
+    }
 }

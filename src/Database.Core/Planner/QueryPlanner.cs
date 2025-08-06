@@ -11,6 +11,7 @@ public class QueryPlanner
 {
     private ExpressionBinder _binder;
     private PhysicalPlanner _physicalPlanner;
+    private CostBasedOptimizer _costBasedOptimizer;
     private QueryOptimizer _optimizer;
     private readonly Catalog.Catalog _catalog;
     private readonly ParquetPool _bufferPool;
@@ -22,6 +23,7 @@ public class QueryPlanner
         _binder = new ExpressionBinder(bufferPool, new FunctionRegistry());
         _optimizer = new QueryOptimizer(_binder);
         _physicalPlanner = new PhysicalPlanner(catalog, bufferPool);
+        _costBasedOptimizer = new CostBasedOptimizer(_physicalPlanner);
     }
 
     public LogicalPlan CreateLogicalPlan(IStatement statement)
@@ -175,7 +177,7 @@ public class QueryPlanner
     {
         var logicalPlan = CreateLogicalPlan(statement);
         logicalPlan = _optimizer.OptimizePlan(logicalPlan);
-        var physicalPlan = _physicalPlanner.CreatePhysicalPlan(logicalPlan);
+        var physicalPlan = _costBasedOptimizer.OptimizeAndLower(logicalPlan);
         return new QueryPlan(physicalPlan);
     }
 

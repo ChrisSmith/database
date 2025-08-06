@@ -8,11 +8,11 @@ namespace Database.Core.Operations;
 
 public record HashJoinOperator(
     ParquetPool BufferPool,
-    IOperation ProbeSource,
     IOperation ScanSource,
+    IOperation ProbeSource,
     MemoryBasedTable Table,
-    List<BaseExpression> ProbeKeys,
     List<BaseExpression> ScanKeys,
+    List<BaseExpression> ProbeKeys,
     List<ColumnSchema> OutputColumns,
     List<ColumnRef> OutputColumnRefs
 ) : BaseOperation(OutputColumns, OutputColumnRefs)
@@ -30,33 +30,7 @@ public record HashJoinOperator(
 
         if (_hashTable == null)
         {
-            if (ProbeKeys.Count != ScanKeys.Count)
-            {
-                throw new Exception("Probe and Scan keys must be the same length");
-            }
-
-            _hashTable = new HashTable<RowRef?>(ProbeKeys.Count);
-
-            var propRg = ProbeSource.Next();
-            while (propRg != null)
-            {
-                var keys = new List<IColumn>(ProbeKeys.Count);
-                foreach (var key in ProbeKeys)
-                {
-                    var res = _interpreter.Execute(key, propRg);
-                    keys.Add(res);
-                }
-
-                var rowArray = new RowRef?[propRg.NumRows];
-                for (var i = 0; i < propRg.NumRows; i++)
-                {
-                    rowArray[i] = new RowRef(propRg.RowGroupRef, i);
-                }
-
-                // TODO I need a hashtable with duplicates since keys may not be unique
-                _hashTable.Add(keys, rowArray);
-                propRg = ProbeSource.Next();
-            }
+            _hashTable = BuildHashTable();
         }
 
         var rowGroup = ScanSource.Next();
@@ -66,26 +40,20 @@ public record HashJoinOperator(
             return null;
         }
 
-        var scanKeys = new List<IColumn>(ScanKeys.Count);
-        foreach (var key in ScanKeys)
-        {
-            var res = _interpreter.Execute(key, rowGroup);
-            scanKeys.Add(res);
-        }
+        var scanKeys = CalculateScanKeys(rowGroup);
 
         var targetRg = Table.AddRowGroup();
         var count = 0;
 
-        var ids = _hashTable.Get(scanKeys);
+        var ids = GetMatchingIdsAndCount(scanKeys, ref count);
 
-        for (var i = 0; i < ids.Length; i++)
-        {
-            if (ids[i] != null)
-            {
-                count++;
-            }
-        }
+        CopyColumnsToNewTable(rowGroup, ids, count, targetRg);
 
+        return new RowGroup(count, targetRg, OutputColumnRefs);
+    }
+
+    private void CopyColumnsToNewTable(RowGroup rowGroup, RowRef?[] ids, int count, RowGroupRef targetRg)
+    {
         // TODO need to ensure column ordering between the two tables
         for (var i = 0; i < ScanSource.ColumnRefs.Count; i++)
         {
@@ -132,13 +100,67 @@ public record HashJoinOperator(
             );
             BufferPool.WriteColumn(outputCol.ColumnRef, column, targetRg.RowGroup);
         }
-
-
-
         // TODO loop around again till the batch is full?
         // Materializing here is probably slow, would be better to just use ids?
+    }
 
-        return new RowGroup(count, targetRg, OutputColumnRefs);
+    private RowRef?[] GetMatchingIdsAndCount(List<IColumn> scanKeys, ref int count)
+    {
+        var ids = _hashTable.Get(scanKeys);
+        for (var i = 0; i < ids.Length; i++)
+        {
+            if (ids[i] != null)
+            {
+                count++;
+            }
+        }
+
+        return ids;
+    }
+
+    private List<IColumn> CalculateScanKeys(RowGroup rowGroup)
+    {
+        var scanKeys = new List<IColumn>(ScanKeys.Count);
+        foreach (var key in ScanKeys)
+        {
+            var res = _interpreter.Execute(key, rowGroup);
+            scanKeys.Add(res);
+        }
+
+        return scanKeys;
+    }
+
+    private HashTable<RowRef?> BuildHashTable()
+    {
+        if (ProbeKeys.Count != ScanKeys.Count)
+        {
+            throw new Exception("Probe and Scan keys must be the same length");
+        }
+
+        var hashTable = new HashTable<RowRef?>(ProbeKeys.Count);
+
+        var propRg = ProbeSource.Next();
+        while (propRg != null)
+        {
+            var keys = new List<IColumn>(ProbeKeys.Count);
+            foreach (var key in ProbeKeys)
+            {
+                var res = _interpreter.Execute(key, propRg);
+                keys.Add(res);
+            }
+
+            var rowArray = new RowRef?[propRg.NumRows];
+            for (var i = 0; i < propRg.NumRows; i++)
+            {
+                rowArray[i] = new RowRef(propRg.RowGroupRef, i);
+            }
+
+            // TODO I need a hashtable with duplicates since keys may not be unique
+            hashTable.Add(keys, rowArray);
+            propRg = ProbeSource.Next();
+        }
+
+        return hashTable;
     }
 
     private Array FilterArray(Array source, Type type, RowRef?[] ids, int size)
@@ -153,5 +175,22 @@ public record HashJoinOperator(
             target.SetValue(source.GetValue(i), i);
         }
         return target;
+    }
+
+    public override Cost EstimateCost()
+    {
+        var scanCost = ScanSource.EstimateCost();
+        var probeCost = ProbeSource.EstimateCost();
+        var outputRows = Math.Max(scanCost.OutputRows, probeCost.OutputRows); // TODO selectivity estimation/multiple
+        var hashCreation = probeCost.OutputRows * ProbeKeys.Count * 2;
+
+        return scanCost.Add(new Cost(
+            OutputRows: outputRows,
+            CpuOperations: scanCost.OutputRows * ProbeKeys.Count + hashCreation + probeCost.CpuOperations,
+            DiskOperations: probeCost.DiskOperations,
+            TotalCpuOperations: probeCost.TotalCpuOperations,
+            TotalDiskOperations: probeCost.TotalDiskOperations,
+            TotalRowsProcessed: probeCost.TotalRowsProcessed
+        ));
     }
 }

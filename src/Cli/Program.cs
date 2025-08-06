@@ -205,6 +205,7 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
     var optimizer = new QueryOptimizer(new ExpressionBinder(bufferPool, new FunctionRegistry()));
     var explainer = new ExplainQuery(IncludeOutputColumns: false);
     var physicalPlanner = new PhysicalPlanner(catalog, bufferPool);
+    var costBasedOptimizer = new CostBasedOptimizer(physicalPlanner);
 
     if (statement.Explain)
     {
@@ -228,6 +229,14 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
         Console.WriteLine($"Physical Plan");
         Console.WriteLine("====================");
         Console.WriteLine(explainer.Explain(physicalPlan));
+        Console.WriteLine();
+
+        physicalPlan = costBasedOptimizer.OptimizeAndLower(plan);
+        Console.WriteLine($"Optimized Physical Plan");
+        Console.WriteLine("====================");
+        Console.WriteLine(explainer.Explain(physicalPlan));
+        Console.WriteLine();
+
     }
     else
     {
