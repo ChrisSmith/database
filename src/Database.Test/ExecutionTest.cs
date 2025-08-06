@@ -304,4 +304,12 @@ public class ExecutionTest
             ids[i].Should().BeEquivalentTo(new Tuple<int, int>(i, i));
         }
     }
+
+    [Test]
+    public void TestJoin()
+    {
+        var result =
+            Query(@"select * from customer, orders where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and o_orderdate < date '1995-03-15' limit 100;").AsRowList();
+        result.Should().HaveCount(100);
+    }
 }

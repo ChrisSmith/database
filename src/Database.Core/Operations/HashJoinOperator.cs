@@ -62,6 +62,12 @@ public record HashJoinOperator(
 
             var outputCol = OutputColumns[i];
 
+            if (sourceCol.Type != outputCol.ClrType)
+            {
+                throw new Exception($"Source Column({i}) {sourceCol.Name} is of type {sourceCol.Type} " +
+                                    $"but output column {outputCol.Name} is of type {outputCol.ClrType}");
+            }
+
             var filtered = FilterArray(sourceCol.ValuesArray, sourceCol.Type, ids, count);
 
             var column = ColumnHelper.CreateColumn(
@@ -76,8 +82,15 @@ public record HashJoinOperator(
         {
             var outputCol = OutputColumns[i + ScanSource.ColumnRefs.Count];
             var columnRef = ProbeSource.ColumnRefs[i];
-            var columnType = ProbeSource.Columns[i].ClrType;
+            var probeColumn = ProbeSource.Columns[i];
+            var columnType = probeColumn.ClrType;
             var values = Array.CreateInstance(columnType, count);
+
+            if (probeColumn.ClrType != outputCol.ClrType)
+            {
+                throw new Exception($"Probe Column({i}) {probeColumn.Name} is of type {probeColumn.ClrType} " +
+                                    $"but output column {outputCol.Name} is of type {outputCol.ClrType}");
+            }
 
             var pos = 0;
             for (var j = 0; j < ids.Length; j++)
@@ -137,7 +150,10 @@ public record HashJoinOperator(
             throw new Exception("Probe and Scan keys must be the same length");
         }
 
-        var hashTable = new HashTable<RowRef?>(ProbeKeys.Count);
+        var cost = EstimateCost();
+        var estimatedRows = int.Max((int)long.Min(cost.OutputRows, int.MaxValue), 7);
+        var keyTypes = ProbeKeys.Select(p => p.BoundDataType!.Value.ClrTypeFromDataType()).ToArray();
+        var hashTable = new HashTable<RowRef?>(keyTypes, size: estimatedRows);
 
         var propRg = ProbeSource.Next();
         while (propRg != null)
