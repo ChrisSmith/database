@@ -7,7 +7,7 @@ using Parquet.Serialization;
 var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
 // region, nation don't work yet. destination is too short
-var table = "supplier";
+var table = "region";
 var inputPath = Path.Combine(homeDir, $"src/database/tpch/1/{table}.parquet");
 var outputPath = Path.Combine(homeDir, $"src/database/tpch/1/{table}2.parquet");
 
