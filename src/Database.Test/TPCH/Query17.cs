@@ -12,25 +12,7 @@ public partial class TPCHTests
     [Test]
     public void Q17()
     {
-        var query = @"
-SELECT
-    sum(l_extendedprice) / 7.0 AS avg_yearly
-FROM
-    lineitem,
-    part
-WHERE
-    p_partkey = l_partkey
-    AND p_brand = 'Brand#23'
-    AND p_container = 'MED BOX'
-    AND l_quantity < (
-        SELECT
-            0.2 * avg(l_quantity)
-        FROM
-            lineitem
-        WHERE
-            l_partkey = p_partkey
-    );
-        ";
+        var query = ReadQuery("query_17.sql");
         var result = Query(query).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }

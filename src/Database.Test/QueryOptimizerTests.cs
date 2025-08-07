@@ -17,7 +17,7 @@ public class QueryOptimizerTests
     private QueryOptimizer _optimizer;
     private ExplainQuery _explain;
     private BindContext _context;
-    private ConfigOptions  _options;
+    private ConfigOptions _options;
 
     [OneTimeSetUp]
     public void Setup()

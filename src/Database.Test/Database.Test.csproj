@@ -22,4 +22,11 @@
       </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="TPCH\Queries\*.sql" 
+               CopyToOutputDirectory="Always"
+              CopyToPublishDirectory="Always"
+      />
+    </ItemGroup>
+
 </Project>
