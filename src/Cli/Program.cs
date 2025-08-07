@@ -209,14 +209,15 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
 
     if (statement.Explain)
     {
-        var plan = queryPlanner.CreateLogicalPlan(statement.Statement);
+        var context = new BindContext();
+        var plan = queryPlanner.CreateLogicalPlan(statement.Statement, context);
         Console.WriteLine("Original Plan");
         Console.WriteLine("====================");
         Console.WriteLine(explainer.Explain(plan));
         Console.WriteLine();
 
 
-        var plans = optimizer.OptimizePlanWithHistory(plan);
+        var plans = optimizer.OptimizePlanWithHistory(plan, context);
         for (var i = 0; i < plans.Count; i++)
         {
             plan = plans[i];
@@ -225,13 +226,13 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
             Console.WriteLine(explainer.Explain(plan));
         }
 
-        var physicalPlan = physicalPlanner.CreatePhysicalPlan(plan);
+        var physicalPlan = physicalPlanner.CreatePhysicalPlan(plan, context);
         Console.WriteLine($"Physical Plan");
         Console.WriteLine("====================");
         Console.WriteLine(explainer.Explain(physicalPlan));
         Console.WriteLine();
 
-        physicalPlan = costBasedOptimizer.OptimizeAndLower(plan);
+        physicalPlan = costBasedOptimizer.OptimizeAndLower(plan, context);
         Console.WriteLine($"Optimized Physical Plan");
         Console.WriteLine("====================");
         Console.WriteLine(explainer.Explain(physicalPlan));

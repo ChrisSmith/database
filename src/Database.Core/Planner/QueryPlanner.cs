@@ -26,7 +26,7 @@ public class QueryPlanner
         _costBasedOptimizer = new CostBasedOptimizer(_physicalPlanner);
     }
 
-    public LogicalPlan CreateLogicalPlan(IStatement statement)
+    public LogicalPlan CreateLogicalPlan(IStatement statement, BindContext context)
     {
         if (statement is not SelectStatement select)
         {
@@ -38,42 +38,45 @@ public class QueryPlanner
         select = QueryRewriter.ExpandStarStatements(select, _catalog);
 
         var expressions = select.SelectList.Expressions;
-        var plan = BindRelations(select);
+        var plan = BindRelations(context, select);
 
         if (select.Where != null)
         {
+            // TODO I could probably do this at the logic rewrite stage
+            // 1. duplicate any expression that is used by its alias in the where/groupby
+            // 2. push down a projection to materialize it early, change the expression into a col ref
             (var extendedSchema, expressions, var forEval) =
-                ExtendedSchemaWithExpressions(plan.OutputSchema, expressions);
+                ExtendedSchemaWithExpressions(context, plan.OutputSchema, expressions);
 
             if (forEval.Any())
             {
                 plan = new Projection(plan, forEval, extendedSchema, AppendExpressions: true);
-                expressions = _binder.Bind(expressions, plan.OutputSchema);
+                expressions = _binder.Bind(context, expressions, plan.OutputSchema);
             }
-            var where = _binder.Bind(select.Where, extendedSchema);
+            var where = _binder.Bind(context, select.Where, extendedSchema);
             plan = new Filter(plan, where);
-            expressions = _binder.Bind(expressions, plan.OutputSchema);
+            expressions = _binder.Bind(context, expressions, plan.OutputSchema);
         }
 
         // Must bind here before ExpressionContainsAggregate so there are functions to check
-        expressions = _binder.Bind(expressions, plan.OutputSchema);
+        expressions = _binder.Bind(context, expressions, plan.OutputSchema);
         if (select.Group?.Expressions != null || expressions.Any(ExpressionContainsAggregate))
         {
-            var groupingExprs = _binder.Bind(select.Group?.Expressions ?? [], plan.OutputSchema);
+            var groupingExprs = _binder.Bind(context, select.Group?.Expressions ?? [], plan.OutputSchema);
             // TODO if the groupings are not in the expressions, add them
             plan = new Aggregate(plan, groupingExprs, expressions);
             expressions = RemoveAggregatesFromExpressions(expressions);
-            expressions = _binder.Bind(expressions, plan.OutputSchema);
+            expressions = _binder.Bind(context, expressions, plan.OutputSchema);
         }
 
         if (select.Order != null)
         {
-            var orderBy = _binder.Bind(select.Order.Expressions, plan.OutputSchema);
+            var orderBy = _binder.Bind(context, select.Order.Expressions, plan.OutputSchema);
             plan = new Sort(plan, orderBy);
-            expressions = _binder.Bind(expressions, plan.OutputSchema);
+            expressions = _binder.Bind(context, expressions, plan.OutputSchema);
         }
 
-        expressions = _binder.Bind(expressions, plan.OutputSchema);
+        expressions = _binder.Bind(context, expressions, plan.OutputSchema);
         plan = new Projection(plan, expressions, SchemaFromExpressions(expressions));
 
         if (select.SelectList.Distinct)
@@ -108,7 +111,7 @@ public class QueryPlanner
         return schema;
     }
 
-    private LogicalPlan BindRelations(SelectStatement select)
+    private LogicalPlan BindRelations(BindContext context, SelectStatement select)
     {
         var firstTable = (TableStatement)select.From.TableStatements.First();
         LogicalPlan plan = CreateScanForTable(firstTable);
@@ -160,6 +163,8 @@ public class QueryPlanner
                 SourceTableAlias = tableAlias,
             }).ToList();
 
+            context.AddSymbols(table, tableStmt.Alias);
+
             return new Scan(
                 table.Name,
                 table.Id,
@@ -171,10 +176,11 @@ public class QueryPlanner
 
     public QueryPlan CreatePlan(IStatement statement)
     {
-        var logicalPlan = CreateLogicalPlan(statement);
-        logicalPlan = _optimizer.OptimizePlan(logicalPlan);
+        var context = new BindContext();
+        var logicalPlan = CreateLogicalPlan(statement, context);
+        logicalPlan = _optimizer.OptimizePlan(logicalPlan, context);
         // var physicalPlan = _physicalPlanner.CreatePhysicalPlan(logicalPlan);
-        var physicalPlan = _costBasedOptimizer.OptimizeAndLower(logicalPlan);
+        var physicalPlan = _costBasedOptimizer.OptimizeAndLower(logicalPlan, context);
         return new QueryPlan(physicalPlan);
     }
 
@@ -183,6 +189,7 @@ public class QueryPlanner
         List<BaseExpression> outputExpressions,
         List<BaseExpression> expressionsForEval
         ) ExtendedSchemaWithExpressions(
+        BindContext context,
         IReadOnlyList<ColumnSchema> inputColumns,
         IReadOnlyList<BaseExpression> expressions)
     {
@@ -194,7 +201,7 @@ public class QueryPlanner
 
         for (var i = 0; i < expressions.Count; i++)
         {
-            var expr = _binder.Bind(expressions[i], inputColumns);
+            var expr = _binder.Bind(context, expressions[i], inputColumns);
             if (expr is ColumnExpression c && c.Alias == c.Column)
             {
                 outputExpressions.Add(expr);
@@ -230,53 +237,6 @@ public class QueryPlanner
         }
 
         return (outputColumns, outputExpressions, expressionsForEval);
-    }
-
-    private IReadOnlyList<ColumnSchema> FilterToUsedColumns(SelectStatement select, IReadOnlyList<ColumnSchema> inputColumns)
-    {
-        var expressions = _binder.Bind(select.SelectList.Expressions, inputColumns);
-        var usedColumns = new HashSet<ColumnRef>();
-
-        foreach (var expr in expressions)
-        {
-            ExtractUsedColumns(expr);
-        }
-
-        if (select.Where != null)
-        {
-            ExtractUsedColumns(_binder.Bind(select.Where, inputColumns, ignoreMissingColumns: true));
-        }
-        if (select.Group?.Expressions != null)
-        {
-            var grouping = _binder.Bind(select.Group.Expressions, inputColumns);
-            foreach (var expr in grouping)
-            {
-                ExtractUsedColumns(expr);
-            }
-        }
-        if (select.Order?.Expressions != null)
-        {
-            var unwrapped = select.Order.Expressions.Select(e => e.Expression).ToList();
-            var orderBy = _binder.Bind(unwrapped, inputColumns);
-            foreach (var expr in orderBy)
-            {
-                ExtractUsedColumns(expr);
-            }
-        }
-
-        var filtered = inputColumns.Where(c => usedColumns.Contains(c.ColumnRef)).ToList();
-        return filtered;
-
-        void ExtractUsedColumns(BaseExpression root)
-        {
-            root.Walk(expr =>
-            {
-                if (expr.BoundFunction is SelectFunction s)
-                {
-                    usedColumns.Add(s.ColumnRef);
-                }
-            });
-        }
     }
 
     private List<BaseExpression> RemoveAggregatesFromExpressions(IReadOnlyList<BaseExpression> expressions)

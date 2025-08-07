@@ -5,23 +5,23 @@ namespace Database.Core.Planner;
 
 public class CostBasedOptimizer(PhysicalPlanner physicalPlanner)
 {
-    public IOperation OptimizeAndLower(LogicalPlan plan)
+    public IOperation OptimizeAndLower(LogicalPlan plan, BindContext context)
     {
-        var bestPlan = SearchForBestPlan(plan);
-        return physicalPlanner.CreatePhysicalPlan(bestPlan);
+        var bestPlan = SearchForBestPlan(plan, context);
+        return physicalPlanner.CreatePhysicalPlan(bestPlan, context);
     }
 
-    public LogicalPlan SearchForBestPlan(LogicalPlan plan)
+    public LogicalPlan SearchForBestPlan(LogicalPlan plan, BindContext context)
     {
         var bestPlan = plan switch
         {
-            Filter filter => OptimizeFilter(filter),
-            Join join => OptimizeJoin(join),
-            Aggregate aggregate => OptimizeAggregate(aggregate),
-            Projection project => OptimizeProjection(project),
-            Distinct distinct => OptimizeDistinct(distinct),
-            Sort sort => OptimizeSort(sort),
-            Limit limit => OptimizeLimit(limit),
+            Filter filter => OptimizeFilter(filter, context),
+            Join join => OptimizeJoin(join, context),
+            Aggregate aggregate => OptimizeAggregate(aggregate, context),
+            Projection project => OptimizeProjection(project, context),
+            Distinct distinct => OptimizeDistinct(distinct, context),
+            Sort sort => OptimizeSort(sort, context),
+            Limit limit => OptimizeLimit(limit, context),
             Scan scan => scan,
             _ => throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer")
         };
@@ -29,40 +29,40 @@ public class CostBasedOptimizer(PhysicalPlanner physicalPlanner)
         return bestPlan;
     }
 
-    private LogicalPlan OptimizeFilter(Filter filter)
+    private LogicalPlan OptimizeFilter(Filter filter, BindContext context)
     {
-        return filter with { Input = SearchForBestPlan(filter.Input) };
+        return filter with { Input = SearchForBestPlan(filter.Input, context) };
     }
 
-    private LogicalPlan OptimizeAggregate(Aggregate aggregate)
+    private LogicalPlan OptimizeAggregate(Aggregate aggregate, BindContext context)
     {
-        return aggregate with { Input = SearchForBestPlan(aggregate.Input) };
+        return aggregate with { Input = SearchForBestPlan(aggregate.Input, context) };
     }
 
-    private LogicalPlan OptimizeProjection(Projection projection)
+    private LogicalPlan OptimizeProjection(Projection projection, BindContext context)
     {
-        return projection with { Input = SearchForBestPlan(projection.Input) };
+        return projection with { Input = SearchForBestPlan(projection.Input, context) };
     }
 
-    private LogicalPlan OptimizeDistinct(Distinct distinct)
+    private LogicalPlan OptimizeDistinct(Distinct distinct, BindContext context)
     {
-        return distinct with { Input = SearchForBestPlan(distinct.Input) };
+        return distinct with { Input = SearchForBestPlan(distinct.Input, context) };
     }
 
-    private LogicalPlan OptimizeSort(Sort sort)
+    private LogicalPlan OptimizeSort(Sort sort, BindContext context)
     {
-        return sort with { Input = SearchForBestPlan(sort.Input) };
+        return sort with { Input = SearchForBestPlan(sort.Input, context) };
     }
 
-    private LogicalPlan OptimizeLimit(Limit limit)
+    private LogicalPlan OptimizeLimit(Limit limit, BindContext context)
     {
-        return limit with { Input = SearchForBestPlan(limit.Input) };
+        return limit with { Input = SearchForBestPlan(limit.Input, context) };
     }
 
-    private LogicalPlan OptimizeJoin(Join join)
+    private LogicalPlan OptimizeJoin(Join join, BindContext context)
     {
-        var left = SearchForBestPlan(join.Left);
-        var right = SearchForBestPlan(join.Right);
+        var left = SearchForBestPlan(join.Left, context);
+        var right = SearchForBestPlan(join.Right, context);
 
         var original = join with { Left = left, Right = right };
 
@@ -90,8 +90,8 @@ public class CostBasedOptimizer(PhysicalPlanner physicalPlanner)
 
         // TODO don't throw away the physical plan, allow it to be passed
         // back into CreatePhysicalPlan for the parent operation
-        var ogCost = physicalPlanner.CreatePhysicalPlan(original).EstimateCost();
-        var swappedCost = physicalPlanner.CreatePhysicalPlan(swapped).EstimateCost();
+        var ogCost = physicalPlanner.CreatePhysicalPlan(original, context).EstimateCost();
+        var swappedCost = physicalPlanner.CreatePhysicalPlan(swapped, context).EstimateCost();
 
         var sC = swappedCost.TotalCost();
         var oC = ogCost.TotalCost();

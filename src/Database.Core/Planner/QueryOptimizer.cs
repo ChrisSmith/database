@@ -7,7 +7,7 @@ namespace Database.Core.Planner;
 
 public class QueryOptimizer(ExpressionBinder _binder)
 {
-    public LogicalPlan OptimizePlan(LogicalPlan plan, int maxIters = 10)
+    public LogicalPlan OptimizePlan(LogicalPlan plan, BindContext context, int maxIters = 10)
     {
         LogicalPlan previous = plan;
         LogicalPlan updated;
@@ -15,7 +15,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
         while (iters < maxIters)
         {
             iters++;
-            updated = Optimize(previous);
+            updated = Optimize(previous, context);
             if (updated.Equals(previous))
             {
                 break;
@@ -26,7 +26,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
         return previous;
     }
 
-    public List<LogicalPlan> OptimizePlanWithHistory(LogicalPlan plan, int maxIters = 10)
+    public List<LogicalPlan> OptimizePlanWithHistory(LogicalPlan plan, BindContext context, int maxIters = 10)
     {
         var history = new List<LogicalPlan>() { plan };
         LogicalPlan previous = plan;
@@ -35,7 +35,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
         while (iters < maxIters)
         {
             iters++;
-            updated = Optimize(previous);
+            updated = Optimize(previous, context);
             if (updated.Equals(previous))
             {
                 break;
@@ -48,41 +48,41 @@ public class QueryOptimizer(ExpressionBinder _binder)
     }
 
 
-    private LogicalPlan Optimize(LogicalPlan plan)
+    private LogicalPlan Optimize(LogicalPlan plan, BindContext context)
     {
         if (plan is Filter filter)
         {
-            return OptimizeFilter(filter);
+            return OptimizeFilter(filter, context);
         }
 
         if (plan is Join join)
         {
-            return OptimizeJoin(join);
+            return OptimizeJoin(join, context, context);
         }
 
         if (plan is Aggregate aggregate)
         {
-            return OptimizeAggregate(aggregate);
+            return OptimizeAggregate(aggregate, context);
         }
 
         if (plan is Projection project)
         {
-            return OptimizeProjection(project);
+            return OptimizeProjection(project, context);
         }
 
         if (plan is Distinct distinct)
         {
-            return OptimizeDistinct(distinct);
+            return OptimizeDistinct(distinct, context);
         }
 
         if (plan is Sort sort)
         {
-            return OptimizeSort(sort);
+            return OptimizeSort(sort, context);
         }
 
         if (plan is Limit limit)
         {
-            return OptimizeLimit(limit);
+            return OptimizeLimit(limit, context);
         }
 
         if (plan is Scan scan)
@@ -93,56 +93,56 @@ public class QueryOptimizer(ExpressionBinder _binder)
         throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer");
     }
 
-    private LogicalPlan OptimizeLimit(Limit limit)
+    private LogicalPlan OptimizeLimit(Limit limit, BindContext context)
     {
         return limit with
         {
-            Input = Optimize(limit.Input),
+            Input = Optimize(limit.Input, context),
         };
     }
 
-    private LogicalPlan OptimizeSort(Sort sort)
+    private LogicalPlan OptimizeSort(Sort sort, BindContext context)
     {
         return sort with
         {
-            Input = Optimize(sort.Input),
+            Input = Optimize(sort.Input, context),
         };
     }
 
-    private LogicalPlan OptimizeDistinct(Distinct distinct)
+    private LogicalPlan OptimizeDistinct(Distinct distinct, BindContext context)
     {
         return distinct with
         {
-            Input = Optimize(distinct.Input),
+            Input = Optimize(distinct.Input, context),
         };
     }
 
-    private LogicalPlan OptimizeAggregate(Aggregate aggregate)
+    private LogicalPlan OptimizeAggregate(Aggregate aggregate, BindContext context)
     {
         return aggregate with
         {
-            Input = Optimize(aggregate.Input),
+            Input = Optimize(aggregate.Input, context),
         };
     }
 
-    private LogicalPlan OptimizeProjection(Projection project)
+    private LogicalPlan OptimizeProjection(Projection project, BindContext context)
     {
         return project with
         {
-            Input = Optimize(project.Input),
+            Input = Optimize(project.Input, context),
         };
     }
 
-    private LogicalPlan OptimizeJoin(Join join)
+    private LogicalPlan OptimizeJoin(Join join, BindContext context, BindContext context1)
     {
         return join with
         {
-            Left = Optimize(join.Left),
-            Right = Optimize(join.Right),
+            Left = Optimize(join.Left, context),
+            Right = Optimize(join.Right, context1),
         };
     }
 
-    private LogicalPlan OptimizeFilter(Filter filter)
+    private LogicalPlan OptimizeFilter(Filter filter, BindContext context)
     {
         if (TrySplitPredicate(filter.Predicate, out var left, out var right))
         {
@@ -160,7 +160,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
 
         return filter with
         {
-            Input = Optimize(filter.Input),
+            Input = Optimize(filter.Input, context),
         };
     }
 
@@ -303,7 +303,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
     {
         try
         {
-            boundExpression = _binder.Bind(expression, columns, ignoreMissingColumns: false);
+            boundExpression = _binder.Bind(new BindContext(), expression, columns, ignoreMissingColumns: false);
             return true;
         }
         catch (Exception e)
