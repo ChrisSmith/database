@@ -75,7 +75,8 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (plan is Scan scan)
         {
             var filterCon = scan.Filter != null ? " where " + scan.Filter : "";
-            Write($"Scan({scan.Table}){filterCon}", writer, ident);
+            var withProjection = scan.Projection ? " with projection " : "";
+            Write($"Scan({scan.Table}){filterCon}{withProjection}", writer, ident);
             WriteOutputColumns(scan.OutputColumns, writer);
             WriteLine("", writer, ident);
             return;

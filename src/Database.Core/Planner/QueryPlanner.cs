@@ -170,7 +170,8 @@ public class QueryPlanner
                 table.Id,
                 null,
                 tableColumns,
-                tableStmt.Alias);
+                Projection: false,
+                Alias: tableStmt.Alias);
         }
     }
 
