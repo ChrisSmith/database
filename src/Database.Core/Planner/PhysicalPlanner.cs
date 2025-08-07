@@ -13,59 +13,59 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 {
     private ExpressionBinder _binder = new(bufferPool, new FunctionRegistry());
 
-    public IOperation CreatePhysicalPlan(LogicalPlan plan)
+    public IOperation CreatePhysicalPlan(LogicalPlan plan, BindContext context)
     {
         if (plan is Scan scan)
         {
-            return CreateScan(scan);
+            return CreateScan(scan, context);
         }
         if (plan is Filter filter)
         {
-            var input = CreatePhysicalPlan(filter.Input);
-            return CreateFilter(filter, input);
+            var input = CreatePhysicalPlan(filter.Input, context);
+            return CreateFilter(filter, input, context);
         }
 
         if (plan is Join join)
         {
-            var left = CreatePhysicalPlan(join.Left);
-            var right = CreatePhysicalPlan(join.Right);
-            return CreateJoin(join, left, right);
+            var left = CreatePhysicalPlan(join.Left, context);
+            var right = CreatePhysicalPlan(join.Right, context);
+            return CreateJoin(join, left, right, context);
         }
 
         if (plan is Aggregate aggregate)
         {
-            var input = CreatePhysicalPlan(aggregate.Input);
-            return CreateAggregate(aggregate, input);
+            var input = CreatePhysicalPlan(aggregate.Input, context);
+            return CreateAggregate(aggregate, input, context);
         }
 
         if (plan is Projection project)
         {
-            var input = CreatePhysicalPlan(project.Input);
-            return CreateProjection(project, input);
+            var input = CreatePhysicalPlan(project.Input, context);
+            return CreateProjection(project, input, context);
         }
 
         if (plan is Distinct distinct)
         {
-            var input = CreatePhysicalPlan(distinct.Input);
-            return CreateDistinct(distinct, input);
+            var input = CreatePhysicalPlan(distinct.Input, context);
+            return CreateDistinct(distinct, input, context);
         }
 
         if (plan is Sort sort)
         {
-            var input = CreatePhysicalPlan(sort.Input);
-            return CreateSort(sort, input);
+            var input = CreatePhysicalPlan(sort.Input, context);
+            return CreateSort(sort, input, context);
         }
 
         if (plan is Limit limit)
         {
-            var input = CreatePhysicalPlan(limit.Input);
-            return CreateLimit(limit, input);
+            var input = CreatePhysicalPlan(limit.Input, context);
+            return CreateLimit(limit, input, context);
         }
 
         throw new NotImplementedException();
     }
 
-    private IOperation CreateLimit(Limit limit, IOperation input)
+    private IOperation CreateLimit(Limit limit, IOperation input, BindContext context)
     {
         var inputColumns = input.Columns;
 
@@ -96,14 +96,14 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumnsRefs);
     }
 
-    private IOperation CreateScan(Scan scan)
+    private IOperation CreateScan(Scan scan, BindContext context)
     {
         var outputColumns = scan.OutputColumns;
 
         var table = catalog.Tables.Single(t => t.Id == scan.TableId);
         var columnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
 
-        if (TryBindPushFilterDown(table, scan.Filter, out var filter))
+        if (TryBindPushFilterDown(context, table, scan.Filter, out var filter))
         {
             return new FileScanFusedFilter(
                 bufferPool,
@@ -125,6 +125,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
     }
 
     private bool TryBindPushFilterDown(
+        BindContext context,
         TableSchema table,
         BaseExpression? where,
         [NotNullWhen(true)] out BaseExpression? result)
@@ -192,7 +193,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             Right = right,
         };
 
-        result = _binder.Bind(result, statTable.Schema);
+        result = _binder.Bind(context, result, statTable.Schema);
 
         return true;
 
@@ -244,7 +245,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         }
     }
 
-    private IOperation CreateJoin(Join join, IOperation left, IOperation right)
+    private IOperation CreateJoin(Join join, IOperation left, IOperation right, BindContext context)
     {
         var inputColumns = join.OutputSchema;
         var memRef = bufferPool.OpenMemoryTable();
@@ -267,7 +268,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         if (join.JoinType == JoinType.Cross)
         {
-            var expression = join.Condition != null ? _binder.Bind(join.Condition!, inputColumns) : null;
+            var expression = join.Condition != null ? _binder.Bind(context, join.Condition!, inputColumns) : null;
 
             return new NestedLoopJoinOperator(
                 bufferPool,
@@ -282,7 +283,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
         if (join.JoinType == JoinType.Inner)
         {
-            var expressions = _binder.Bind(join.Condition!, inputColumns);
+            var expressions = _binder.Bind(context, join.Condition!, inputColumns);
             // TODO split join condition
             if (expressions is not BinaryExpression b || b.Operator != EQUAL)
             {
@@ -300,8 +301,8 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             BaseExpression probeExpr;
             try
             {
-                scanExpr = _binder.Bind(leftCol, left.Columns);
-                probeExpr = _binder.Bind(rightCol, right.Columns);
+                scanExpr = _binder.Bind(context, leftCol, left.Columns);
+                probeExpr = _binder.Bind(context, rightCol, right.Columns);
             }
             catch (QueryPlanException e) when (e.Message.Contains("was not found in list of available columns"))
             {
@@ -325,11 +326,11 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         throw new NotImplementedException($"Currently only support inner join and cross join, got {join.JoinType} join");
     }
 
-    private IOperation CreateAggregate(Aggregate aggregate, IOperation source)
+    private IOperation CreateAggregate(Aggregate aggregate, IOperation source, BindContext context)
     {
         var inputColumns = source.Columns;
-        var expressions = _binder.Bind(aggregate.Aggregates, inputColumns);
-        var groupingExprs = _binder.Bind(aggregate.GroupBy, inputColumns);
+        var expressions = _binder.Bind(context, aggregate.Aggregates, inputColumns);
+        var groupingExprs = _binder.Bind(context, aggregate.GroupBy, inputColumns);
 
 
         // Transformation 1. Grouping + Aggregation
@@ -397,7 +398,8 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
 
     private IOperation CreateSort(
         Sort sort,
-        IOperation input)
+        IOperation input,
+        BindContext context)
     {
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
@@ -418,7 +420,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
 
-        var orderExpressions = _binder.Bind(sort.OrderBy, inputColumns);
+        var orderExpressions = _binder.Bind(context, sort.OrderBy, inputColumns);
         var sortColumns = new List<ColumnSchema>(sort.OrderBy.Count);
         for (var i = 0; i < sort.OrderBy.Count; i++)
         {
@@ -442,7 +444,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumnsRefs);
     }
 
-    private IOperation CreateDistinct(Distinct distinct, IOperation source)
+    private IOperation CreateDistinct(Distinct distinct, IOperation source, BindContext context)
     {
         var inputColumns = source.Columns;
         var memRef = bufferPool.OpenMemoryTable();
@@ -471,9 +473,9 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             outputColumnsRefs);
     }
 
-    private IOperation CreateProjection(Projection projection, IOperation input)
+    private IOperation CreateProjection(Projection projection, IOperation input, BindContext context)
     {
-        var expressions = _binder.Bind(projection.Expressions, input.Columns);
+        var expressions = _binder.Bind(context, projection.Expressions, input.Columns);
         var usedColumns = expressions.Select(e => e.Alias).ToHashSet();
 
         var mutExprssions = expressions.ToList();
@@ -488,7 +490,7 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
                     mutExprssions.Add(new ColumnExpression(col.Name));
                 }
             }
-            expressions = _binder.Bind(mutExprssions, input.Columns);
+            expressions = _binder.Bind(context, mutExprssions, input.Columns);
         }
 
         var memRef = bufferPool.OpenMemoryTable();
@@ -526,10 +528,10 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
             );
     }
 
-    private IOperation CreateFilter(Filter filter, IOperation input)
+    private IOperation CreateFilter(Filter filter, IOperation input, BindContext context)
     {
         var inputColumns = input.Columns;
-        var whereExpr = _binder.Bind(filter.Predicate, inputColumns);
+        var whereExpr = _binder.Bind(context, filter.Predicate, inputColumns);
         if (whereExpr.BoundFunction is not BoolFunction predicate)
         {
             // TODO cast values to "truthy"
