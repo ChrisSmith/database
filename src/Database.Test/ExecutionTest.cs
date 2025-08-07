@@ -18,6 +18,7 @@ public class ExecutionTest
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
+        _options = new ConfigOptions();
         _bufferPool = new ParquetPool();
         _catalog = new Catalog(_bufferPool);
         TestDatasets.AddTestDatasetsToCatalog(_catalog);

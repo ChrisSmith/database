@@ -1,3 +1,4 @@
+using System.Numerics;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
@@ -28,13 +29,19 @@ public abstract record BaseOperation(
 }
 
 public record Cost(
-    long OutputRows,
-    long CpuOperations,
-    long DiskOperations,
-    long TotalRowsProcessed = 0,
-    long TotalCpuOperations = 0,
-    long TotalDiskOperations = 0)
+    BigInteger OutputRows,
+    BigInteger CpuOperations,
+    BigInteger DiskOperations,
+    BigInteger TotalRowsProcessed,
+    BigInteger TotalCpuOperations,
+    BigInteger TotalDiskOperations)
 {
+    public Cost(BigInteger OutputRows, BigInteger CpuOperations, BigInteger DiskOperations)
+    : this(OutputRows, CpuOperations, DiskOperations, BigInteger.Zero, BigInteger.Zero, BigInteger.Zero)
+    {
+
+    }
+
     public Cost Add(Cost newOp)
     {
         return newOp with
@@ -45,11 +52,11 @@ public record Cost(
         };
     }
 
-    public long TotalCost()
+    public BigInteger TotalCost()
     {
-        const double CpuCost = .001;
-        const double DiskCost = .1;
+        var CpuCost = new BigInteger(.001);
+        var DiskCost = new BigInteger(.1);
 
-        return (long)(TotalCpuOperations * CpuCost + TotalDiskOperations * DiskCost);
+        return TotalCpuOperations * CpuCost + TotalDiskOperations * DiskCost;
     }
 }

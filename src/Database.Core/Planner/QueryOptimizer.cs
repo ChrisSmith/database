@@ -8,13 +8,14 @@ namespace Database.Core.Planner;
 
 public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
 {
-    public LogicalPlan OptimizePlan(LogicalPlan plan, BindContext context, int maxIters = 10)
+    public LogicalPlan OptimizePlan(LogicalPlan plan, BindContext context)
     {
         if (!config.LogicalOptimization)
         {
             return plan;
         }
 
+        var maxIters = config.MaxLogicalOptimizationSteps;
         LogicalPlan previous = plan;
         LogicalPlan updated;
         var iters = 0;
@@ -32,7 +33,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
         return previous;
     }
 
-    public List<LogicalPlan> OptimizePlanWithHistory(LogicalPlan plan, BindContext context, int maxIters = 10)
+    public List<LogicalPlan> OptimizePlanWithHistory(LogicalPlan plan, BindContext context)
     {
         var history = new List<LogicalPlan>() { plan };
         if (!config.LogicalOptimization)
@@ -40,6 +41,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
             return history;
         }
 
+        var maxIters = config.MaxLogicalOptimizationSteps;
         LogicalPlan previous = plan;
         LogicalPlan updated;
         var iters = 0;

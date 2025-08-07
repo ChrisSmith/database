@@ -1,3 +1,4 @@
+using System.Numerics;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
@@ -83,7 +84,7 @@ public record SortOperator(
     public override Cost EstimateCost()
     {
         var sourceCost = Source.EstimateCost();
-        var sortCost = sourceCost.OutputRows * Math.Log(sourceCost.OutputRows) * OrderExpressions.Count;
+        var sortCost = sourceCost.OutputRows * BigInteger.Log2(sourceCost.OutputRows) * OrderExpressions.Count;
 
         return sourceCost.Add(new Cost(
             OutputRows: sourceCost.OutputRows,
