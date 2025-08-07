@@ -1,9 +1,8 @@
-using System.Diagnostics.CodeAnalysis;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
-using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
+using Database.Core.Options;
 
 namespace Database.Core.Planner;
 
@@ -13,17 +12,19 @@ public class QueryPlanner
     private PhysicalPlanner _physicalPlanner;
     private CostBasedOptimizer _costBasedOptimizer;
     private QueryOptimizer _optimizer;
+    private ConfigOptions _options;
     private readonly Catalog.Catalog _catalog;
     private readonly ParquetPool _bufferPool;
 
-    public QueryPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
+    public QueryPlanner(ConfigOptions options, Catalog.Catalog catalog, ParquetPool bufferPool)
     {
+        _options = options;
         _catalog = catalog;
         _bufferPool = bufferPool;
         _binder = new ExpressionBinder(bufferPool, new FunctionRegistry());
-        _optimizer = new QueryOptimizer(_binder);
-        _physicalPlanner = new PhysicalPlanner(catalog, bufferPool);
-        _costBasedOptimizer = new CostBasedOptimizer(_physicalPlanner);
+        _optimizer = new QueryOptimizer(_options, _binder);
+        _physicalPlanner = new PhysicalPlanner(_options, catalog, bufferPool);
+        _costBasedOptimizer = new CostBasedOptimizer(_options, _physicalPlanner);
     }
 
     public LogicalPlan CreateLogicalPlan(IStatement statement, BindContext context)
@@ -180,7 +181,6 @@ public class QueryPlanner
         var context = new BindContext();
         var logicalPlan = CreateLogicalPlan(statement, context);
         logicalPlan = _optimizer.OptimizePlan(logicalPlan, context);
-        // var physicalPlan = _physicalPlanner.CreatePhysicalPlan(logicalPlan);
         var physicalPlan = _costBasedOptimizer.OptimizeAndLower(logicalPlan, context);
         return new QueryPlan(physicalPlan);
     }

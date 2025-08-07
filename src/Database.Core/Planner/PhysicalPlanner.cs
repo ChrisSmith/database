@@ -5,11 +5,12 @@ using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 using Database.Core.Operations;
+using Database.Core.Options;
 using static Database.Core.TokenType;
 
 namespace Database.Core.Planner;
 
-public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
+public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, ParquetPool bufferPool)
 {
     private ExpressionBinder _binder = new(bufferPool, new FunctionRegistry());
 
@@ -131,6 +132,12 @@ public class PhysicalPlanner(Catalog.Catalog catalog, ParquetPool bufferPool)
         [NotNullWhen(true)] out BaseExpression? result)
     {
         result = null;
+        if (!config.LogicalOptimization)
+        {
+            // TODO this should be in the logical optimization code?
+            return false;
+        }
+
         if (where is not BinaryExpression b)
         {
             return false;

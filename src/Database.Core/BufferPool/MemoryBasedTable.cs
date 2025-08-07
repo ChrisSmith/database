@@ -76,7 +76,7 @@ public class MemoryBasedTable(MemoryStorage storage)
         var columnSchema = _schema[columnRef.Column];
         if (columnSchema.ClrType != column.Type)
         {
-            throw new Exception($"Attempting to write a column of type {column.Type} to a column of type {columnSchema.ClrType}");
+            throw new Exception($"Attempting to write a column {column.Name} of type {column.Type} to a column {columnSchema.Name} of type {columnSchema.ClrType}");
         }
 
         if (!_rowGroups.TryGetValue(columnRef.RowGroup, out var rowGroup))

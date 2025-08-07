@@ -4,19 +4,21 @@ using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Functions;
+using Database.Core.Options;
 using Database.Core.Planner;
 
 var bufferPool = new ParquetPool();
 var catalog = new Catalog(bufferPool);
 TestDatasets.AddTestDatasetsToCatalog(catalog);
-
-var planner = new QueryPlanner(catalog, bufferPool);
+var config = new ConfigOptions();
+var planner = new QueryPlanner(config, catalog, bufferPool);
 
 var previousLines = new List<string>();
 
 // Load history from ~/.cache/databasecli.txt
 var cacheDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache");
 var historyPath = Path.Combine(cacheDir, "databasecli.txt");
+
 if (File.Exists(historyPath))
 {
     previousLines = File.ReadAllLines(historyPath).TakeLast(100).ToList();
@@ -202,10 +204,10 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
     var parser = new Parser(tokens);
     var statement = parser.Parse();
     var it = new Interpreter(bufferPool);
-    var optimizer = new QueryOptimizer(new ExpressionBinder(bufferPool, new FunctionRegistry()));
+    var optimizer = new QueryOptimizer(config, new ExpressionBinder(bufferPool, new FunctionRegistry()));
     var explainer = new ExplainQuery(IncludeOutputColumns: false);
-    var physicalPlanner = new PhysicalPlanner(catalog, bufferPool);
-    var costBasedOptimizer = new CostBasedOptimizer(physicalPlanner);
+    var physicalPlanner = new PhysicalPlanner(config, catalog, bufferPool);
+    var costBasedOptimizer = new CostBasedOptimizer(config, physicalPlanner);
 
     if (statement.Explain)
     {

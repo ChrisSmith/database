@@ -1,14 +1,20 @@
 using System.Diagnostics.CodeAnalysis;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
+using Database.Core.Options;
 using BinaryExpression = Database.Core.Expressions.BinaryExpression;
 
 namespace Database.Core.Planner;
 
-public class QueryOptimizer(ExpressionBinder _binder)
+public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
 {
     public LogicalPlan OptimizePlan(LogicalPlan plan, BindContext context, int maxIters = 10)
     {
+        if (!config.LogicalOptimization)
+        {
+            return plan;
+        }
+
         LogicalPlan previous = plan;
         LogicalPlan updated;
         var iters = 0;
@@ -29,6 +35,11 @@ public class QueryOptimizer(ExpressionBinder _binder)
     public List<LogicalPlan> OptimizePlanWithHistory(LogicalPlan plan, BindContext context, int maxIters = 10)
     {
         var history = new List<LogicalPlan>() { plan };
+        if (!config.LogicalOptimization)
+        {
+            return history;
+        }
+
         LogicalPlan previous = plan;
         LogicalPlan updated;
         var iters = 0;
