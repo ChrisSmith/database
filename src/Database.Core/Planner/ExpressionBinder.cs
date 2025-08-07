@@ -123,6 +123,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     PERCENT => functions.BindFunction("%", args),
                     AND => functions.BindFunction("and", args),
                     OR => functions.BindFunction("or", args),
+                    LIKE => functions.BindFunction("like", args),
                     _ => throw new QueryPlanException($"operator '{be.Operator}' not setup for binding yet"),
                 };
             }

@@ -205,6 +205,20 @@ public class ExecutionTest
         result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
     }
 
+    [TestCase("CategoricalString like '%i%'", new[] { "bird", "fish", "rabbit" })]
+    [TestCase("CategoricalString like '%cat%'", new[] { "cat" })]
+    [TestCase("CategoricalString like 'c%t'", new[] { "cat" })]
+    [TestCase("CategoricalString like 'c%'", new[] { "cat" })]
+    [TestCase("CategoricalString like '%t'", new[] { "cat", "rabbit" })]
+    [TestCase("CategoricalString like 'cat'", new[] { "cat" })]
+    [TestCase("CategoricalString like 'na'", new string[] { })]
+    public void Like_StringExpressions(string expr, string[] matches)
+    {
+        var result = Query($"select distinct CategoricalString from table where {expr};").AsRowList();
+        var values = result.Select(r => r.Values.Single()).ToList();
+        values.Should().BeEquivalentTo(matches);
+    }
+
     [Test]
     public void GroupBy()
     {

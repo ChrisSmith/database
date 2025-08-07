@@ -190,6 +190,10 @@ public class FunctionRegistry
         {
             { DataType.Bool, typeof(LogicalNot) },
         }));
+        _funcs.Add("like", new("like", 2, new()
+        {
+            { DataType.String, typeof(DynamicLike) },
+        }));
     }
 
     [Pure]

@@ -368,7 +368,7 @@ public class Parser
     private BaseExpression ParseEquality()
     {
         var plus = ParsePlusMinus();
-        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
+        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, LIKE))
         {
             var right = ParseEquality();
             return new BinaryExpression(token.TokenType, token.Lexeme, plus, right);

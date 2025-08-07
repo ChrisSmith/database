@@ -43,6 +43,7 @@ public enum TokenType
     BETWEEN,
     IS,
     NOT,
+    LIKE,
     IDENTIFIER,
     STRING,
     NUMBER,
