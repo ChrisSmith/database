@@ -240,6 +240,45 @@ public class ExecutionTest
         });
     }
 
+    [Test]
+    public void GroupBy_String()
+    {
+        var result = Query(@$"
+            select CategoricalString, count(*) as count
+            from table
+            group by CategoricalString
+            order by CategoricalString
+            ;
+        ").AsRowList();
+
+        var values = result.Select(r => new Tuple<string, int>((string)r.Values[0], (int)r.Values[1])).ToList();
+        values.Should().HaveCount(5);
+        values.Should().BeEquivalentTo(new List<Tuple<string, int>>
+        {
+            new ("dog", 20101),
+            new ("fish", 19933),
+            new ("rabbit", 20017),
+            new ("cat", 19852),
+            new ("bird", 20097),
+        });
+    }
+
+    [Test]
+    public void GroupBy_Broken()
+    {
+        // _options.LogicalOptimization = false;
+        // _options.CostBasedOptimization = false;
+        var result = Query(@$"
+select
+    n_name
+from nation
+join region
+    on n_regionkey = r_regionkey
+where r_name = 'ASIA'
+group by n_name
+;");
+    }
+
     [TestCase("order by Id", false)]
     [TestCase("order by Id asc", false)]
     [TestCase("order by Id desc", true)]
