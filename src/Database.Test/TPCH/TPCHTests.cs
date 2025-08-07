@@ -30,9 +30,14 @@ public partial class TPCHTests
         var statement = parser.Parse();
 
         var it = new Interpreter(_bufferPool);
-        var planner = new QueryPlanner(_catalog, _bufferPool);
+        var planner = new QueryPlanner(_options, _catalog, _bufferPool);
         var plan = planner.CreatePlan(statement.Statement);
         var result = it.Execute(plan).ToList();
         return result;
+    }
+
+    protected string ReadQuery(string name)
+    {
+        return File.ReadAllText($"TPCH/Queries/{name}");
     }
 }
