@@ -205,7 +205,7 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
     var statement = parser.Parse();
     var it = new Interpreter(bufferPool);
     var optimizer = new QueryOptimizer(config, new ExpressionBinder(bufferPool, new FunctionRegistry()));
-    var explainer = new ExplainQuery(IncludeOutputColumns: false);
+    var explainer = new ExplainQuery(config);
     var physicalPlanner = new PhysicalPlanner(config, catalog, bufferPool);
     var costBasedOptimizer = new CostBasedOptimizer(config, physicalPlanner);
 

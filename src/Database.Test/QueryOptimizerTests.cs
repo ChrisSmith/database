@@ -26,7 +26,7 @@ public class QueryOptimizerTests
         _bufferPool = new ParquetPool();
         _catalog = new Catalog(_bufferPool);
         _optimizer = new QueryOptimizer(_options, new ExpressionBinder(_bufferPool, new FunctionRegistry()));
-        _explain = new ExplainQuery();
+        _explain = new ExplainQuery(_options);
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 

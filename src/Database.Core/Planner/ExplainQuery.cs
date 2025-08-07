@@ -1,10 +1,11 @@
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 using Database.Core.Operations;
+using Database.Core.Options;
 
 namespace Database.Core.Planner;
 
-public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString = "  ")
+public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 {
     public string Explain(LogicalPlan plan)
     {
@@ -107,7 +108,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
 
     private void WriteOutputColumns(IReadOnlyList<ColumnSchema> columns, StringWriter writer)
     {
-        if (!IncludeOutputColumns)
+        if (!options.ExplainIncludeOutputColumns)
         {
             return;
         }

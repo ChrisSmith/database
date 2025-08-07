@@ -157,6 +157,11 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
 
     private LogicalPlan OptimizeJoin(Join join, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
+        if (!config.OptJoin)
+        {
+            return join;
+        }
+
         return join with
         {
             Left = Optimize(join.Left, parents, context),
@@ -226,6 +231,14 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
         [NotNullWhen(true)] out BaseExpression? left,
         [NotNullWhen(true)] out BaseExpression? right)
     {
+        left = null;
+        right = null;
+
+        if (!config.OptSplitPredicates)
+        {
+            return false;
+        }
+
         if (predicate is BinaryExpression { Operator: TokenType.AND } b)
         {
             left = b.Left;
@@ -233,8 +246,6 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
             return true;
         }
 
-        left = null;
-        right = null;
         return false;
     }
 
@@ -245,6 +256,11 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
         [NotNullWhen(true)] out LogicalPlan? updated)
     {
         updated = null;
+
+        if (!config.OptPushDownFilter)
+        {
+            return false;
+        }
 
         if (plan is Scan scan)
         {
@@ -343,6 +359,11 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
     {
         usedColumns = null;
         if (scan.Projection || scan.OutputSchema.Count == 1 || parents.Count <= 1)
+        {
+            return false;
+        }
+
+        if (!config.OptProjectionPushDown)
         {
             return false;
         }
