@@ -183,13 +183,15 @@ public record HashJoinOperator(
     private Array FilterArray(Array source, Type type, RowRef?[] ids, int size)
     {
         var target = Array.CreateInstance(type, size);
-        for (var i = 0; i < size; i++)
+        var j = 0;
+        for (var i = 0; i < ids.Length; i++)
         {
             if (ids[i] == null)
             {
                 continue;
             }
-            target.SetValue(source.GetValue(i), i);
+            target.SetValue(source.GetValue(i), j);
+            j++;
         }
         return target;
     }

@@ -254,7 +254,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
     private IOperation CreateJoin(Join join, IOperation left, IOperation right, BindContext context)
     {
-        var inputColumns = join.OutputSchema;
+        var inputColumns = QueryPlanner.ExtendSchema(left.Columns, right.Columns);
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
