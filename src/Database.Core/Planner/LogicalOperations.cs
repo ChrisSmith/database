@@ -54,11 +54,10 @@ public record Join(
 public record Aggregate(
     LogicalPlan Input,
     IReadOnlyList<BaseExpression> GroupBy,
-    IReadOnlyList<BaseExpression> Aggregates,
-    IReadOnlyList<ColumnSchema> OutputColumns
+    IReadOnlyList<BaseExpression> Aggregates
     ) : LogicalPlan
 {
-    public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+    public override IReadOnlyList<ColumnSchema> OutputSchema => QueryPlanner.SchemaFromExpressions(Aggregates);
 }
 
 

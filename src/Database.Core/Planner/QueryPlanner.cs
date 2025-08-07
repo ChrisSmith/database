@@ -61,7 +61,7 @@ public class QueryPlanner
         {
             var groupingExprs = _binder.Bind(select.Group?.Expressions ?? [], plan.OutputSchema);
             // TODO if the groupings are not in the expressions, add them
-            plan = new Aggregate(plan, groupingExprs, expressions, SchemaFromExpressions(expressions));
+            plan = new Aggregate(plan, groupingExprs, expressions);
             expressions = RemoveAggregatesFromExpressions(expressions);
             expressions = _binder.Bind(expressions, plan.OutputSchema);
         }
@@ -89,7 +89,7 @@ public class QueryPlanner
         return plan;
     }
 
-    private IReadOnlyList<ColumnSchema> SchemaFromExpressions(IReadOnlyList<BaseExpression> expressions)
+    public static IReadOnlyList<ColumnSchema> SchemaFromExpressions(IReadOnlyList<BaseExpression> expressions)
     {
         var schema = new List<ColumnSchema>(expressions.Count);
         foreach (var expr in expressions)
