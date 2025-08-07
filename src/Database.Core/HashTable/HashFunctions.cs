@@ -201,11 +201,10 @@ public static class HashFunctions
 
     public static int[] Hash(List<Array> columns, bool[] mask)
     {
-        // TODO mask?
-
         if (columns.Count == 1)
         {
             var column = columns[0];
+            column = FillArrayIfNullableType(column, mask);
             return HashSingleValues(column);
         }
 
@@ -215,8 +214,26 @@ public static class HashFunctions
         for (var c = 1; c < columns.Count; c++)
         {
             var column = columns[c];
+            column = FillArrayIfNullableType(column, mask);
             HashAndMix(column, hashes);
         }
         return AvalancheLowInt(hashes);
     }
+
+    private static Array FillArrayIfNullableType(Array column, bool[] mask)
+    {
+        if (column is string[] input)
+        {
+            var result = new string[column.Length];
+            for (var i = 0; i < column.Length; i++)
+            {
+                result[i] = mask[i] ? input[i] : string.Empty;
+            }
+
+            return result;
+        }
+
+        return column;
+    }
+
 }
