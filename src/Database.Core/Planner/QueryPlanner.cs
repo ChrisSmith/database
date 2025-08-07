@@ -114,18 +114,18 @@ public class QueryPlanner
 
     private LogicalPlan BindRelations(BindContext context, SelectStatement select)
     {
-        var firstTable = (TableStatement)select.From.TableStatements.First();
-        LogicalPlan plan = CreateScanForTable(firstTable);
-
-        // TODO Projection Push Down
-        // tableColumns = FilterToUsedColumns(select, tableColumns);
-
-        if (select.From.TableStatements.Count > 1)
+        var allScans = new List<Scan>();
+        foreach (var table in select.From.TableStatements)
         {
-            foreach (var table in select.From.TableStatements.Skip(1))
+            allScans.Add(CreateScanForTable((TableStatement)table));
+        }
+
+        LogicalPlan plan = allScans.First();
+
+        if (allScans.Count > 1)
+        {
+            foreach (var right in allScans.Skip(1))
             {
-                var tableStmt = (TableStatement)table;
-                var right = CreateScanForTable(tableStmt);
                 plan = new Join(
                     plan,
                     right,
@@ -138,17 +138,26 @@ public class QueryPlanner
         // let's see if they are helping us with the join type
         if (select.From.JoinStatements != null)
         {
-            // create a left deep tree
+            var finalSchema = plan.OutputSchema;
+
+            var joinScans = new List<Tuple<JoinStatement, Scan>>();
             foreach (var join in select.From.JoinStatements)
             {
                 var tableStmt = (TableStatement)join.Table;
-                var right = CreateScanForTable(tableStmt);
+                var scan = CreateScanForTable(tableStmt);
+                finalSchema = ExtendSchema(finalSchema, scan.OutputSchema);
+                joinScans.Add(new(join, scan));
+            }
+
+            foreach (var (joinStmt, right) in joinScans)
+            {
+                var constraint = _binder.Bind(context, joinStmt.JoinConstraint, finalSchema);
                 plan = new Join(
                     plan,
                     right,
-                    join.JoinType,
-                    join.JoinConstraint
-                    );
+                    joinStmt.JoinType,
+                    constraint
+                );
             }
         }
 

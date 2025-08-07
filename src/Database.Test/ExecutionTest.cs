@@ -264,10 +264,8 @@ public class ExecutionTest
     }
 
     [Test]
-    public void GroupBy_Broken()
+    public void GroupBy_WithPushDownFilter()
     {
-        // _options.LogicalOptimization = false;
-        // _options.CostBasedOptimization = false;
         var result = Query(@$"
 select
     n_name
@@ -276,7 +274,16 @@ join region
     on n_regionkey = r_regionkey
 where r_name = 'ASIA'
 group by n_name
-;");
+order by n_name
+;").AsRowList();
+        var values = result.Select(r => r.Values[0]).ToList();
+        values.Should().BeEquivalentTo([
+            "CHINA",
+            "INDONESIA",
+            "VIETNAM",
+            "JAPAN",
+            "INDIA"
+        ]);
     }
 
     [TestCase("order by Id", false)]
