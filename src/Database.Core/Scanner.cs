@@ -38,6 +38,7 @@ public class Scanner
         {"between", BETWEEN},
         {"is", IS},
         {"not", NOT},
+        {"like", LIKE},
         {"join", JOIN},
         {"left", LEFT},
         {"right", RIGHT},
