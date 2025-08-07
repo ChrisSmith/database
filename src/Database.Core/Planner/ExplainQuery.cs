@@ -39,7 +39,7 @@ public class ExplainQuery(bool IncludeOutputColumns = true, string IdentString =
         if (plan is Aggregate aggregate)
         {
             Write($"Agg({Expressions(aggregate.Aggregates)}) group by ({Expressions(aggregate.GroupBy)})", writer, ident);
-            WriteOutputColumns(aggregate.OutputColumns, writer);
+            WriteOutputColumns(aggregate.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(aggregate.Input, writer, ident + 1);
             return;
