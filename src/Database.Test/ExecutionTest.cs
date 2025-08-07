@@ -3,6 +3,7 @@ using Database.Core;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Options;
 using Database.Core.Planner;
 using FluentAssertions;
 
@@ -12,6 +13,7 @@ public class ExecutionTest
 {
     private ParquetPool _bufferPool;
     private Catalog _catalog;
+    private ConfigOptions _options;
 
     [OneTimeSetUp]
     public void OneTimeSetup()
@@ -29,7 +31,7 @@ public class ExecutionTest
         var statement = parser.Parse();
 
         var it = new Interpreter(_bufferPool);
-        var planner = new QueryPlanner(_catalog, _bufferPool);
+        var planner = new QueryPlanner(_options, _catalog, _bufferPool);
         var plan = planner.CreatePlan(statement.Statement);
         var result = it.Execute(plan).ToList();
         return result;

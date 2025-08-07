@@ -1,9 +1,10 @@
 using Database.Core.Expressions;
 using Database.Core.Operations;
+using Database.Core.Options;
 
 namespace Database.Core.Planner;
 
-public class CostBasedOptimizer(PhysicalPlanner physicalPlanner)
+public class CostBasedOptimizer(ConfigOptions config, PhysicalPlanner physicalPlanner)
 {
     public IOperation OptimizeAndLower(LogicalPlan plan, BindContext context)
     {
@@ -11,8 +12,13 @@ public class CostBasedOptimizer(PhysicalPlanner physicalPlanner)
         return physicalPlanner.CreatePhysicalPlan(bestPlan, context);
     }
 
-    public LogicalPlan SearchForBestPlan(LogicalPlan plan, BindContext context)
+    private LogicalPlan SearchForBestPlan(LogicalPlan plan, BindContext context)
     {
+        if (!config.CostBasedOptimization)
+        {
+            return plan;
+        }
+
         var bestPlan = plan switch
         {
             Filter filter => OptimizeFilter(filter, context),

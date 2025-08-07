@@ -3,6 +3,7 @@ using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Functions;
+using Database.Core.Options;
 using Database.Core.Planner;
 using FluentAssertions;
 using static Database.Test.TestUtils;
@@ -16,13 +17,15 @@ public class QueryOptimizerTests
     private QueryOptimizer _optimizer;
     private ExplainQuery _explain;
     private BindContext _context;
+    private ConfigOptions  _options;
 
     [OneTimeSetUp]
     public void Setup()
     {
+        _options = new ConfigOptions();
         _bufferPool = new ParquetPool();
         _catalog = new Catalog(_bufferPool);
-        _optimizer = new QueryOptimizer(new ExpressionBinder(_bufferPool, new FunctionRegistry()));
+        _optimizer = new QueryOptimizer(_options, new ExpressionBinder(_bufferPool, new FunctionRegistry()));
         _explain = new ExplainQuery();
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
@@ -45,7 +48,7 @@ public class QueryOptimizerTests
         var statement = parser.Parse();
 
         var it = new Interpreter(_bufferPool);
-        var planner = new QueryPlanner(_catalog, _bufferPool);
+        var planner = new QueryPlanner(_options, _catalog, _bufferPool);
         _context = new BindContext();
         return planner.CreateLogicalPlan(statement.Statement, _context);
     }

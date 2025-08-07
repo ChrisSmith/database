@@ -2,6 +2,7 @@ using Database.Core;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Options;
 using Database.Core.Planner;
 
 namespace Database.Test.TPCH;
@@ -10,10 +11,12 @@ public partial class TPCHTests
 {
     private Catalog _catalog;
     private ParquetPool _bufferPool;
+    private ConfigOptions _options;
 
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
+        _options = new ConfigOptions();
         _bufferPool = new ParquetPool();
         _catalog = new Catalog(_bufferPool);
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
