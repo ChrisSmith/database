@@ -1,3 +1,4 @@
+using System.Numerics;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
@@ -151,7 +152,7 @@ public record HashJoinOperator(
         }
 
         var cost = EstimateCost();
-        var estimatedRows = int.Max((int)long.Min(cost.OutputRows, int.MaxValue), 7);
+        var estimatedRows = checked((int)BigInteger.Max(BigInteger.Min(cost.OutputRows, int.MaxValue), 7));
         var keyTypes = ProbeKeys.Select(p => p.BoundDataType!.Value.ClrTypeFromDataType()).ToArray();
         var hashTable = new HashTable<RowRef?>(keyTypes, size: estimatedRows);
 
@@ -197,7 +198,7 @@ public record HashJoinOperator(
     {
         var scanCost = ScanSource.EstimateCost();
         var probeCost = ProbeSource.EstimateCost();
-        var outputRows = Math.Max(scanCost.OutputRows, probeCost.OutputRows); // TODO selectivity estimation/multiple
+        var outputRows = BigInteger.Max(scanCost.OutputRows, probeCost.OutputRows); // TODO selectivity estimation/multiple
         var hashCreation = probeCost.OutputRows * ProbeKeys.Count * 2;
 
         return scanCost.Add(new Cost(

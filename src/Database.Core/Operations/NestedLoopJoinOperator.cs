@@ -146,7 +146,7 @@ public record NestedLoopJoinOperator(
         var leftSource = LeftSource.EstimateCost();
         var rightSource = RightSource.EstimateCost();
 
-        var outputRows = checked(leftSource.OutputRows * rightSource.OutputRows);
+        var outputRows = leftSource.OutputRows * rightSource.OutputRows;
 
         return leftSource.Add(new Cost(
             OutputRows: outputRows,
