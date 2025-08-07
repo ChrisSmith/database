@@ -345,7 +345,7 @@ public class BindContext
     {
         foreach (var column in table.Columns)
         {
-            var symbol = new BindSymbol(column.Name, column.DataType, column.ColumnRef, 0);
+            var symbol = new BindSymbol(column.Name, table.Name, column.DataType, column.ColumnRef, 0);
             BoundSymbols[column.Name] = symbol;
             BoundSymbols[$"{table.Name}.{column.Name}"] = symbol;
             if (tableStmtAlias != null)
@@ -369,10 +369,13 @@ public class BindContext
     }
 }
 
-[DebuggerDisplay("{Name} {DataType} {ColumnRef} {RefCount}")]
-public class BindSymbol(string name, DataType dataType, ColumnRef columnRef, int refCount)
+[DebuggerDisplay("{TableName}.{Name} {DataType} {ColumnRef} {RefCount}")]
+public class BindSymbol(string name, string tableName, DataType dataType, ColumnRef columnRef, int refCount)
 {
     public string Name { get; } = name;
+
+    public string TableName { get; } = tableName;
+
     public DataType DataType { get; } = dataType;
     public ColumnRef ColumnRef { get; } = columnRef;
     public int RefCount { get; set; } = refCount;

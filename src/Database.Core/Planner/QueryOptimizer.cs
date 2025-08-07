@@ -15,7 +15,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
         while (iters < maxIters)
         {
             iters++;
-            updated = Optimize(previous, context);
+            updated = Optimize(previous, [], context);
             if (updated.Equals(previous))
             {
                 break;
@@ -35,7 +35,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
         while (iters < maxIters)
         {
             iters++;
-            updated = Optimize(previous, context);
+            updated = Optimize(previous, [], context);
             if (updated.Equals(previous))
             {
                 break;
@@ -48,101 +48,110 @@ public class QueryOptimizer(ExpressionBinder _binder)
     }
 
 
-    private LogicalPlan Optimize(LogicalPlan plan, BindContext context)
+    private LogicalPlan Optimize(LogicalPlan plan, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
+        parents = [.. parents, plan];
         if (plan is Filter filter)
         {
-            return OptimizeFilter(filter, context);
+            return OptimizeFilter(filter, parents, context);
         }
 
         if (plan is Join join)
         {
-            return OptimizeJoin(join, context, context);
+            return OptimizeJoin(join, parents, context);
         }
 
         if (plan is Aggregate aggregate)
         {
-            return OptimizeAggregate(aggregate, context);
+            return OptimizeAggregate(aggregate, parents, context);
         }
 
         if (plan is Projection project)
         {
-            return OptimizeProjection(project, context);
+            return OptimizeProjection(project, parents, context);
         }
 
         if (plan is Distinct distinct)
         {
-            return OptimizeDistinct(distinct, context);
+            return OptimizeDistinct(distinct, parents, context);
         }
 
         if (plan is Sort sort)
         {
-            return OptimizeSort(sort, context);
+            return OptimizeSort(sort, parents, context);
         }
 
         if (plan is Limit limit)
         {
-            return OptimizeLimit(limit, context);
+            return OptimizeLimit(limit, parents, context);
         }
 
         if (plan is Scan scan)
         {
+            if (ShouldAddProjectionPushDown(scan, parents, context, out var usedColumns))
+            {
+                return scan with
+                {
+                    Projection = true,
+                    OutputColumns = usedColumns,
+                };
+            }
             return scan;
         }
 
         throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer");
     }
 
-    private LogicalPlan OptimizeLimit(Limit limit, BindContext context)
+    private LogicalPlan OptimizeLimit(Limit limit, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
         return limit with
         {
-            Input = Optimize(limit.Input, context),
+            Input = Optimize(limit.Input, parents, context),
         };
     }
 
-    private LogicalPlan OptimizeSort(Sort sort, BindContext context)
+    private LogicalPlan OptimizeSort(Sort sort, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
         return sort with
         {
-            Input = Optimize(sort.Input, context),
+            Input = Optimize(sort.Input, parents, context),
         };
     }
 
-    private LogicalPlan OptimizeDistinct(Distinct distinct, BindContext context)
+    private LogicalPlan OptimizeDistinct(Distinct distinct, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
         return distinct with
         {
-            Input = Optimize(distinct.Input, context),
+            Input = Optimize(distinct.Input, parents, context),
         };
     }
 
-    private LogicalPlan OptimizeAggregate(Aggregate aggregate, BindContext context)
+    private LogicalPlan OptimizeAggregate(Aggregate aggregate, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
         return aggregate with
         {
-            Input = Optimize(aggregate.Input, context),
+            Input = Optimize(aggregate.Input, parents, context),
         };
     }
 
-    private LogicalPlan OptimizeProjection(Projection project, BindContext context)
+    private LogicalPlan OptimizeProjection(Projection project, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
         return project with
         {
-            Input = Optimize(project.Input, context),
+            Input = Optimize(project.Input, parents, context),
         };
     }
 
-    private LogicalPlan OptimizeJoin(Join join, BindContext context, BindContext context1)
+    private LogicalPlan OptimizeJoin(Join join, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
         return join with
         {
-            Left = Optimize(join.Left, context),
-            Right = Optimize(join.Right, context1),
+            Left = Optimize(join.Left, parents, context),
+            Right = Optimize(join.Right, parents, context),
         };
     }
 
-    private LogicalPlan OptimizeFilter(Filter filter, BindContext context)
+    private LogicalPlan OptimizeFilter(Filter filter, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
         if (TrySplitPredicate(filter.Predicate, out var left, out var right))
         {
@@ -160,7 +169,7 @@ public class QueryOptimizer(ExpressionBinder _binder)
 
         return filter with
         {
-            Input = Optimize(filter.Input, context),
+            Input = Optimize(filter.Input, parents, context),
         };
     }
 
@@ -311,5 +320,41 @@ public class QueryOptimizer(ExpressionBinder _binder)
             boundExpression = null;
             return false;
         }
+    }
+
+    private bool ShouldAddProjectionPushDown(
+        Scan scan,
+        IReadOnlyList<LogicalPlan> parents,
+        BindContext context,
+        [NotNullWhen(true)] out IReadOnlyList<ColumnSchema>? usedColumns)
+    {
+        usedColumns = null;
+        if (scan.Projection || scan.OutputSchema.Count == 1 || parents.Count <= 1)
+        {
+            return false;
+        }
+
+        var result = new List<ColumnSchema>();
+        var allSymbols = context.BoundSymbols.Values.Distinct().ToList();
+        foreach (var col in scan.OutputSchema)
+        {
+            var matches = allSymbols.Where(s =>
+                s.ColumnRef == col.ColumnRef && s.TableName == scan.Table
+                ).ToList();
+            if (matches.Count > 0)
+            {
+                // Its fine, same table might be aliased in the query
+                // So we're just not going to prune as much as we could
+            }
+
+            var match = matches.First();
+            if (match.RefCount > 0)
+            {
+                result.Add(col);
+            }
+        }
+
+        usedColumns = result;
+        return true;
     }
 }

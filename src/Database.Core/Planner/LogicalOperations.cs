@@ -5,7 +5,7 @@ using Database.Core.Operations;
 
 namespace Database.Core.Planner;
 
-public abstract record LogicalPlan(IOperation? BoundOperation = null)
+public abstract record LogicalPlan()
 {
     public abstract IReadOnlyList<ColumnSchema> OutputSchema { get; }
 }
@@ -16,6 +16,7 @@ public record Scan(
     TableId TableId,
     BaseExpression? Filter,
     IReadOnlyList<ColumnSchema> OutputColumns,
+    bool Projection = false,
     string? Alias = null) : LogicalPlan
 {
     public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
