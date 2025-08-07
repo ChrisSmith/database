@@ -1,6 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Hashing;
-using System.Numerics;
+using System.Text;
 using Database.Core.Execution;
 
 namespace Database.Core.Functions;
@@ -14,61 +13,119 @@ public static class HashFunctions
         if (columns.Count == 1)
         {
             var column = columns[0].ValuesArray;
-            if (HashSingleValues(column, out var hash))
-            {
-                return hash;
-            }
-            // TODO apply xxhash to all single value and multi value columns
-        }
-
-        if (columns.Count == 2)
-        {
-            return HashTwo(columns[0], columns[1]);
+            return new Column<int>("hashes", HashSingleValues(column));
         }
 
         var rows = columns[0].Length;
-        var hashes = InitializeResult(rows);
+        var hashes = new ulong[rows];
 
         for (var c = 1; c < columns.Count; c++)
         {
             var column = columns[c];
-            for (var i = 0; i < rows; i++)
-            {
-                hashes[i] = hashes[i] * 31 + (column[i]?.GetHashCode() ?? 0);
-            }
+            HashAndMix(column.ValuesArray, hashes);
         }
 
-        return new Column<int>("hash", hashes);
+        var res = AvalancheLowInt(hashes);
+        return new Column<int>("hash", res);
     }
 
-    private static bool HashSingleValues(Array column, [NotNullWhen(true)] out Column<int>? hash)
+    private static int[] HashSingleValues(Array column)
     {
         if (column is int[] intColumn)
         {
-            hash = HashOne(intColumn, BitConverter.GetBytes);
-            return true;
+            return HashOne(intColumn, BitConverter.GetBytes);
         }
         if (column is long[] longColumn)
         {
-            hash = HashOne(longColumn, BitConverter.GetBytes);
-            return true;
+            return HashOne(longColumn, BitConverter.GetBytes);
         }
         if (column is float[] floatColumn)
         {
-            hash = HashOne(floatColumn, BitConverter.GetBytes);
-            return true;
+            return HashOne(floatColumn, BitConverter.GetBytes);
         }
         if (column is double[] doubleColumn)
         {
-            hash = HashOne(doubleColumn, BitConverter.GetBytes);
-            return true;
+            return HashOne(doubleColumn, BitConverter.GetBytes);
         }
-
-        hash = null;
-        return false;
+        if (column is decimal[] decimals)
+        {
+            return HashOne(decimals, DecimalToBytes);
+        }
+        if (column is string[] strings)
+        {
+            return HashOne(strings, Encoding.UTF8.GetBytes);
+        }
+        if (column is bool[] bools)
+        {
+            return HashOne(bools, BitConverter.GetBytes);
+        }
+        if (column is DateTime[] dates)
+        {
+            return HashOne(dates, d => BitConverter.GetBytes(d.Ticks));
+        }
+        if (column is TimeSpan[] ts)
+        {
+            return HashOne(ts, t => BitConverter.GetBytes(t.Ticks));
+        }
+        throw new NotImplementedException($"HashSingleValues not implemented for type {column.GetType().Name}");
     }
 
-    private static Column<int> HashOne<T>(T[] values, Func<T, byte[]> getBytes)
+    private static void HashAndMix(Array column, ulong[] hashes)
+    {
+        if (column is int[] intColumn)
+        {
+            HashAndMix(intColumn, BitConverter.GetBytes, hashes);
+            return;
+        }
+        if (column is long[] longColumn)
+        {
+            HashAndMix(longColumn, BitConverter.GetBytes, hashes);
+            return;
+        }
+        if (column is float[] floatColumn)
+        {
+            HashAndMix(floatColumn, BitConverter.GetBytes, hashes);
+            return;
+        }
+        if (column is double[] doubleColumn)
+        {
+            HashAndMix(doubleColumn, BitConverter.GetBytes, hashes);
+            return;
+        }
+        if (column is decimal[] decimals)
+        {
+            HashAndMix(decimals, DecimalToBytes, hashes);
+            return;
+        }
+        if (column is string[] strings)
+        {
+            HashAndMix(strings, Encoding.UTF8.GetBytes, hashes);
+            return;
+        }
+        if (column is bool[] bools)
+        {
+            HashAndMix(bools, BitConverter.GetBytes, hashes);
+            return;
+        }
+        if (column is DateTime[] dates)
+        {
+            HashAndMix(dates, d => BitConverter.GetBytes(d.Ticks), hashes);
+            return;
+        }
+        if (column is TimeSpan[] ts)
+        {
+            HashAndMix(ts, t => BitConverter.GetBytes(t.Ticks), hashes);
+            return;
+        }
+        throw new NotImplementedException($"HashAndMix not implemented for type {column.GetType().Name}");
+    }
+
+    private static byte[] DecimalToBytes(decimal d)
+    {
+        return BitConverter.GetBytes((double)Convert.ChangeType(d, typeof(double)));
+    }
+
+    private static int[] HashOne<T>(T[] values, Func<T, byte[]> getBytes)
     {
         var rows = values.Length;
         var hashes = new int[rows];
@@ -78,13 +135,29 @@ public static class HashFunctions
             var value = values[i];
 
             xxHash3.Reset();
-            var intAsBytes = getBytes(value);
-            xxHash3.Append(intAsBytes);
+            var asBytes = getBytes(value);
+            xxHash3.Append(asBytes);
             var hash = xxHash3.GetCurrentHashAsUInt64();
             hashes[i] = Xxh3LowInt(hash);
         }
 
-        return new Column<int>("hash", hashes);
+        return hashes;
+    }
+
+    private static void HashAndMix<T>(T[] values, Func<T, byte[]> getBytes, ulong[] hashes)
+    {
+        var rows = values.Length;
+
+        for (var i = 0; i < rows; i++)
+        {
+            var value = values[i];
+
+            xxHash3.Reset();
+            var asBytes = getBytes(value);
+            xxHash3.Append(asBytes);
+            var hash = xxHash3.GetCurrentHashAsUInt64();
+            hashes[i] = Mix2(hashes[i], hash);
+        }
     }
 
     private static int Xxh3LowInt(ulong hash)
@@ -92,59 +165,58 @@ public static class HashFunctions
         return (int)(hash & 0xFFFFFFFF);
     }
 
-    public static Column<int> HashTwo(IColumn one, IColumn two)
+    private static ulong Mix2(ulong a, ulong b)
     {
-        var rows = one.Length;
-        var hashes = InitializeResult(rows);
+        // Constants from XXH3 / Murmur
+        const ulong PRIME64_1 = 11400714785074694791ul;
+        const ulong PRIME64_2 = 14029467366897019727ul;
 
-        for (var i = 0; i < rows; i++)
-        {
-            var hash = hashes[i];
-            hash = hash * 31 + (one[i]?.GetHashCode() ?? 0);
-            hash = hash * 31 + (two[i]?.GetHashCode() ?? 0);
-            hashes[i] = hash;
-        }
-
-        return new Column<int>("hash", hashes);
+        ulong hash = a + PRIME64_1;
+        hash ^= b;
+        hash = (hash ^ (hash >> 33)) * PRIME64_2;
+        hash ^= hash >> 29;
+        return hash;
     }
 
-    public static int[] Hash(List<Array> keys, bool[] mask)
+    private static int[] AvalancheLowInt(ulong[] hashes)
     {
-        var rows = mask.Length;
-        var hashes = InitializeResult(rows);
-
-        if (keys.Count == 1)
+        var result = new int[hashes.Length];
+        for (var i = 0; i < hashes.Length; i++)
         {
-            // TODO mask?
-            if (HashSingleValues(keys[0], out var hash))
-            {
-                return hash.Values;
-            }
+            result[i] = Xxh3LowInt(Avalanche(hashes[i]));
         }
 
-        for (var i = 0; i < rows; i++)
-        {
-            if (!mask[i])
-            {
-                continue;
-            }
-
-            for (var c = 1; c < keys.Count; c++)
-            {
-                hashes[i] = hashes[i] * 31 + (keys[c].GetValue(i)?.GetHashCode() ?? 0);
-            }
-        }
-
-        return hashes;
+        return result;
     }
 
-    private static int[] InitializeResult(int rows)
+    private static ulong Avalanche(ulong h)
     {
-        var hashes = new int[rows];
-        for (var i = 0; i < rows; i++)
+        h ^= h >> 33;
+        h *= 0xff51afd7ed558ccd;
+        h ^= h >> 33;
+        h *= 0xc4ceb9fe1a85ec53;
+        h ^= h >> 33;
+        return h;
+    }
+
+    public static int[] Hash(List<Array> columns, bool[] mask)
+    {
+        // TODO mask?
+
+        if (columns.Count == 1)
         {
-            hashes[i] = 17;
+            var column = columns[0];
+            return HashSingleValues(column);
         }
-        return hashes;
+
+        var rows = columns[0].Length;
+        var hashes = new ulong[rows];
+
+        for (var c = 1; c < columns.Count; c++)
+        {
+            var column = columns[c];
+            HashAndMix(column, hashes);
+        }
+        return AvalancheLowInt(hashes);
     }
 }
