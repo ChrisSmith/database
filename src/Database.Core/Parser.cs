@@ -522,11 +522,40 @@ public class Parser
             return [new StarExpression()];
         }
 
+
         var arguments = new List<BaseExpression>();
-        do
+
+
+
+        if (!Check(RIGHT_PAREN))
         {
-            arguments.Add(ParseExpr());
-        } while (Match(COMMA));
+            // peek ahead to see if this is
+            // extract(year from col)
+            if (Check(FROM, offset: 1))
+            {
+                if (Match(STRING, out var str))
+                {
+                    arguments.Add(new StringLiteral(str.Lexeme));
+                }
+                else
+                {
+                    // An identifier here isn't a column, it's a special context aware word
+                    var ident = Consume(IDENTIFIER, "Expected identifier");
+                    arguments.Add(new StringLiteral(ident.Lexeme));
+                }
+                Consume(FROM, "Expected FROM");
+                arguments.Add(ParseExpr());
+            }
+            // TODO cast(x as y)
+            else
+            {
+                // foo(a, b)
+                do
+                {
+                    arguments.Add(ParseExpr());
+                } while (Match(COMMA));
+            }
+        }
 
         Consume(RIGHT_PAREN, "Expected ')'");
         return arguments.ToArray();

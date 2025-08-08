@@ -146,4 +146,17 @@ public record Between<T>() : BoolFunction, IFilterThreeColsThree<T>
     }
 }
 
+public record BetweenDateTime() : BoolFunction, IFilterThreeColsThree<DateTime>
+{
+    public bool[] Ok(DateTime[] value, DateTime[] lower, DateTime[] upper)
+    {
+        var result = new bool[value.Length];
+        for (var i = 0; i < value.Length; i++)
+        {
+            result[i] = lower[i] <= value[i] && value[i] <= upper[i];
+        }
+        return result;
+    }
+}
+
 #endregion

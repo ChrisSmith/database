@@ -437,4 +437,41 @@ order by n_name
             new(0, 0),
         });
     }
+
+    [Test]
+    public void TestExtract()
+    {
+        var result = Query(@$"
+            select
+                l_shipdate,
+                extract(year from l_shipdate) as l_year
+            from lineitem
+            order by l_extendedprice, l_orderkey
+            limit 3
+        ").AsRowList();
+
+        var values = result.Select(r => new Tuple<DateTime, int>((DateTime)r.Values[0], (int)r.Values[1])).ToList();
+        values.Should().BeEquivalentTo(new List<Tuple<DateTime, int>>
+        {
+            new(new DateTime(1998, 04, 28), 1998),
+            new(new DateTime(1997, 07, 02), 1997),
+            new(new DateTime(1993, 11, 05), 1993),
+        });
+    }
+
+    [Test]
+    public void TestBetweenDates()
+    {
+        var result = Query(@$"
+            select count(*) as count
+            from lineitem
+            where l_shipdate between date '1998-01-01' and date '1998-12-31'
+        ").AsRowList();
+
+        var values = result.Select(r => (int)r.Values[0]).ToList();
+        values.Should().BeEquivalentTo(new List<int>
+        {
+            686842
+        });
+    }
 }

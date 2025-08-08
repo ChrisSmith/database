@@ -43,7 +43,7 @@ public class ExpressionInterpreter
                 args[i] = Execute(fe.Args[i], rowGroup);
             }
 
-            return Execute(fe.BoundFunction!, args);
+            return Execute(fe, fe.BoundFunction!, args);
         }
 
         if (exp.BoundFunction is SelectFunction select)
@@ -247,6 +247,10 @@ public class ExpressionInterpreter
         {
             outputArray = ffts.Ok((string[])left.ValuesArray, (string[])right.ValuesArray);
         }
+        else if (fun is IFunctionTwo<string, DateTime, int> fftsti)
+        {
+            outputArray = fftsti.Execute((string[])left.ValuesArray, (DateTime[])right.ValuesArray);
+        }
         else
         {
             throw new NotImplementedException($"Function {fun.GetType().Name} not implemented");
@@ -306,8 +310,21 @@ public class ExpressionInterpreter
     }
 
 
-    public IColumn Execute(IFunction fun, IColumn[] args)
+    public IColumn Execute(BaseExpression expr, IFunction fun, IColumn[] args)
     {
+        if (args.Length == 1)
+        {
+            return Execute(expr, fun, args[0]);
+        }
+        if (args.Length == 2)
+        {
+            return Execute(expr, fun, args[0], args[1]);
+        }
+        if (args.Length == 3)
+        {
+            return Execute(expr, fun, args[0], args[1], args[2]);
+        }
+
         // TODO need generic Invoke capability on IFunction?
         throw new NotImplementedException();
 

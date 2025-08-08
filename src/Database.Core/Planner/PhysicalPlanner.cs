@@ -494,7 +494,10 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             {
                 if (!usedColumns.Contains(col.Name))
                 {
-                    mutExprssions.Add(new ColumnExpression(col.Name));
+                    var sourceTable = col.SourceTableAlias != ""
+                        ? col.SourceTableAlias
+                        : col.SourceTableName;
+                    mutExprssions.Add(new ColumnExpression(col.Name, sourceTable));
                 }
             }
             expressions = _binder.Bind(context, mutExprssions, input.Columns);
@@ -509,11 +512,23 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
         for (var i = 0; i < expressions.Count; i++)
         {
             var expr = expressions[i];
+            var tableName = projection.Alias;
+
+            // This is a pushdown projection, keep the original
+            // table name and aliases intact
+            if (projection.AppendExpressions)
+            {
+                if (expr is ColumnExpression e)
+                {
+                    tableName = e.Table;
+                }
+            }
+
             var newColumn = memTable.AddColumnToSchema(
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
-                projection.Alias ?? "",
-                projection.Alias ?? ""
+                tableName ?? "",
+                tableName ?? ""
                 );
 
             outputExpressions.Add(expr with
