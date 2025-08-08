@@ -64,7 +64,7 @@ public class Parser
                 limit = ParseLimit();
             }
 
-            return new SelectStatement(selectList, from, where, group, order, limit);
+            return new SelectStatement(selectList, from, where, group, order, limit, Alias: null);
         }
 
         throw new ParseException(Peek(), "Expected statement");
@@ -89,7 +89,7 @@ public class Parser
             {
                 continue;
             }
-            if (Check(HAVING, WINDOW, ORDER, LIMIT, UNION, INTERSECT, EXCEPT, SEMICOLON))
+            if (Check(HAVING, WINDOW, ORDER, LIMIT, UNION, INTERSECT, EXCEPT, SEMICOLON, RIGHT_PAREN))
             {
                 break;
             }
@@ -113,7 +113,7 @@ public class Parser
             {
                 continue;
             }
-            if (Check(LIMIT, SEMICOLON))
+            if (Check(LIMIT, SEMICOLON, RIGHT_PAREN))
             {
                 break;
             }
@@ -218,7 +218,16 @@ public class Parser
 
         if (Match(LEFT_PAREN))
         {
-            throw new NotImplementedException("subqueries are not implemented yet");
+            var nestedQuery = (SelectStatement)ParseStatement();
+            Consume(RIGHT_PAREN, "Expected ')'");
+
+            if (Match(AS) || Check(IDENTIFIER))
+            {
+                var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
+                return nestedQuery with { Alias = alias };
+            }
+
+            return nestedQuery;
         }
 
         throw new ParseException(Peek(), "Expected table or subquery");
