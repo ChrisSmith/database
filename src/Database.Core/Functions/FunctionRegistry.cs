@@ -138,6 +138,7 @@ public class FunctionRegistry
             { DataType.Float, typeof(Between<float>)},
             { DataType.Double, typeof(Between<double>)},
             { DataType.Decimal, typeof(Between<decimal>) },
+            { DataType.DateTime, typeof(BetweenDateTime) },
         }));
         _funcs.Add("cast_int", new("cast_int", 1, new()
         {
@@ -193,6 +194,10 @@ public class FunctionRegistry
         _funcs.Add("like", new("like", 2, new()
         {
             { DataType.String, typeof(DynamicLike) },
+        }));
+        _funcs.Add("extract", new("extract", 2, new()
+        {
+            { DataType.String, typeof(ExtractPart) },
         }));
     }
 
