@@ -36,6 +36,7 @@ public record Projection(
     LogicalPlan Input,
     IReadOnlyList<BaseExpression> Expressions,
     IReadOnlyList<ColumnSchema> OutputColumns,
+    string? Alias,
     bool AppendExpressions = false
 ) : LogicalPlan
 {
@@ -55,10 +56,11 @@ public record Join(
 public record Aggregate(
     LogicalPlan Input,
     IReadOnlyList<BaseExpression> GroupBy,
-    IReadOnlyList<BaseExpression> Aggregates
+    IReadOnlyList<BaseExpression> Aggregates,
+    string? Alias
     ) : LogicalPlan
 {
-    public override IReadOnlyList<ColumnSchema> OutputSchema => QueryPlanner.SchemaFromExpressions(Aggregates);
+    public override IReadOnlyList<ColumnSchema> OutputSchema => QueryPlanner.SchemaFromExpressions(Aggregates, Alias);
 }
 
 

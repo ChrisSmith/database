@@ -11,7 +11,8 @@ public static class QueryRewriter
     {
         if (statement.From.TableStatements.Any(t => t is not TableStatement))
         {
-            throw new QueryPlanException("Non table table statements are not supported yet.");
+            // TODO just skip star expansion for now
+            //throw new QueryPlanException("Non table table statements are not supported yet.");
         }
 
         var tablesStmts = statement

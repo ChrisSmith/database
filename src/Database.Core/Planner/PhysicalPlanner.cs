@@ -352,8 +352,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             var newColumn = memTable.AddColumnToSchema(
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
-                "",
-                "");
+                aggregate.Alias ?? "",
+                aggregate.Alias ?? "");
 
             outputExpressions.Add(expr with
             {
@@ -371,8 +371,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             var newColumn = memTable.AddColumnToSchema(
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
-                "",
-                ""
+                aggregate.Alias ?? "",
+                aggregate.Alias ?? ""
                 );
             outputExpressions.Add(expr with
             {
@@ -465,8 +465,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             var newColumn = memTable.AddColumnToSchema(
                 existingColumn.Name,
                 existingColumn.DataType,
-                "",
-                ""
+                existingColumn.SourceTableName,
+                existingColumn.SourceTableAlias
                 );
             outputColumns.Add(newColumn);
             outputColumnsRefs.Add(newColumn.ColumnRef);
@@ -512,8 +512,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             var newColumn = memTable.AddColumnToSchema(
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
-                "",
-                ""
+                projection.Alias ?? "",
+                projection.Alias ?? ""
                 );
 
             outputExpressions.Add(expr with

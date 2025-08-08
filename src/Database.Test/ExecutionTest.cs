@@ -387,7 +387,7 @@ order by n_name
                 where q.CategoricalString = 'cat'
                 group by CategoricalInt
             ) as foo
-            where foo.count > 0
+            where foo.count = 4009 -- catint 0
         ").AsRowList();
 
         var values = result.Select(r => (int)r.Values[0]).ToList();
