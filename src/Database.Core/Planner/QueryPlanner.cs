@@ -47,11 +47,11 @@ public class QueryPlanner
             // 1. duplicate any expression that is used by its alias in the where/groupby
             // 2. push down a projection to materialize it early, change the expression into a col ref
             (var extendedSchema, expressions, var forEval) =
-                ExtendedSchemaWithExpressions(context, plan.OutputSchema, expressions);
+                ExtendedSchemaWithExpressions(context, plan.OutputSchema, expressions, null);
 
             if (forEval.Any())
             {
-                plan = new Projection(plan, forEval, extendedSchema, AppendExpressions: true);
+                plan = new Projection(plan, forEval, extendedSchema, AppendExpressions: true, Alias: null);
                 expressions = _binder.Bind(context, expressions, plan.OutputSchema);
             }
             var where = _binder.Bind(context, select.Where, extendedSchema);
@@ -65,7 +65,7 @@ public class QueryPlanner
         {
             var groupingExprs = _binder.Bind(context, select.Group?.Expressions ?? [], plan.OutputSchema);
             // TODO if the groupings are not in the expressions, add them
-            plan = new Aggregate(plan, groupingExprs, expressions);
+            plan = new Aggregate(plan, groupingExprs, expressions, select.Alias);
             expressions = RemoveAggregatesFromExpressions(expressions);
             expressions = _binder.Bind(context, expressions, plan.OutputSchema);
         }
@@ -78,7 +78,11 @@ public class QueryPlanner
         }
 
         expressions = _binder.Bind(context, expressions, plan.OutputSchema);
-        plan = new Projection(plan, expressions, SchemaFromExpressions(expressions));
+        plan = new Projection(
+            plan,
+            expressions,
+            SchemaFromExpressions(expressions, select.Alias),
+            Alias: select.Alias);
 
         if (select.SelectList.Distinct)
         {
@@ -93,7 +97,9 @@ public class QueryPlanner
         return plan;
     }
 
-    public static IReadOnlyList<ColumnSchema> SchemaFromExpressions(IReadOnlyList<BaseExpression> expressions)
+    public static IReadOnlyList<ColumnSchema> SchemaFromExpressions(
+        IReadOnlyList<BaseExpression> expressions,
+        string? selectAlias)
     {
         var schema = new List<ColumnSchema>(expressions.Count);
         foreach (var expr in expressions)
@@ -104,8 +110,8 @@ public class QueryPlanner
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
                 expr.BoundFunction!.ReturnType.ClrTypeFromDataType(),
-                SourceTableName: "",
-                SourceTableAlias: ""
+                SourceTableName: selectAlias ?? "",
+                SourceTableAlias: selectAlias ?? ""
                 ));
         }
 
@@ -114,10 +120,23 @@ public class QueryPlanner
 
     private LogicalPlan BindRelations(BindContext context, SelectStatement select)
     {
-        var allScans = new List<Scan>();
+        var allScans = new List<LogicalPlan>();
         foreach (var table in select.From.TableStatements)
         {
-            allScans.Add(CreateScanForTable((TableStatement)table));
+            if (table is TableStatement tableStmt)
+            {
+                allScans.Add(CreateScanForTable(tableStmt));
+            }
+            else if (table is SelectStatement selectStmt)
+            {
+                // TODO I might need to move binding till after all base columns from all scans
+                // including nested queries have been placed into context
+                allScans.Add(CreateLogicalPlan(selectStmt, context));
+            }
+            else
+            {
+                throw new QueryPlanException($"Unknown table statement type '{table.GetType().Name}'. Cannot create query plan.");
+            }
         }
 
         LogicalPlan plan = allScans.First();
@@ -140,7 +159,7 @@ public class QueryPlanner
         {
             var finalSchema = plan.OutputSchema;
 
-            var joinScans = new List<Tuple<JoinStatement, Scan>>();
+            var joinScans = new List<Tuple<JoinStatement, LogicalPlan>>();
             foreach (var join in select.From.JoinStatements)
             {
                 var tableStmt = (TableStatement)join.Table;
@@ -201,7 +220,9 @@ public class QueryPlanner
         ) ExtendedSchemaWithExpressions(
         BindContext context,
         IReadOnlyList<ColumnSchema> inputColumns,
-        IReadOnlyList<BaseExpression> expressions)
+        IReadOnlyList<BaseExpression> expressions,
+        string? tableAlias
+        )
     {
         // If any projections require the computation of a new column, do it prior to the filters/aggregations
         // so that we can filter/aggregate on them too
@@ -231,8 +252,8 @@ public class QueryPlanner
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
                 expr.BoundFunction!.ReturnType.ClrTypeFromDataType(),
-                SourceTableName: "",
-                SourceTableAlias: ""
+                SourceTableName: tableAlias ?? "",
+                SourceTableAlias: tableAlias ?? ""
             );
             expr = expr with
             {
