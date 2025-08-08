@@ -375,4 +375,66 @@ order by n_name
             Query(@"select * from customer, orders where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and o_orderdate < date '1995-03-15' limit 100;").AsRowList();
         result.Should().HaveCount(100);
     }
+
+    [Test]
+    public void TestNestedQuery_InFrom()
+    {
+        var result = Query(@$"
+            select count(*) as count
+            from (
+                select CategoricalInt, count(*) as count
+                from table q
+                where q.CategoricalString = 'cat'
+                group by CategoricalInt
+            ) as foo
+            where foo.count > 0
+        ").AsRowList();
+
+        var values = result.Select(r => (int)r.Values[0]).ToList();
+        values.Should().BeEquivalentTo(new List<int>
+        {
+            1,
+        });
+    }
+
+    [Test]
+    public void TestNestedQuery_UnCorrelated()
+    {
+        var result = Query(@$"
+            select count(*) as count
+            from table t
+            where t.CategoricalInt = (
+                select max(CategoricalInt)
+                from table q
+                where q.CategoricalString = 'cat'
+            )
+        ").AsRowList();
+
+        var values = result.Select(r => (int)r.Values[0]).ToList();
+        values.Should().BeEquivalentTo(new List<int>
+        {
+            20114,
+        });
+    }
+
+    [Test]
+    public void TestNestedQuery_Correlated()
+    {
+        var result = Query(@$"
+            select t.CategoricalInt, count(*) as count
+            from table t
+            where t.CategoricalInt = (
+                select max(CategoricalInt)
+                from table q
+                where q.CategoricalString = t.CategoricalString
+            )
+            group by t.CategoricalInt
+        ").AsRowList();
+
+        var values = result.Select(r => new Tuple<int, int>((int)r.Values[0], (int)r.Values[1])).ToList();
+        values.Should().BeEquivalentTo(new List<Tuple<int, int>>
+        {
+            new(0, 0),
+        });
+    }
 }

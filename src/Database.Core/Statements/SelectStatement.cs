@@ -8,4 +8,6 @@ public record SelectStatement(
     BaseExpression? Where,
     GroupByStatement? Group,
     OrderByStatement? Order,
-    LimitStatement? Limit) : ITableStatement;
+    LimitStatement? Limit,
+    string? Alias
+    ) : ITableStatement;
