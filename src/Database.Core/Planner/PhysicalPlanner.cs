@@ -279,8 +279,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
             return new NestedLoopJoinOperator(
                 bufferPool,
-                right,
                 left,
+                right,
                 memTable,
                 expression,
                 outputColumns,
