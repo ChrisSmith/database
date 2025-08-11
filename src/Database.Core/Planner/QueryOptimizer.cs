@@ -325,6 +325,18 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
             }
         }
 
+        if (plan is Projection projection)
+        {
+            if (TryPushDownFilter(projection.Input, predicate, Append(parents, projection), out updated))
+            {
+                updated = projection with
+                {
+                    Input = updated,
+                };
+                return true;
+            }
+        }
+
         return false;
     }
 
