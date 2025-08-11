@@ -1,0 +1,28 @@
+﻿select
+    sum(l_extendedprice*l_discount) as revenue
+from
+    lineitem
+where
+        l_shipdate >= date '1994-01-01'
+    and l_shipdate < date '1994-01-01' + interval '1' year
+    and l_discount between 0.06 - 0.01 and 0.06 + 0.01
+    and l_quantity < 24;
+
+
+Original
+Project(revenue) -> .revenue
+ Agg(sum(l_extendedprice * l_discount)) group by () -> .revenue 
+    Filter(l_shipdate >= 01/01/1994 00:00:00 and l_shipdate < 01/01/1995 00:00:00 and l_discount between 0.06 - 0.01 and 0.06 + 0.01 and l_quantity < cast(24 as Decimal)) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment    
+       Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment       
+
+
+Optimized
+Project(revenue) -> .revenue
+ Agg(sum(l_extendedprice * l_discount)) group by () -> .revenue 
+    Filter(l_shipdate >= 01/01/1994 00:00:00) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment    
+       Filter(l_quantity < cast(24 as Decimal)) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment       
+          Filter(l_discount between 0.06 - 0.01 and 0.06 + 0.01) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
+             Filter(l_shipdate < 01/01/1995 00:00:00) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
+                Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
+
+

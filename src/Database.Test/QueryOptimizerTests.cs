@@ -104,4 +104,34 @@ public class QueryOptimizerTests
         return Verify(plan, Settings);
     }
 
+    [TestCase("query_01.sql")]
+    // [TestCase("query_02.sql")]
+    [TestCase("query_03.sql")]
+    // [TestCase("query_04.sql")]
+    [TestCase("query_05.sql")]
+    [TestCase("query_06.sql")]
+    [TestCase("query_07.sql")]
+    // [TestCase("query_08.sql")]
+    [TestCase("query_09.sql")]
+    [TestCase("query_10.sql")]
+    /*
+    [TestCase("query_11.sql")]
+    [TestCase("query_12.sql")]
+    [TestCase("query_13.sql")]
+    [TestCase("query_14.sql")]
+    [TestCase("query_15.sql")]
+    [TestCase("query_16.sql")]
+    [TestCase("query_17.sql")]
+    [TestCase("query_18.sql")]
+    [TestCase("query_19.sql")]
+    [TestCase("query_20.sql")]
+    [TestCase("query_21.sql")]
+    [TestCase("query_22.sql")]
+    */
+    public Task TPCH_Queries(string name)
+    {
+        var query = File.ReadAllText(Path.Combine("TPCH", "Queries", name));
+        var plan = OptimizeAndExplain(query);
+        return Verify(plan, Settings);
+    }
 }
