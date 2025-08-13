@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks.Dataflow;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 using Database.Core.Options;
+using Database.Core.Planner.QueryGraph;
 using BinaryExpression = Database.Core.Expressions.BinaryExpression;
 
 namespace Database.Core.Planner;
@@ -112,12 +114,126 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
             return scan;
         }
 
-        if (plan is JoinSet)
+        if (plan is JoinSet joinSet)
         {
-            return plan;
+            return ExpandJoinSet(joinSet, context);
         }
 
         throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer");
+    }
+
+    private LogicalPlan ExpandJoinSet(JoinSet joinSet, BindContext context)
+    {
+        var groups = new List<List<Tuple<JoinedRelation, BinaryEdge>>>();
+        var queue = new Queue<JoinedRelation>(joinSet.Relations.Where(r => r.JoinType == JoinType.Inner).ToList());
+        var noMatches = new List<JoinedRelation>();
+
+        var binaryEdges = joinSet.Edges.Where(e => e is BinaryEdge).Cast<BinaryEdge>().ToList();
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (groups.Count == 0)
+            {
+                groups.Add(new List<Tuple<JoinedRelation, BinaryEdge>>
+                {
+                    new Tuple<JoinedRelation, BinaryEdge>(current, null!)
+                });
+                continue;
+            }
+
+
+            var found = false;
+            foreach (var edge in binaryEdges.Where(e => current.Name == e.One || current.Name == e.Two))
+            {
+                var other = edge.One == current.Name ? edge.Two : edge.One;
+
+                foreach (var group in groups)
+                {
+                    if (group.Any(g => g.Item1.Name == other))
+                    {
+                        // TODO this basic greed algo can be improved
+                        group.Add(new Tuple<JoinedRelation, BinaryEdge>(current, edge));
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                {
+                    break;
+                }
+            }
+
+            if (found)
+            {
+                foreach (var m in noMatches)
+                {
+                    queue.Enqueue(m);
+                }
+                noMatches.Clear();
+            }
+            else
+            {
+                if (queue.Count == 0)
+                {
+                    groups.Add([new Tuple<JoinedRelation, BinaryEdge>(current, null!)]);
+                    foreach (var m in noMatches)
+                    {
+                        queue.Enqueue(m);
+                    }
+                    noMatches.Clear();
+                }
+                else
+                {
+                    noMatches.Add(current);
+                }
+            }
+        }
+
+
+        if (joinSet.Relations.Any(r => r.JoinType != JoinType.Inner))
+        {
+            throw new NotImplementedException("need to implement cross joins");
+        }
+
+
+        var detachedPlans = new List<LogicalPlan>();
+        foreach (var group in groups)
+        {
+            var plan = group.First().Item1.Plan;
+            foreach (var name in group.Skip(1))
+            {
+                plan = new Join(plan,
+                    name.Item1.Plan,
+                    name.Item1.JoinType,
+                    name.Item2.Expression);
+            }
+            detachedPlans.Add(plan);
+        }
+
+        var root = detachedPlans[0];
+        for (var i = 1; i < detachedPlans.Count; i++)
+        {
+            root = new Join(root, detachedPlans[i], JoinType.Cross, null!);
+        }
+        root = AddFilters(root);
+        return root;
+
+        LogicalPlan AddFilters(LogicalPlan r)
+        {
+            foreach (var filter in joinSet.Filters)
+            {
+                r = new Filter(r, filter);
+            }
+
+            var usedEdges = groups.SelectMany(g => g.Skip(1).Select(t => t.Item2)).ToHashSet();
+            var unusedEdges = joinSet.Edges.Where(e => !usedEdges.Contains(e)).ToList();
+            foreach (var edge in unusedEdges)
+            {
+                r = new Filter(r, edge.Expression);
+            }
+            return r;
+        }
     }
 
     private LogicalPlan OptimizeLimit(Limit limit, IReadOnlyList<LogicalPlan> parents, BindContext context)
