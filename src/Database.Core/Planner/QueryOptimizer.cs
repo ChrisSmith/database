@@ -152,7 +152,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
                 {
                     if (group.Any(g => g.Item1.Name == other))
                     {
-                        // TODO this basic greed algo can be improved
+                        // TODO this basic greedy algo can be improved
                         group.Add(new Tuple<JoinedRelation, BinaryEdge>(current, edge));
                         found = true;
                         break;
@@ -190,14 +190,13 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
             }
         }
 
+        var detachedPlans = new List<LogicalPlan>();
 
-        if (joinSet.Relations.Any(r => r.JoinType != JoinType.Inner))
+        foreach (var rel in joinSet.Relations.Where(r => r.JoinType != JoinType.Inner))
         {
-            throw new NotImplementedException("need to implement cross joins");
+            detachedPlans.Add(rel.Plan);
         }
 
-
-        var detachedPlans = new List<LogicalPlan>();
         foreach (var group in groups)
         {
             var plan = group.First().Item1.Plan;

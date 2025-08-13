@@ -2,11 +2,11 @@
 
 Original
 Project(Id) -> .Id
- Filter(Id = CategoricalInt and Id = 1) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString 
-    Join(Cross) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString    
-       Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString       
-    
-       Scan(table) -> t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString       
+ JoinSet(t1 (Cross) x t2 (Cross)) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString 
+ UnaryEdge { Expression = Id = CategoricalInt, Relation = t1 }
+ UnaryEdge { Expression = Id = 1, Relation = t1 }
+    Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString    
+    Scan(table) -> t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString    
 
 
 Optimized
