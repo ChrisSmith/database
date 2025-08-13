@@ -15,4 +15,13 @@ public record BinaryExpression(TokenType Operator, string OperatorLiteral, BaseE
     {
         return $"{Left} {OperatorLiteral} {Right}";
     }
+
+    protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
+    {
+        if (newChildren.Count != 2)
+        {
+            throw new ArgumentException($"BinaryExpression expects 2 children but received {newChildren.Count}.");
+        }
+        return this with { Left = newChildren[0], Right = newChildren[1] };
+    }
 }

@@ -322,6 +322,7 @@ order by n_name
     [TestCase("select Id + 1 as foo from table")]
     [TestCase("select count(Id), sum(Id) from table")]
     [TestCase("select sum(Id) from table")]
+    [TestCase("select sum(Id + 1) from table")]
     [TestCase("select sum(Id) as foo from table")]
     [TestCase("select CategoricalInt from table")]
     [TestCase("select distinct CategoricalInt from table")]

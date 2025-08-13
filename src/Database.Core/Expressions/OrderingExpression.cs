@@ -14,4 +14,13 @@ public record OrderingExpression(BaseExpression Expression, bool Ascending = tru
     {
         return $"{Expression} {(Ascending ? "ASC" : "DESC")}";
     }
+
+    protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
+    {
+        if (newChildren.Count != 1)
+        {
+            throw new ArgumentException($"OrderingExpression expects 1 child but received {newChildren.Count}.");
+        }
+        return this with { Expression = newChildren[0] };
+    }
 }

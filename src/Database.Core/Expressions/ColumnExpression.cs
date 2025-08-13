@@ -14,4 +14,9 @@ public record ColumnExpression(string Column, string? Table = null) : BaseExpres
     {
         return Column;
     }
+
+    protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
+    {
+        throw new NotSupportedException($"{GetType().Name} does not support replacing children.");
+    }
 }

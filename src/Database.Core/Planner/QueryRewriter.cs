@@ -65,4 +65,41 @@ public static class QueryRewriter
             SelectList = statement.SelectList with { Expressions = results },
         };
     }
+
+    public static SelectStatement DuplicateSelectExpressions(SelectStatement select)
+    {
+        if (select.Where == null)
+        {
+            return select;
+        }
+
+        // Allow aliases declared in the select expressions to be used in the where clause
+        // SELECT Id + 1 as foo FROM table where foo = 11;
+
+        var selectExpressions = select.SelectList.Expressions
+            .Where(e => e is not ColumnExpression)
+            .ToList();
+
+        var updatedWhere = select.Where.Rewrite(expr =>
+        {
+            if (expr.Alias == "")
+            {
+                return expr;
+            }
+
+            if (expr is ColumnExpression { Table: null } ce)
+            {
+                var matching = selectExpressions.SingleOrDefault(e => e.Alias == ce.Alias);
+                if (matching != null)
+                {
+                    // found a column being referenced with the same name as a complex select expression
+                    // duplicate it in the where clause
+                    return matching;
+                }
+            }
+            return expr;
+        });
+
+        return select with { Where = updatedWhere };
+    }
 }

@@ -11,4 +11,9 @@ public record StarExpression(string? Table = null) : BaseExpression
     {
         return "*";
     }
+
+    protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
+    {
+        throw new NotSupportedException($"{GetType().Name} does not support replacing children.");
+    }
 }

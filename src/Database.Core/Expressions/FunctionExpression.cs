@@ -19,4 +19,19 @@ public record FunctionExpression(string Name, params BaseExpression[] Args) : Ba
         var argsStr = string.Join<BaseExpression>(", ", Args);
         return $"{Name}({argsStr})";
     }
+
+    protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
+    {
+        if (newChildren.Count != Args.Length)
+        {
+            throw new ArgumentException($"FunctionExpression expects {Args.Length} children but received {newChildren.Count}.");
+        }
+
+        var newArgs = new BaseExpression[newChildren.Count];
+        for (var i = 0; i < newChildren.Count; i++)
+        {
+            newArgs[i] = newChildren[i];
+        }
+        return this with { Args = newArgs };
+    }
 }
