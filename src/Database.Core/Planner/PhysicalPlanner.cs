@@ -296,7 +296,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             {
                 throw new QueryPlanException($"Join condition must be a binary expression with EQUAL operator");
             }
-            if (b.Left is not ColumnExpression leftCol || b.Right is not ColumnExpression rightCol)
+            if (b.Left is not ColumnExpression leftExpr || b.Right is not ColumnExpression rightExpr)
             {
                 throw new QueryPlanException($"Join condition must be a simple binary expression with EQUAL operator" +
                                              $"on column expressions");
@@ -308,14 +308,13 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             BaseExpression probeExpr;
             try
             {
-                scanExpr = _binder.Bind(context, leftCol, left.Columns);
-                probeExpr = _binder.Bind(context, rightCol, right.Columns);
+                scanExpr = _binder.Bind(context, leftExpr, left.Columns);
+                probeExpr = _binder.Bind(context, rightExpr, right.Columns);
             }
             catch (QueryPlanException e) when (e.Message.Contains("was not found in list of available columns"))
             {
-                // scanExpr = _binder.Bind(leftCol, right.Columns);
-                // probeExpr = _binder.Bind(rightCol, left.Columns);
-                throw;
+                scanExpr = _binder.Bind(context, rightExpr, left.Columns);
+                probeExpr = _binder.Bind(context, leftExpr, right.Columns);
             }
 
             return new HashJoinOperator(
