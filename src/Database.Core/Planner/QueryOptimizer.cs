@@ -112,6 +112,11 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
             return scan;
         }
 
+        if (plan is JoinSet)
+        {
+            return plan;
+        }
+
         throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer");
     }
 

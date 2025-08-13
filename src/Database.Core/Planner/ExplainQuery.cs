@@ -91,6 +91,28 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
             return;
         }
 
+        if (plan is JoinSet joinSet)
+        {
+            var tables = string.Join(" x ", joinSet.Relations.Select(r => $"{r.Name} ({r.JoinType})"));
+            Write($"JoinSet({tables})", writer, ident);
+            WriteOutputColumns(joinSet.OutputSchema, writer);
+            WriteLine("", writer, ident);
+            foreach (var edge in joinSet.Edges)
+            {
+                WriteLine($"{edge}", writer, ident);
+            }
+            foreach (var f in joinSet.Filters)
+            {
+                WriteLine($"{f}", writer, ident);
+            }
+            foreach (var relation in joinSet.Relations)
+            {
+                Explain(relation.Plan, writer, ident + 1);
+            }
+
+            return;
+        }
+
         throw new NotImplementedException("Explain not implemented for this plan: {" + plan + "}");
     }
 

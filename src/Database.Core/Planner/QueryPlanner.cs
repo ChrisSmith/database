@@ -3,6 +3,7 @@ using Database.Core.Catalog;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 using Database.Core.Options;
+using Database.Core.Planner.QueryGraph;
 
 namespace Database.Core.Planner;
 
@@ -41,23 +42,23 @@ public class QueryPlanner
         var expressions = select.SelectList.Expressions;
         var plan = BindRelations(context, select);
 
-        if (select.Where != null)
-        {
-            // TODO I could probably do this at the logic rewrite stage
-            // 1. duplicate any expression that is used by its alias in the where/groupby
-            // 2. push down a projection to materialize it early, change the expression into a col ref
-            (var extendedSchema, expressions, var forEval) =
-                ExtendedSchemaWithExpressions(context, plan.OutputSchema, expressions, null);
-
-            if (forEval.Any())
-            {
-                plan = new Projection(plan, forEval, extendedSchema, AppendExpressions: true, Alias: null);
-                expressions = _binder.Bind(context, expressions, plan.OutputSchema);
-            }
-            var where = _binder.Bind(context, select.Where, extendedSchema);
-            plan = new Filter(plan, where);
-            expressions = _binder.Bind(context, expressions, plan.OutputSchema);
-        }
+        // if (select.Where != null)
+        // {
+        //     // TODO I could probably do this at the logic rewrite stage
+        //     // 1. duplicate any expression that is used by its alias in the where/groupby
+        //     // 2. push down a projection to materialize it early, change the expression into a col ref
+        //     (var extendedSchema, expressions, var forEval) =
+        //         ExtendedSchemaWithExpressions(context, plan.OutputSchema, expressions, null);
+        //
+        //     if (forEval.Any())
+        //     {
+        //         plan = new Projection(plan, forEval, extendedSchema, AppendExpressions: true, Alias: null);
+        //         expressions = _binder.Bind(context, expressions, plan.OutputSchema);
+        //     }
+        //     var where = _binder.Bind(context, select.Where, extendedSchema);
+        //     plan = new Filter(plan, where);
+        //     expressions = _binder.Bind(context, expressions, plan.OutputSchema);
+        // }
 
         // Must bind here before ExpressionContainsAggregate so there are functions to check
         expressions = _binder.Bind(context, expressions, plan.OutputSchema);
@@ -120,18 +121,30 @@ public class QueryPlanner
 
     private LogicalPlan BindRelations(BindContext context, SelectStatement select)
     {
-        var allScans = new List<LogicalPlan>();
+        List<BaseExpression> conjunctions = SplitConjunctions(select.Where);
+
+        var relations = new List<JoinedRelation>();
         foreach (var table in select.From.TableStatements)
         {
             if (table is TableStatement tableStmt)
             {
-                allScans.Add(CreateScanForTable(tableStmt));
+                relations.Add(new JoinedRelation(
+                    tableStmt.Alias ?? tableStmt.Table,
+                    CreateScanForTable(tableStmt),
+                    JoinType.Cross
+                    ));
             }
             else if (table is SelectStatement selectStmt)
             {
                 // TODO I might need to move binding till after all base columns from all scans
                 // including nested queries have been placed into context
-                allScans.Add(CreateLogicalPlan(selectStmt, context));
+
+                var name = selectStmt.Alias ?? throw new QueryPlanException($"expression '{selectStmt}' has no alias.");
+                relations.Add(new JoinedRelation(
+                    name,
+                    CreateLogicalPlan(selectStmt, context),
+                    JoinType.Cross
+                ));
             }
             else
             {
@@ -139,48 +152,107 @@ public class QueryPlanner
             }
         }
 
-        LogicalPlan plan = allScans.First();
-
-        if (allScans.Count > 1)
-        {
-            foreach (var right in allScans.Skip(1))
-            {
-                plan = new Join(
-                    plan,
-                    right,
-                    JoinType.Cross,
-                    null
-                );
-            }
-        }
-
         // let's see if they are helping us with the join type
         if (select.From.JoinStatements != null)
         {
-            var finalSchema = plan.OutputSchema;
-
-            var joinScans = new List<Tuple<JoinStatement, LogicalPlan>>();
             foreach (var join in select.From.JoinStatements)
             {
                 var tableStmt = (TableStatement)join.Table;
                 var scan = CreateScanForTable(tableStmt);
-                finalSchema = ExtendSchema(finalSchema, scan.OutputSchema);
-                joinScans.Add(new(join, scan));
-            }
+                relations.Add(new JoinedRelation(
+                    tableStmt.Alias ?? tableStmt.Table,
+                    scan,
+                    join.JoinType
+                    ));
 
-            foreach (var (joinStmt, right) in joinScans)
-            {
-                var constraint = _binder.Bind(context, joinStmt.JoinConstraint, finalSchema);
-                plan = new Join(
-                    plan,
-                    right,
-                    joinStmt.JoinType,
-                    constraint
-                );
+                // TODO I don't think this is right
+                // It would be better to split here and directly create edges based
+                // on the tables seen in the predicates?
+                conjunctions.AddRange(SplitConjunctions(join.JoinConstraint));
             }
         }
 
-        return plan;
+        var edges = new List<Edge>();
+        var filters = new List<BaseExpression>();
+
+        foreach (var expr in conjunctions)
+        {
+            var found = false;
+            for (var i = 0; i < relations.Count; i++)
+            {
+                var one = relations[i];
+                // TODO do this without exceptions
+                try
+                {
+                    _ = _binder.Bind(context, expr, one.Plan.OutputSchema);
+                    edges.Add(new UnaryEdge(one.Name, expr));
+                    found = true;
+                    break;
+                }
+                catch (QueryPlanException)
+                {
+                }
+            }
+
+            for (var i = 0; i < relations.Count && !found; i++)
+            {
+                var one = relations[i];
+                for (var j = 0; j < relations.Count && !found; j++)
+                {
+                    if (i == j) { continue; }
+                    var two = relations[j];
+
+                    try
+                    {
+                        var mergedSchema = ExtendSchema(one.Plan.OutputSchema, two.Plan.OutputSchema);
+                        _ = _binder.Bind(context, expr, mergedSchema);
+                        edges.Add(new BinaryEdge(one.Name, two.Name, expr));
+                        found = true;
+                        break;
+                    }
+                    catch (QueryPlanException)
+                    {
+                    }
+                }
+            }
+
+            if (!found)
+            {
+                filters.Add(expr);
+            }
+        }
+
+        // Convert any cross joins to inner joins if we have an equi-join
+        var equiJoins = edges.Where(edge => edge is BinaryEdge
+        {
+            Expression: BinaryExpression { Operator: TokenType.EQUAL }
+        })
+        .Cast<BinaryEdge>()
+        .ToList();
+
+        for (var i = 0; i < relations.Count; i++)
+        {
+            foreach (var edge in equiJoins)
+            {
+                var name = relations[i].Name;
+                if (name == edge.One || name == edge.Two)
+                {
+                    relations[i] = relations[i] with { JoinType = JoinType.Inner };
+                    break;
+                }
+            }
+        }
+
+        if (relations.Count == 1)
+        {
+            if (select.Where != null)
+            {
+                return new Filter(relations[0].Plan, select.Where);
+            }
+            return relations[0].Plan;
+        }
+
+        return new JoinSet(relations, edges, filters);
 
         Scan CreateScanForTable(TableStatement tableStmt)
         {
@@ -202,6 +274,32 @@ public class QueryPlanner
                 Projection: false,
                 Alias: tableStmt.Alias);
         }
+    }
+
+    private List<BaseExpression> SplitConjunctions(BaseExpression? expr)
+    {
+        if (expr == null)
+        {
+            return [];
+        }
+
+        var result = new List<BaseExpression>();
+        var queue = new Queue<BaseExpression>();
+        queue.Enqueue(expr);
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (current is BinaryExpression { Operator: TokenType.AND } binExpr)
+            {
+                queue.Enqueue(binExpr.Left);
+                queue.Enqueue(binExpr.Right);
+            }
+            else
+            {
+                result.Add(current);
+            }
+        }
+        return result;
     }
 
     public QueryPlan CreatePlan(IStatement statement)
@@ -348,6 +446,16 @@ public class QueryPlanner
         var result = new List<ColumnSchema>(left.Count + right.Count);
         result.AddRange(left);
         result.AddRange(right);
+        return result;
+    }
+
+    public static IReadOnlyList<ColumnSchema> GetCombinedOutputSchema(IEnumerable<LogicalPlan> relations)
+    {
+        var result = new List<ColumnSchema>();
+        foreach (var relation in relations)
+        {
+            result.AddRange(relation.OutputSchema);
+        }
         return result;
     }
 }
