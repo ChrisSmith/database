@@ -38,27 +38,10 @@ public class QueryPlanner
 
         select = ConstantFolding.Fold(select);
         select = QueryRewriter.ExpandStarStatements(select, _catalog);
+        select = QueryRewriter.DuplicateSelectExpressions(select);
 
         var expressions = select.SelectList.Expressions;
         var plan = BindRelations(context, select);
-
-        // if (select.Where != null)
-        // {
-        //     // TODO I could probably do this at the logic rewrite stage
-        //     // 1. duplicate any expression that is used by its alias in the where/groupby
-        //     // 2. push down a projection to materialize it early, change the expression into a col ref
-        //     (var extendedSchema, expressions, var forEval) =
-        //         ExtendedSchemaWithExpressions(context, plan.OutputSchema, expressions, null);
-        //
-        //     if (forEval.Any())
-        //     {
-        //         plan = new Projection(plan, forEval, extendedSchema, AppendExpressions: true, Alias: null);
-        //         expressions = _binder.Bind(context, expressions, plan.OutputSchema);
-        //     }
-        //     var where = _binder.Bind(context, select.Where, extendedSchema);
-        //     plan = new Filter(plan, where);
-        //     expressions = _binder.Bind(context, expressions, plan.OutputSchema);
-        // }
 
         // Must bind here before ExpressionContainsAggregate so there are functions to check
         expressions = _binder.Bind(context, expressions, plan.OutputSchema);
@@ -309,63 +292,6 @@ public class QueryPlanner
         logicalPlan = _optimizer.OptimizePlan(logicalPlan, context);
         var physicalPlan = _costBasedOptimizer.OptimizeAndLower(logicalPlan, context);
         return new QueryPlan(physicalPlan);
-    }
-
-    private (
-        List<ColumnSchema> outputColumns,
-        List<BaseExpression> outputExpressions,
-        List<BaseExpression> expressionsForEval
-        ) ExtendedSchemaWithExpressions(
-        BindContext context,
-        IReadOnlyList<ColumnSchema> inputColumns,
-        IReadOnlyList<BaseExpression> expressions,
-        string? tableAlias
-        )
-    {
-        // If any projections require the computation of a new column, do it prior to the filters/aggregations
-        // so that we can filter/aggregate on them too
-        var outputColumns = new List<ColumnSchema>(inputColumns);
-        var expressionsForEval = new List<BaseExpression>(expressions.Count);
-        var outputExpressions = new List<BaseExpression>(expressions.Count);
-
-        for (var i = 0; i < expressions.Count; i++)
-        {
-            var expr = _binder.Bind(context, expressions[i], inputColumns);
-            if (expr is ColumnExpression c && c.Alias == c.Column)
-            {
-                outputExpressions.Add(expr);
-                continue;
-            }
-
-            if (ExpressionContainsAggregate(expr))
-            {
-                // At this point we can't materialize the aggregate, so skip it
-                outputExpressions.Add(expr);
-                continue;
-            }
-
-            var column = new ColumnSchema(
-                default,
-                default,
-                expr.Alias,
-                expr.BoundFunction!.ReturnType,
-                expr.BoundFunction!.ReturnType.ClrTypeFromDataType(),
-                SourceTableName: tableAlias ?? "",
-                SourceTableAlias: tableAlias ?? ""
-            );
-            expr = expr with
-            {
-                // TODO binding just the output column here is kinda weird?
-                // It might be better to rewerite the ast so this becomes a column
-                // select in the rest of the pipeline
-                BoundOutputColumn = column.ColumnRef,
-            };
-            outputExpressions.Add(expr);
-            expressionsForEval.Add(expr);
-            outputColumns.Add(column);
-        }
-
-        return (outputColumns, outputExpressions, expressionsForEval);
     }
 
     private List<BaseExpression> RemoveAggregatesFromExpressions(IReadOnlyList<BaseExpression> expressions)

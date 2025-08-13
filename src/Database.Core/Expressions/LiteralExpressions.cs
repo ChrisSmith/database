@@ -9,6 +9,11 @@ public abstract record LiteralExpression : BaseExpression
     {
         yield break;
     }
+
+    protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
+    {
+        throw new NotSupportedException($"{GetType().Name} does not support replacing children.");
+    }
 }
 
 [DebuggerDisplay("{Literal}")]

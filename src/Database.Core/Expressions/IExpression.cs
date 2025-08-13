@@ -46,4 +46,31 @@ public abstract record BaseExpression(
             child.Walk(fun);
         }
     }
+
+    protected abstract BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren);
+
+    public BaseExpression Rewrite(Func<BaseExpression, BaseExpression?> rewriter)
+    {
+        var replaced = rewriter(this);
+        if (replaced is not null && !ReferenceEquals(replaced, this))
+        {
+            // If this node is replaced, continue rewriting inside the replacement
+            return replaced.Rewrite(rewriter);
+        }
+
+        var existingChildren = Children().ToArray();
+        var newChildren = new BaseExpression[existingChildren.Length];
+        var anyChanged = false;
+        for (var i = 0; i < existingChildren.Length; i++)
+        {
+            var rewrittenChild = existingChildren[i].Rewrite(rewriter);
+            newChildren[i] = rewrittenChild;
+            if (!ReferenceEquals(rewrittenChild, existingChildren[i]))
+            {
+                anyChanged = true;
+            }
+        }
+
+        return anyChanged ? WithChildren(newChildren) : this;
+    }
 }

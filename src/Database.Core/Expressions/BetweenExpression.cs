@@ -16,4 +16,19 @@ public record BetweenExpression(BaseExpression Value, BaseExpression Lower, Base
     {
         return $"{Value} between {Lower} and {Upper}";
     }
+
+    protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
+    {
+        if (newChildren.Count != 3)
+        {
+            throw new ArgumentException($"BetweenExpression expects 3 children but received {newChildren.Count}.");
+        }
+
+        return this with
+        {
+            Value = newChildren[0],
+            Lower = newChildren[1],
+            Upper = newChildren[2]
+        };
+    }
 }

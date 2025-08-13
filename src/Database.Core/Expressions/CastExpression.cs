@@ -15,4 +15,13 @@ public record CastExpression(BaseExpression Expression, DataType Type) : BaseExp
     {
         return $"cast({Expression} as {Type})";
     }
+
+    protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
+    {
+        if (newChildren.Count != 1)
+        {
+            throw new ArgumentException($"CastExpression expects 1 child but received {newChildren.Count}.");
+        }
+        return this with { Expression = newChildren[0] };
+    }
 }
