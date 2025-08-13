@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 using Database.Core.Operations;
+using Database.Core.Planner.QueryGraph;
 
 namespace Database.Core.Planner;
 
@@ -41,6 +42,20 @@ public record Projection(
 ) : LogicalPlan
 {
     public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+}
+
+public record JoinedRelation(string Name, LogicalPlan Plan, JoinType JoinType);
+
+public record JoinSet(
+    IReadOnlyList<JoinedRelation> Relations,
+    IReadOnlyList<Edge> Edges,
+    IReadOnlyList<BaseExpression> Filters
+) : LogicalPlan
+{
+    public override IReadOnlyList<ColumnSchema> OutputSchema
+    {
+        get { return QueryPlanner.GetCombinedOutputSchema(Relations.Select(r => r.Plan)); }
+    }
 }
 
 public record Join(
