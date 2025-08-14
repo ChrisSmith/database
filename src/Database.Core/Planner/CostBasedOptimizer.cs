@@ -8,7 +8,25 @@ public class CostBasedOptimizer(ConfigOptions config, PhysicalPlanner physicalPl
 {
     public IOperation OptimizeAndLower(LogicalPlan plan, BindContext context)
     {
-        var bestPlan = SearchForBestPlan(plan, context);
+        LogicalPlan bestPlan;
+
+        if (plan is PlanWithSubQueries planWithSub)
+        {
+            var optimized = new List<LogicalPlan>();
+            foreach (var subquery in planWithSub.Uncorrelated)
+            {
+                optimized.Add(SearchForBestPlan(subquery, context));
+            }
+            bestPlan = planWithSub with
+            {
+                Uncorrelated = optimized,
+                Plan = SearchForBestPlan(planWithSub.Plan, context)
+            };
+        }
+        else
+        {
+            bestPlan = SearchForBestPlan(plan, context);
+        }
         return physicalPlanner.CreatePhysicalPlan(bestPlan, context);
     }
 

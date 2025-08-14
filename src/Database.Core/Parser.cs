@@ -503,6 +503,12 @@ public class Parser
             return inner;
         }
 
+        if (Check(SELECT))
+        {
+            var subquery = (SelectStatement)ParseStatement();
+            return new SubQueryExpression(subquery);
+        }
+
         throw new ParseException(Peek(), "Expected expression");
     }
 

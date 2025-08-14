@@ -51,10 +51,10 @@ public class ExpressionInterpreter
             return select.SelectColumn(rowGroup);
         }
 
-        if (exp.BoundFunction is LiteralFunction literal)
+        if (exp.BoundFunction is IFunctionWithColumnLength literal)
         {
             var expectedRows = rowGroup.NumRows;
-            return literal.MaterializeColumn(expectedRows);
+            return literal.Execute(expectedRows);
         }
 
         if (exp.BoundFunction == null)

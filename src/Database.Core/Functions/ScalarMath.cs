@@ -1,5 +1,6 @@
 using System.Numerics;
 using Database.Core.Catalog;
+using Database.Core.Execution;
 
 namespace Database.Core.Functions;
 
@@ -7,6 +8,12 @@ public interface IFunction
 {
     public DataType ReturnType { get; }
 }
+
+public interface IFunctionWithColumnLength : IFunction
+{
+    IColumn Execute(int length);
+}
+
 
 public interface IScalarMathTwo<T> : IFunction
     where T : INumber<T>

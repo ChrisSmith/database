@@ -1,3 +1,4 @@
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 
@@ -101,5 +102,39 @@ public static class QueryRewriter
         });
 
         return select with { Where = updatedWhere };
+    }
+
+    // TODO dependencies? Arguments?
+    public record SubQueryPlan(SelectStatement Select, SubQueryResultExpression Expression);
+
+    public static (SelectStatement, List<SubQueryPlan> result) ExtractSubqueries(
+        SelectStatement select,
+        Catalog.Catalog catalog,
+        ParquetPool bufferPool
+        )
+    {
+        var subQueryId = 0;
+        if (select.Where == null)
+        {
+            return (select, []);
+        }
+        var subQueryPlans = new List<SubQueryPlan>();
+
+        var updatedWhere = select.Where.Rewrite(expr =>
+        {
+            if (expr is SubQueryExpression subQuery)
+            {
+                var subResult = new SubQueryResultExpression(++subQueryId)
+                {
+                    Alias = $"$subquery_{subQueryId}$",
+                };
+                subQueryPlans.Add(new SubQueryPlan(subQuery.Select, subResult));
+
+                return subResult;
+            }
+            return expr;
+        });
+
+        return (select with { Where = updatedWhere }, subQueryPlans);
     }
 }

@@ -17,6 +17,28 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
             return plan;
         }
 
+        if (plan is PlanWithSubQueries planWithSub)
+        {
+            var optimized = new List<LogicalPlan>();
+            for (var i = 0; i < planWithSub.Uncorrelated.Count; i++)
+            {
+                var subContext = planWithSub.BindContext[i];
+                var subquery = planWithSub.Uncorrelated[i];
+                optimized.Add(PerformOptimizationSteps(subquery, subContext));
+            }
+
+            return planWithSub with
+            {
+                Uncorrelated = optimized,
+                Plan = PerformOptimizationSteps(planWithSub.Plan, context),
+            };
+        }
+
+        return PerformOptimizationSteps(plan, context);
+    }
+
+    private LogicalPlan PerformOptimizationSteps(LogicalPlan plan, BindContext context)
+    {
         var maxIters = config.MaxLogicalOptimizationSteps;
         LogicalPlan previous = plan;
         LogicalPlan updated;

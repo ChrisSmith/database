@@ -39,6 +39,60 @@ public class QueryPlanner
         select = ConstantFolding.Fold(select);
         select = QueryRewriter.ExpandStarStatements(select, _catalog);
         select = QueryRewriter.DuplicateSelectExpressions(select);
+        (select, var subQueryStatements) = QueryRewriter.ExtractSubqueries(select, _catalog, _bufferPool);
+
+        // IFF the subqueries are uncorrelated we can bind them first. they'll be run first
+        var queryPlans = new List<LogicalPlan>();
+        var subPlanContext = new List<BindContext>();
+        var updatedWhere = select.Where;
+        for (var i = 0; i < subQueryStatements.Count; i++)
+        {
+            var subQueryPlan = subQueryStatements[i];
+            var bindContext = new BindContext();
+            var subPlan = CreateLogicalPlan(subQueryPlan.Select, bindContext);
+            if (subPlan.OutputSchema.Count != 1)
+            {
+                throw new QueryPlanException("Subquery must return a single column.");
+            }
+
+            var memRef = _bufferPool.OpenMemoryTable();
+            var table = _bufferPool.GetMemoryTable(memRef.TableId);
+            var sourceCol = subPlan.OutputSchema[0];
+            var newColumn = table.AddColumnToSchema(sourceCol.Name, sourceCol.DataType, "", "");
+
+            subPlan = subPlan with
+            {
+                PreBoundOutputs = [newColumn],
+            };
+
+            var subQueryId = subQueryPlan.Expression.SubQueryId;
+            subQueryStatements[i] = subQueryPlan = subQueryPlan with
+            {
+                Expression = subQueryPlan.Expression with
+                {
+                    BoundDataType = sourceCol.DataType,
+                    BoundOutputColumn = newColumn.ColumnRef,
+                },
+            };
+
+            context.AddSymbol(subQueryPlan.Expression);
+
+            // The subquery output now has an output table/type.
+            // Bind it to the things reading from it
+            updatedWhere = updatedWhere!.Rewrite(e =>
+            {
+                if (e is SubQueryResultExpression re && re.SubQueryId == subQueryId)
+                {
+                    return subQueryPlan.Expression;
+                }
+                return e;
+            });
+
+            queryPlans.Add(subPlan);
+            subPlanContext.Add(bindContext);
+        }
+
+        select = select with { Where = updatedWhere };
 
         var expressions = select.SelectList.Expressions;
         var plan = BindRelations(context, select);
@@ -78,6 +132,10 @@ public class QueryPlanner
             plan = new Limit(plan, select.Limit.Count);
         }
 
+        if (queryPlans.Count > 0)
+        {
+            return new PlanWithSubQueries(plan, queryPlans, subPlanContext);
+        }
         return plan;
     }
 

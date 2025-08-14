@@ -8,7 +8,20 @@ namespace Database.Core.Planner;
 
 public abstract record LogicalPlan()
 {
+    // For subqueries
+    public IReadOnlyList<ColumnSchema> PreBoundOutputs { get; set; } = [];
+
     public abstract IReadOnlyList<ColumnSchema> OutputSchema { get; }
+}
+
+[DebuggerDisplay("subqueries({Uncorrelated.Count})")]
+public record PlanWithSubQueries(
+    LogicalPlan Plan,
+    List<LogicalPlan> Uncorrelated,
+    List<BindContext> BindContext // TODO have context sit on every logical plan?
+    ) : LogicalPlan
+{
+    public override IReadOnlyList<ColumnSchema> OutputSchema => Plan.OutputSchema;
 }
 
 [DebuggerDisplay("scan({Table})")]

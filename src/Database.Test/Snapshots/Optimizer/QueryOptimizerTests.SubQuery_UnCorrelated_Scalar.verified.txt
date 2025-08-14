@@ -1,0 +1,34 @@
+﻿
+            select count(*) as count
+            from table t
+            where t.CategoricalInt = (
+                select max(CategoricalInt)
+                from table q
+                where q.CategoricalString = 'cat'
+            )
+        
+
+Original
+PlanWithSubQueries(n=1) -> .count
+ Project(max(CategoricalInt)) -> .max(CategoricalInt) 
+    Agg(max(CategoricalInt)) group by () -> .max(CategoricalInt)    
+       Filter(CategoricalString = cat) -> q.Id, q.Unordered, q.Name, q.CategoricalInt, q.CategoricalString       
+          Scan(table) -> q.Id, q.Unordered, q.Name, q.CategoricalInt, q.CategoricalString          
+ Project(count) -> .count 
+    Agg(count(*)) group by () -> .count    
+       Filter(CategoricalInt = subquery(1)) -> t.Id, t.Unordered, t.Name, t.CategoricalInt, t.CategoricalString       
+          Scan(table) -> t.Id, t.Unordered, t.Name, t.CategoricalInt, t.CategoricalString          
+
+
+Optimized
+PlanWithSubQueries(n=1) -> .count
+ Project(max(CategoricalInt)) -> .max(CategoricalInt) 
+    Agg(max(CategoricalInt)) group by () -> .max(CategoricalInt)    
+       Filter(CategoricalString = cat) -> q.CategoricalInt       
+          Scan(table) with projection  -> q.CategoricalInt          
+ Project(count) -> .count 
+    Agg(count(*)) group by () -> .count    
+       Filter(CategoricalInt = subquery(1)) -> t.CategoricalInt       
+          Scan(table) with projection  -> t.CategoricalInt          
+
+
