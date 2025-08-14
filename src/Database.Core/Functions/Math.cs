@@ -125,28 +125,23 @@ public record Sum<T>(DataType ReturnType) : IAggregateFunction<T, SumAggregateSt
 
 public interface IAggregateState
 {
-    public void Combine(IAggregateState other);
 }
 
 public class SumAggregateState<T> : IAggregateState
     where T : INumber<T>
 {
     public T Sum { get; set; } = default!;
+}
 
-    public void Combine(IAggregateState other)
-    {
-        this.Sum += ((SumAggregateState<T>)other).Sum;
-    }
+public class ScalarState<T> : IAggregateState
+    where T : INumber<T>
+{
+    public T Value { get; set; } = default!;
 }
 
 public class CountAggregateState : IAggregateState
 {
     public int Count { get; set; } = 0;
-
-    public void Combine(IAggregateState other)
-    {
-        this.Count += ((CountAggregateState)other).Count;
-    }
 }
 
 public class AvgState<T> : IAggregateState
@@ -158,12 +153,6 @@ public class AvgState<T> : IAggregateState
     public double Value()
     {
         return (double)Convert.ChangeType(Sum, typeof(double))! / Count;
-    }
-
-    public void Combine(IAggregateState other)
-    {
-        this.Count += ((AvgState<T>)other).Count;
-        this.Sum += ((AvgState<T>)other).Sum;
     }
 }
 
@@ -200,6 +189,71 @@ public record Avg<T> : IAggregateFunction<T, AvgState<T>, double>
             var item = value[i];
             state[i].Sum += item;
             state[i].Count += 1;
+        }
+    }
+}
+
+public record Max<T>(DataType ReturnType) : IAggregateFunction<T, ScalarState<T>, T>
+    where T : INumber<T>
+{
+    public T Value(ScalarState<T> state) => state.Value;
+
+    public object? GetValue(object state) => Value((ScalarState<T>)state);
+
+    public IAggregateState Initialize()
+    {
+        return new ScalarState<T>();
+    }
+
+    public IAggregateState[] InitializeArray(int size)
+    {
+        return new ScalarState<T>[size];
+    }
+
+    public void InvokeNext(object values, IAggregateState[] state)
+    {
+        Next((T[])values, (ScalarState<T>[])state);
+    }
+
+    public void Next(T[] value, ScalarState<T>[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            var item = value[i];
+            state[i].Value = T.Max(state[i].Value, item);
+        }
+    }
+}
+
+
+public record Min<T>(DataType ReturnType) : IAggregateFunction<T, ScalarState<T>, T>
+    where T : INumber<T>
+{
+    public T Value(ScalarState<T> state) => state.Value;
+
+    public object? GetValue(object state) => Value((ScalarState<T>)state);
+
+    public IAggregateState Initialize()
+    {
+        return new ScalarState<T>();
+    }
+
+    public IAggregateState[] InitializeArray(int size)
+    {
+        return new ScalarState<T>[size];
+    }
+
+    public void InvokeNext(object values, IAggregateState[] state)
+    {
+        Next((T[])values, (ScalarState<T>[])state);
+    }
+
+    public void Next(T[] value, ScalarState<T>[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            var item = value[i];
+            state[i].Value = T.Min(state[i].Value, item);
         }
     }
 }
