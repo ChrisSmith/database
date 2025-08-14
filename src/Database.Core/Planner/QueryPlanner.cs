@@ -102,9 +102,18 @@ public class QueryPlanner
         if (select.Group?.Expressions != null || expressions.Any(ExpressionContainsAggregate))
         {
             var groupingExprs = _binder.Bind(context, select.Group?.Expressions ?? [], plan.OutputSchema);
-            // TODO if the groupings are not in the expressions, add them
-            plan = new Aggregate(plan, groupingExprs, expressions, select.Alias);
-            expressions = RemoveAggregatesFromExpressions(expressions);
+            (var aggregates, expressions) = SeparateAggregatesFromExpressions(expressions);
+
+            // if the groupings are not in the expressions, add them
+            foreach (var groupingExpr in groupingExprs)
+            {
+                if (!aggregates.Contains(groupingExpr))
+                {
+                    aggregates.Add(groupingExpr);
+                }
+            }
+            plan = new Aggregate(plan, groupingExprs, aggregates, select.Alias);
+
             expressions = _binder.Bind(context, expressions, plan.OutputSchema);
         }
 
@@ -352,7 +361,7 @@ public class QueryPlanner
         return new QueryPlan(physicalPlan);
     }
 
-    private List<BaseExpression> RemoveAggregatesFromExpressions(IReadOnlyList<BaseExpression> expressions)
+    private (List<BaseExpression>, List<BaseExpression>) SeparateAggregatesFromExpressions(IReadOnlyList<BaseExpression> expressions)
     {
         // If an expression contains both an aggregate and binary expression, we must run the binary
         // expressions after computing the aggregates
@@ -360,58 +369,31 @@ public class QueryPlanner
         // rewrite the expressions to reference the resulting column instead of the agg function
         // Ie. count(Id) + 4 -> col[count] + 4
 
+        var resultAggregates = new List<BaseExpression>();
+        var resultExpressions = new List<BaseExpression>(expressions.Count);
+
         BaseExpression ReplaceAggregate(BaseExpression expr)
         {
-            if (expr is FunctionExpression f)
+            if (expr.BoundFunction is IAggregateFunction)
             {
-                var boundFn = f.BoundFunction;
-                if (boundFn is IAggregateFunction)
+                resultAggregates.Add(expr);
+                return new ColumnExpression(expr.Alias)
                 {
-                    return new ColumnExpression(f.Alias)
-                    {
-                        Alias = f.Alias,
-                        BoundFunction = new SelectFunction(f.BoundOutputColumn, f.BoundDataType!.Value, _bufferPool),
-                        BoundDataType = f.BoundDataType!.Value,
-                    };
-                }
-
-                var args = new BaseExpression[f.Args.Length];
-                for (var i = 0; i < args.Length; i++)
-                {
-                    args[i] = ReplaceAggregate(f.Args[i]);
-                }
-
-                return f with
-                {
-                    BoundFunction = boundFn,
-                    Args = args,
+                    Alias = expr.Alias,
+                    BoundFunction = new SelectFunction(expr.BoundOutputColumn, expr.BoundDataType!.Value, _bufferPool),
+                    BoundDataType = expr.BoundDataType!.Value,
                 };
             }
-
-            if (expr is BinaryExpression b)
-            {
-                return b with
-                {
-                    Left = ReplaceAggregate(b.Left),
-                    Right = ReplaceAggregate(b.Right),
-                };
-            }
-
-            if (expr is ColumnExpression or IntegerLiteral or DecimalLiteral or StringLiteral or BoolLiteral or NullLiteral)
-            {
-                return expr;
-            }
-
-            throw new QueryPlanException($"Expression {expr} is not supported when aggregates are present.");
+            return expr;
         }
 
-        var result = new List<BaseExpression>(expressions.Count);
         for (var i = 0; i < expressions.Count; i++)
         {
-            result.Add(ReplaceAggregate(expressions[i]));
+            var rewritten = expressions[i].Rewrite(ReplaceAggregate);
+            resultExpressions.Add(rewritten);
         }
 
-        return result;
+        return (resultAggregates, resultExpressions);
     }
 
     private bool ExpressionContainsAggregate(BaseExpression expr)
