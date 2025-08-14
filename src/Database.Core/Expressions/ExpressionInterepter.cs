@@ -46,6 +46,11 @@ public class ExpressionInterpreter
             return Execute(fe, fe.BoundFunction!, args);
         }
 
+        if (exp is CaseExpression ce)
+        {
+            return ExecuteCaseStatement(ce, rowGroup);
+        }
+
         if (exp.BoundFunction is SelectFunction select)
         {
             return select.SelectColumn(rowGroup);
@@ -348,6 +353,60 @@ public class ExpressionInterpreter
         var column = Execute(expr.Args[0], rowGroup);
 
         fun.InvokeNext(column.ValuesArray, state);
+    }
+
+    public IColumn ExecuteCaseStatement(CaseExpression caseExpr, RowGroup rowGroup)
+    {
+        var numRows = rowGroup.NumRows;
+        var totalMatches = 0;
+        var resultIsSet = new bool[numRows];
+        var outputType = caseExpr.BoundDataType!.Value.ClrTypeFromDataType();
+        var outputArray = Array.CreateInstance(outputType, numRows);
+
+        for (var i = 0; i < caseExpr.Conditions.Count && totalMatches < numRows; i++)
+        {
+            var cond = caseExpr.Conditions[i];
+            var condValue = Execute(cond, rowGroup);
+            if (condValue.ValuesArray is not bool[] condition)
+            {
+                throw new ExpressionEvaluationException($"expected case statement condition to be boolean got {condValue.GetType().Name}");
+            }
+
+            var thenExpr = caseExpr.Results[i];
+            var thenValue = Execute(thenExpr, rowGroup);
+            if (thenValue.ValuesArray.GetType() != outputArray.GetType())
+            {
+                throw new ExpressionEvaluationException($"expected case statement result to be {outputArray.GetType().Name} got {thenValue.GetType().Name}");
+            }
+
+            for (var j = 0; j < condition.Length; j++)
+            {
+                if (!resultIsSet[j] && condition[j])
+                {
+                    resultIsSet[j] = true;
+                    totalMatches++;
+                    outputArray.SetValue(thenValue[j], j);
+                }
+            }
+        }
+
+        if (totalMatches != numRows)
+        {
+            var defaults = Execute(caseExpr.Default ?? throw new ExpressionEvaluationException("nullable returns from case statements not supported"), rowGroup);
+            for (var i = 0; i < numRows; i++)
+            {
+                if (!resultIsSet[i])
+                {
+                    outputArray.SetValue(defaults[i], i);
+                }
+            }
+        }
+
+        return ColumnHelper.CreateColumn(
+            outputType,
+            caseExpr.Alias,
+            outputArray
+        );
     }
 }
 

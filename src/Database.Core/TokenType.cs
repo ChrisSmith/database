@@ -63,5 +63,10 @@ public enum TokenType
     OUTER,
     ON,
     USING,
+    CASE,
+    WHEN,
+    THEN,
+    ELSE,
+    END,
     EOF,
 }
