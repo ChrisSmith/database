@@ -39,6 +39,22 @@ public class FunctionRegistry
             { DataType.Double, typeof(Avg<double>)},
             { DataType.Decimal, typeof(Avg<decimal>)},
         }));
+        _funcs.Add("max", new("max", 1, new()
+        {
+            { DataType.Int, typeof(Max<int>)},
+            { DataType.Long, typeof(Max<long>)},
+            { DataType.Float, typeof(Max<float>)},
+            { DataType.Double, typeof(Max<double>)},
+            { DataType.Decimal, typeof(Max<decimal>)},
+        }));
+        _funcs.Add("min", new("min", 1, new()
+        {
+            { DataType.Int, typeof(Min<int>)},
+            { DataType.Long, typeof(Min<long>)},
+            { DataType.Float, typeof(Min<float>)},
+            { DataType.Double, typeof(Min<double>)},
+            { DataType.Decimal, typeof(Min<decimal>)},
+        }));
 
         _funcs.Add("=", new("=", 2, new()
         {
