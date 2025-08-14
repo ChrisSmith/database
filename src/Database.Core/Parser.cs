@@ -451,7 +451,7 @@ public class Parser
                 return new FunctionExpression(ident.Lexeme, arguments);
             }
 
-            if (ident.Lexeme == "date")
+            if (ident.Lexeme.Equals("date", StringComparison.OrdinalIgnoreCase)) // TODO should this be a keyword?
             {
                 var token = Consume(STRING, "Expected string literal for date literal expression");
                 // var date = DateOnly.Parse((string)token.Literal!);
@@ -460,7 +460,7 @@ public class Parser
                 return new DateTimeLiteral(date);
             }
 
-            if (ident.Lexeme == "interval")
+            if (ident.Lexeme.Equals("interval", StringComparison.OrdinalIgnoreCase))
             {
                 var token = Consume(STRING, "Expected string literal for interval literal expression");
                 var unit = Consume(IDENTIFIER, "Expected unit for interval literal expression");
