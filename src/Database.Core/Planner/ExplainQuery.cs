@@ -113,6 +113,19 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
             return;
         }
 
+        if (plan is PlanWithSubQueries planWithSub)
+        {
+            Write($"PlanWithSubQueries(n={planWithSub.Uncorrelated.Count})", writer, ident);
+            WriteOutputColumns(planWithSub.OutputSchema, writer);
+            WriteLine("", writer, ident);
+            foreach (var subquery in planWithSub.Uncorrelated)
+            {
+                Explain(subquery, writer, ident + 1);
+            }
+            Explain(planWithSub.Plan, writer, ident + 1);
+            return;
+        }
+
         throw new NotImplementedException("Explain not implemented for this plan: {" + plan + "}");
     }
 

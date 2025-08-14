@@ -58,7 +58,7 @@ public class MemoryBasedTable(MemoryStorage storage)
 
         if (!_rowGroups.TryGetValue(columnRef.RowGroup, out var rowGroup))
         {
-            throw new Exception($"Row group {columnRef} not found");
+            throw new Exception($"Row group {columnRef} not found from {_rowGroups.Count} row groups.");
         }
 
         var column = rowGroup[columnRef.Column];

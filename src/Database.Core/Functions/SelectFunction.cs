@@ -16,9 +16,9 @@ public record SelectFunction(ColumnRef ColumnRef, DataType ReturnType, ParquetPo
     }
 }
 
-public record LiteralFunction(object Value, DataType ReturnType) : IFunction
+public record LiteralFunction(object Value, DataType ReturnType) : IFunctionWithColumnLength
 {
-    public IColumn MaterializeColumn(int length)
+    public IColumn Execute(int length)
     {
         var type = ReturnType.ClrTypeFromDataType();
         var outputArray = Array.CreateInstance(type, length);

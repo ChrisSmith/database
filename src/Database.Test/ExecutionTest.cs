@@ -399,13 +399,33 @@ order by n_name
     }
 
     [Test]
-    public void TestNestedQuery_UnCorrelated()
+    public void TestNestedQuery_UnCorrelated_Scalar()
     {
         var result = Query(@$"
             select count(*) as count
             from table t
             where t.CategoricalInt = (
                 select max(CategoricalInt)
+                from table q
+                where q.CategoricalString = 'cat'
+            )
+        ").AsRowList();
+
+        var values = result.Select(r => (int)r.Values[0]).ToList();
+        values.Should().BeEquivalentTo(new List<int>
+        {
+            20088,
+        });
+    }
+
+    [Test]
+    public void TestNestedQuery_UnCorrelated_Table()
+    {
+        var result = Query(@$"
+            select count(*) as count
+            from table t
+            where t.CategoricalInt in (
+                select distinct CategoricalInt
                 from table q
                 where q.CategoricalString = 'cat'
             )

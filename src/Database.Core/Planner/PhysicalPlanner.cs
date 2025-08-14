@@ -63,7 +63,44 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             return CreateLimit(limit, input, context);
         }
 
+        if (plan is PlanWithSubQueries planWithSub)
+        {
+            var subPlans = new List<IOperation>();
+            for (var i = 0; i < planWithSub.Uncorrelated.Count; i++)
+            {
+                var subContext = planWithSub.BindContext[i];
+                var subquery = planWithSub.Uncorrelated[i];
+                var subPlan = CreatePhysicalPlan(subquery, subContext);
+                subPlans.Add(subPlan);
+            }
+
+            var main = CreatePhysicalPlan(planWithSub.Plan, context);
+            return CreatePlanWithSubqueries(planWithSub, main, subPlans);
+        }
+
         throw new NotImplementedException();
+    }
+
+    private IOperation CreatePlanWithSubqueries(
+        PlanWithSubQueries planWithSub,
+        IOperation main,
+        List<IOperation> subPlans)
+    {
+        var intermediateOutputs = planWithSub.Uncorrelated.Select(p => p.PreBoundOutputs).ToList();
+        foreach (var output in intermediateOutputs.SelectMany(p => p))
+        {
+            if (output.ColumnRef == default)
+            {
+                throw new QueryPlanException($"Output column {output.Name} is not bound");
+            }
+        }
+
+        return new SubqueryOperator(
+            bufferPool,
+            subPlans,
+            intermediateOutputs,
+            main
+        );
     }
 
     private IOperation CreateLimit(Limit limit, IOperation input, BindContext context)

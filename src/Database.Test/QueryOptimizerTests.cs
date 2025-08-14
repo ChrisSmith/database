@@ -104,6 +104,22 @@ public class QueryOptimizerTests
         return Verify(plan, Settings);
     }
 
+    [Test]
+    public Task SubQuery_UnCorrelated_Scalar()
+    {
+        var query = @"
+            select count(*) as count
+            from table t
+            where t.CategoricalInt = (
+                select max(CategoricalInt)
+                from table q
+                where q.CategoricalString = 'cat'
+            )
+        ";
+        var plan = OptimizeAndExplain(query);
+        return Verify(plan, Settings);
+    }
+
     [TestCase("query_01.sql")]
     // [TestCase("query_02.sql")]
     [TestCase("query_03.sql")]

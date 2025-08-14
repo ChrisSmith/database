@@ -164,6 +164,15 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     Expression = inner,
                 };
             }
+            else if (expression is SubQueryResultExpression subQueryRes)
+            {
+                if (!context.BoundSymbols.TryGetValue(subQueryRes.Alias, out var symbol))
+                {
+                    throw new QueryPlanException($"subquery result '{subQueryRes.Alias}' was not found in the context");
+                }
+                symbol.RefCount++;
+                function = new SelectSubQueryFunction(symbol.ColumnRef, symbol.DataType, bufferPool);
+            }
             else
             {
                 throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");
@@ -354,6 +363,16 @@ public class BindContext
                 BoundSymbols[$"{tableStmtAlias}.{column.Name}"] = symbol;
             }
         }
+    }
+
+    public void AddSymbol(SubQueryResultExpression expression)
+    {
+        if (expression.BoundDataType == null || expression.BoundOutputColumn == default || expression.Alias == "")
+        {
+            throw new QueryPlanException($"subquery result must be bound prior to adding symbol");
+        }
+        var alias = expression.Alias;
+        BoundSymbols[alias] = new BindSymbol(alias, $"", expression.BoundDataType.Value, expression.BoundOutputColumn, 0);
     }
 
     public void ReferenceSymbol(string columnName, string? tableOrAlias)
