@@ -509,7 +509,38 @@ public class Parser
             return new SubQueryExpression(subquery);
         }
 
+        if (Match(CASE))
+        {
+            var caseExpression = ParseCaseExpression();
+            Consume(END, "Expected END");
+            return caseExpression;
+
+        }
+
         throw new ParseException(Peek(), "Expected expression");
+    }
+
+    private CaseExpression ParseCaseExpression()
+    {
+        Consume(WHEN, "Expected WHEN");
+
+        var conditions = new List<BaseExpression>();
+        var results = new List<BaseExpression>();
+
+        do
+        {
+            conditions.Add(ParseExpr());
+            Consume(THEN, "Expected THEN");
+            results.Add(ParseExpr());
+        } while (Match(WHEN));
+
+        if (Match(ELSE))
+        {
+            var result = ParseExpr();
+            return new CaseExpression(conditions, results, result);
+        }
+
+        return new CaseExpression(conditions, results, null);
     }
 
     private BaseExpression[] ParseFunctionArguments()

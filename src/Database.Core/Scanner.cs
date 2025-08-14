@@ -47,6 +47,11 @@ public class Scanner
         {"inner", INNER},
         {"on", ON},
         {"using", USING},
+        {"case", CASE},
+        {"when", WHEN},
+        {"then", THEN},
+        {"else", ELSE},
+        {"end", END},
     };
 
     public Scanner(string source)

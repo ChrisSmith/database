@@ -173,6 +173,28 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 symbol.RefCount++;
                 function = new SelectSubQueryFunction(symbol.ColumnRef, symbol.DataType, bufferPool);
             }
+            else if (expression is CaseExpression caseExpr)
+            {
+                var boundConditions = new List<BaseExpression>(caseExpr.Conditions.Count);
+                foreach (var condition in caseExpr.Conditions)
+                {
+                    boundConditions.Add(Bind(context, condition, columns, ignoreMissingColumns));
+                }
+                var boundResults = new List<BaseExpression>(caseExpr.Results.Count);
+                foreach (var result in caseExpr.Results)
+                {
+                    boundResults.Add(Bind(context, result, columns, ignoreMissingColumns));
+                }
+                var boundDefault = caseExpr.Default == null ? null : Bind(context, caseExpr.Default, columns, ignoreMissingColumns);
+
+                function = new CaseWhen(boundResults[0].BoundDataType!.Value);
+                expression = caseExpr with
+                {
+                    Conditions = boundConditions,
+                    Results = boundResults,
+                    Default = boundDefault,
+                };
+            }
             else
             {
                 throw new NotImplementedException($"unsupported expression type '{expression.GetType().Name}' for expression binding");

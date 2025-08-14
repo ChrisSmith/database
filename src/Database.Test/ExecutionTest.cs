@@ -495,4 +495,46 @@ order by n_name
             686842
         });
     }
+
+    [Test]
+    public void TestCaseStatement()
+    {
+        var result = Query(@$"
+            select distinct CategoricalInt,
+                   case when CategoricalInt < 2 then 'foo' else 'bar' end as blah
+            from table q
+            order by CategoricalInt;
+        ").AsRowList();
+
+        var values = result.Select(r => new Tuple<int, string>((int)r.Values[0], (string)r.Values[1])).ToList();
+        values.Should().BeEquivalentTo(new List<Tuple<int, string>>
+        {
+            new (0, "foo"),
+            new (1, "foo"),
+            new (2, "bar"),
+            new (3, "bar"),
+            new (4, "bar"),
+        });
+    }
+
+    [Test]
+    public void TestCaseStatement_InAggregate()
+    {
+        var result = Query(@$"
+            select CategoricalInt, sum(case when CategoricalInt < 2 then 1 when CategoricalInt < 4 then 10 else 0 end) as blah
+            from table q
+            group by CategoricalInt
+            order by CategoricalInt;
+        ").AsRowList();
+
+        var values = result.Select(r => new Tuple<int, int>((int)r.Values[0], (int)r.Values[1])).ToList();
+        values.Should().BeEquivalentTo(new List<Tuple<int, int>>
+        {
+            new (0, 20114),
+            new (1, 20038),
+            new (2, 201210),
+            new (3, 196390),
+            new (4, 0),
+        });
+    }
 }
