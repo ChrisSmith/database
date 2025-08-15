@@ -185,7 +185,23 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 {
                     boundResults.Add(Bind(context, result, columns, ignoreMissingColumns));
                 }
-                var boundDefault = caseExpr.Default == null ? null : Bind(context, caseExpr.Default, columns, ignoreMissingColumns);
+
+                BaseExpression? boundDefault = null;
+                DataType compatType;
+                if (caseExpr.Default != null)
+                {
+                    boundDefault = Bind(context, caseExpr.Default, columns, ignoreMissingColumns);
+
+                    compatType = FindCompatibleType([.. boundResults, boundDefault]);
+                    boundDefault = DoCast(boundDefault, compatType, context, columns, ignoreMissingColumns);
+                }
+                else
+                {
+                    compatType = FindCompatibleType(boundResults);
+                }
+
+                boundResults = boundResults.Select(e => DoCast(e, compatType, context, columns, ignoreMissingColumns)).ToList();
+
 
                 function = new CaseWhen(boundResults[0].BoundDataType!.Value);
                 expression = caseExpr with
@@ -214,6 +230,67 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         };
     }
 
+    private DataType FindCompatibleType(IReadOnlyList<BaseExpression> expressions)
+    {
+        if (expressions.Count == 0)
+        {
+            throw new QueryPlanException("no expressions passed to find compatible types");
+        }
+
+        foreach (var expr in expressions)
+        {
+            if (expr.BoundDataType == null)
+            {
+                throw new QueryPlanException($"expression isn't bound to data type. {expr}");
+            }
+        }
+
+        var allTypes = expressions.Select(e => e.BoundDataType!.Value).Distinct().ToList();
+        if (allTypes.Count == 1)
+        {
+            return allTypes[0];
+        }
+
+        var integers = new[] { DataType.Int, DataType.Long };
+
+        if (allTypes.All(t => integers.Contains(t)))
+        {
+            return DataType.Long;
+        }
+
+        if (allTypes.All(t => t == DataType.Decimal || integers.Contains(t)))
+        {
+            return DataType.Decimal;
+        }
+
+        var floating = new[] { DataType.Float, DataType.Double };
+        if (allTypes.All(t => floating.Contains(t)))
+        {
+            return DataType.Double;
+        }
+
+        if (expressions.Any(ExpressionIsNonLiteralDecimal))
+        {
+            return DataType.Decimal;
+        }
+
+        foreach (var floatType in floating)
+        {
+            if (allTypes.All(t => t == DataType.Decimal || t == floatType))
+            {
+                return floatType;
+            }
+        }
+
+        var allTypesStr = string.Join(", ", allTypes.Select(t => t.ToString()));
+        throw new QueryPlanException($"unable to automatically convert types '{allTypesStr}' to a compatible type.");
+
+        bool ExpressionIsNonLiteralDecimal(BaseExpression expr)
+        {
+            return expr is not DecimalLiteral && expr.BoundDataType!.Value == DataType.Decimal;
+        }
+    }
+
     private (BaseExpression left, BaseExpression right) MakeCompatibleTypes(
         BindContext context,
         BaseExpression left,
@@ -222,76 +299,29 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         bool ignoreMissingColumns
         )
     {
-        if (left.BoundDataType == null || right.BoundDataType == null)
-        {
-            throw new QueryPlanException(
-                $"data type was not bound. {left.BoundDataType}, {right.BoundDataType}");
-        }
-        if (left.BoundDataType.Value == right.BoundDataType.Value)
-        {
-            return (left, right);
-        }
+        var compatType = FindCompatibleType([left, right]);
+        return (
+            DoCast(left, compatType, context, columns, ignoreMissingColumns),
+            DoCast(right, compatType, context, columns, ignoreMissingColumns)
+        );
+    }
 
-        var leftType = left.BoundDataType.Value;
-        var rightType = right.BoundDataType.Value;
-
-        var integers = new[] { DataType.Int, DataType.Long };
-
-        if (integers.Contains(leftType) && integers.Contains(rightType))
+    private BaseExpression DoCast(
+        BaseExpression expr,
+        DataType targetType,
+        BindContext context,
+        IReadOnlyList<ColumnSchema> columns,
+        bool ignoreMissingColumns)
+    {
+        if (expr.BoundDataType!.Value == targetType)
         {
-            return (DoCast(left, DataType.Long), DoCast(right, DataType.Long));
-        }
-
-        if (integers.Contains(leftType) && rightType == DataType.Decimal)
-        {
-            return (DoCast(left, DataType.Decimal), right);
+            return expr;
         }
 
-        if (integers.Contains(rightType) && leftType == DataType.Decimal)
+        return Bind(context, new CastExpression(expr, targetType)
         {
-            return (left, DoCast(right, leftType));
-        }
-
-        var floating = new[] { DataType.Float, DataType.Double };
-        if (floating.Contains(leftType) && floating.Contains(rightType))
-        {
-            return (DoCast(left, DataType.Double), DoCast(right, DataType.Double));
-        }
-
-        if (ExpressionIsNonLiteralDecimal(left) || ExpressionIsNonLiteralDecimal(right))
-        {
-            return (DoCast(left, DataType.Decimal), DoCast(right, DataType.Decimal));
-        }
-
-        if (floating.Contains(leftType) && rightType == DataType.Decimal)
-        {
-            return (left, DoCast(right, leftType));
-        }
-
-        if (floating.Contains(rightType) && leftType == DataType.Decimal)
-        {
-            return (DoCast(left, rightType), right);
-        }
-
-        throw new QueryPlanException($"unable to automatically convert types '{leftType}' and '{rightType}' to a compatible type.");
-
-        BaseExpression DoCast(BaseExpression expr, DataType targetType)
-        {
-            if (expr.BoundDataType.Value == targetType)
-            {
-                return expr;
-            }
-
-            return Bind(context, new CastExpression(expr, targetType)
-            {
-                Alias = expr.Alias,
-            }, columns, ignoreMissingColumns);
-        }
-
-        bool ExpressionIsNonLiteralDecimal(BaseExpression expr)
-        {
-            return expr is not DecimalLiteral && expr.BoundDataType!.Value == DataType.Decimal;
-        }
+            Alias = expr.Alias,
+        }, columns, ignoreMissingColumns);
     }
 
     private string CastFnForType(DataType targetType)
