@@ -122,7 +122,11 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_08.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new ([1995, 0.0344358904066547974259817099M]),
+            new ([1996, 0.0414855212935303207474250901M]),
+        });
     }
 
     [Test]
