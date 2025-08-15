@@ -130,7 +130,30 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_09.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().HaveCount(175);
+        result[0..20].Should().BeEquivalentTo(new List<Row>
+        {
+            new (["ALGERIA", 1998, 27136900.1803m]),
+            new (["ALGERIA", 1997, 48611833.4962m]),
+            new (["ALGERIA", 1996, 48285482.6782m]),
+            new (["ALGERIA", 1995, 44402273.5999m]),
+            new (["ALGERIA", 1994, 48694008.0668m]),
+            new (["ALGERIA", 1993, 46044207.7838m]),
+            new (["ALGERIA", 1992, 45636849.4881m]),
+            new (["ARGENTINA", 1998, 28341663.7848m]),
+            new (["ARGENTINA", 1997, 47143964.1176m]),
+            new (["ARGENTINA", 1996, 45255278.6021m]),
+            new (["ARGENTINA", 1995, 45631769.2054m]),
+            new (["ARGENTINA", 1994, 48268856.3547m]),
+            new (["ARGENTINA", 1993, 48605593.6162m]),
+            new (["ARGENTINA", 1992, 46654240.7487m]),
+            new (["BRAZIL", 1998, 26527736.3960m]),
+            new (["BRAZIL", 1997, 45640660.7677m]),
+            new (["BRAZIL", 1996, 45090647.1630m]),
+            new (["BRAZIL", 1995, 44015888.5132m]),
+            new (["BRAZIL", 1994, 44854218.8932m]),
+            new (["BRAZIL", 1993, 45766603.7379m]),
+        });
     }
 
     [Test]
@@ -138,7 +161,20 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_10.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        // result.Should().HaveCount(37967);
+        result[0..10].Should().BeEquivalentTo(new List<Row>
+        {
+            new ([57040, "Customer#000057040", 734235.2455m, 632.87m, "JAPAN", "nICtsILWBB", "22-895-641-3466", "ep. blithely regular foxes promise slyly furiously ironic depend"]),
+            new ([143347, "Customer#000143347", 721002.6948m, 2557.47m, "EGYPT", ",Q9Ml3w0gvX", "14-742-935-3718", "endencies sleep. slyly express deposits nag carefully around the even tithes. slyly regular "]),
+            new ([60838, "Customer#000060838", 679127.3077m, 2454.77m, "BRAZIL","VWmQhWweqj5hFpcvhGFBeOY9hJ4m", "12-913-494-9813","tes. final instructions nag quickly according to"]),
+            new ([101998, "Customer#000101998", 637029.5667m, 3790.89m, "UNITED KINGDOM", "0,ORojfDdyMca2E2H", "33-593-865-6378","ost carefully. slyly regular packages cajole about the blithely final ideas. permanently daring deposit"]),
+            new ([125341, "Customer#000125341", 633508.0860m, 4983.51m, "GERMANY", "9YRcnoUPOM7Sa8xymhsDHdQg", "17-582-695-5962","ly furiously brave packages. quickly regular dugouts kindle furiously carefully bold theodolites. "]),
+            new ([25501, "Customer#000025501", 620269.7849m, 7725.04m, "ETHIOPIA", "sr4VVVe3xCJQ2oo2QEhi19D,pXqo6kOGaSn2", "15-874-808-6793","y ironic foxes hinder according to the furiously permanent dolphins. pending ideas integrate blithely from "]),
+            new ([115831, "Customer#000115831", 596423.8672m, 5098.10m, "FRANCE","AlMpPnmtGrOFrDMUs5VLo EIA,Cg,Rw5TBuBoKiO", "16-715-386-3788","unts nag carefully final packages. express theodolites are regular ac"]),
+            new ([84223, "Customer#000084223", 594998.0239m, 528.65m, "UNITED KINGDOM", "Eq51o UpQ4RBr  fYTdrZApDsPV4pQyuPq", "33-442-824-8191","longside of the slyly final deposits. blithely final platelets about the blithely i"]),
+            new ([54289, "Customer#000054289", 585603.3918m, 5583.02m, "IRAN",  "x3ouCpz6,pRNVhajr0CCQG1", "20-834-292-4707"," cajole furiously after the quickly unusual fo"]),
+            new ([39922, "Customer#000039922", 584878.1134m, 7321.11m, "GERMANY",  "2KtWzW,FYkhdWBfobp6SFXWYKjvU9", "17-147-757-8036","ironic deposits sublate furiously. carefully regular theodolites along the b"]),
+        });
     }
 
     [Test]

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using Database.Core.Types;
 
 namespace Database.Core.Expressions;
 
@@ -81,7 +82,7 @@ public record DateTimeLiteral(DateTime Literal) : LiteralExpression
 }
 
 [DebuggerDisplay("{Literal}")]
-public record IntervalLiteral(TimeSpan Literal) : LiteralExpression
+public record IntervalLiteral(Interval Literal) : LiteralExpression
 {
     public override string ToString()
     {
