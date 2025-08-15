@@ -12,20 +12,22 @@ public class HashTableTests
         var t = new HashTable<string>([typeof(int)]);
         t.Add([IntKeys([1, 2, 3])], ["one", "two", "three"]);
 
-        var f = t.Get([IntKeys([3, 2, 1, 5])]);
-        f.Should().BeEquivalentTo(["three", "two", "one", null]);
+        var (idx, values) = t.Get([IntKeys([3, 2, 1, 5])]);
+        idx.Should().BeEquivalentTo(new List<int>() { 2, 1, 0 });
+        values.Should().BeEquivalentTo(["three", "two", "one"]);
     }
 
     [Test]
-    public void Add_No_Overwrite()
+    public void Add_Allows_Duplicates()
     {
         var t = new HashTable<string>([typeof(int)]);
-        t.Add([IntKeys([1])], ["one"]);
-        t.Add([IntKeys([1])], ["two"]);
+        t.Add([IntKeys([1, 2, 2])], ["one", "two", "weee"]);
+        t.Add([IntKeys([1, 3])], ["dup", "three"]);
 
-        var f = t.Get([IntKeys([1])]);
-        f.Should().BeEquivalentTo(["one"]);
-        t.Size.Should().Be(1);
+        var (idx, values) = t.Get([IntKeys([1, 2, 3])]);
+        idx.Should().BeEquivalentTo(new List<int> { 0, 0, 1, 1, 2 });
+        values.Should().BeEquivalentTo(["one", "dup", "two", "weee", "three"]);
+        t.Size.Should().Be(5);
     }
 
     [Test]
@@ -37,8 +39,9 @@ public class HashTableTests
             t.Add([IntKeys([i])], [$"{i}"]);
         }
 
-        var f = t.Get([IntKeys([0, 1, 2, 3, 4, 5, 6, 7, 8, 9,])]);
-        f.Should().BeEquivalentTo(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+        var (idx, values) = t.Get([IntKeys([0, 1, 2, 3, 4, 5, 6, 7, 8, 9,])]);
+        idx.Should().BeEquivalentTo([0, 1, 2, 3, 4, 5, 6, 7, 8, 9,]);
+        values.Should().BeEquivalentTo(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
     }
 
     [Test]

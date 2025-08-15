@@ -50,7 +50,20 @@ public partial class TPCHTests
         var query = ReadQuery("query_03.sql");
 
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new ([2456423, 406181.0111m, new DateTime(1995, 03, 05), 0]),
+            new ([3459808, 405838.6989m, new DateTime(1995, 03, 04), 0]),
+            new ([492164, 390324.0610m, new DateTime(1995, 02, 19), 0]),
+            new ([1188320, 384537.9359m, new DateTime(1995, 03, 09), 0]),
+            new ([2435712, 378673.0558m, new DateTime(1995, 02, 26), 0]),
+            new ([4878020, 378376.7952m, new DateTime(1995, 03, 12), 0]),
+            new ([5521732, 375153.9215m, new DateTime(1995, 03, 13), 0]),
+            new ([2628192, 373133.3094m, new DateTime(1995, 02, 22), 0]),
+            new ([993600, 371407.4595m, new DateTime(1995, 03, 05), 0]),
+            new ([2300070, 367371.1452m, new DateTime(1995, 03, 13), 0]),
+
+        });
     }
 
     [Test]
