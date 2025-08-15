@@ -51,7 +51,10 @@ public class HashTable<T>
 
                 if (KeysMatch(keys, i, idx))
                 {
-                    break;
+                    if (ValuesMatch(_objects[idx], values[i]))
+                    {
+                        break;
+                    }
                 }
 
                 // linear probe
@@ -77,10 +80,18 @@ public class HashTable<T>
         }
     }
 
-    public T[] Get(IReadOnlyList<IColumn> keys)
+    private bool ValuesMatch(T one, T two)
+    {
+        return one!.Equals(two);
+    }
+
+    // Since the table allows duplicates by key,
+    // we return an index of the original value, with the match
+    public (List<int>, List<T>) Get(IReadOnlyList<IColumn> keys)
     {
         var hashed = HashFunctions.Hash(keys).Values;
-        var result = new T[hashed.Length];
+        var result = new List<T>(hashed.Length);
+        var indices = new List<int>(hashed.Length);
 
         for (var i = 0; i < hashed.Length; i++)
         {
@@ -95,10 +106,10 @@ public class HashTable<T>
                 }
                 if (KeysMatch(keys, i, idx))
                 {
-                    result[i] = _objects[idx];
-                    break;
+                    result.Add(_objects[idx]);
+                    indices.Add(i);
                 }
-                // linear probe
+                // Must continue to linear probe until we hit an empty spot
                 idx = (idx + 1) % _objects.Length;
                 if (idx == startPos)
                 {
@@ -106,7 +117,8 @@ public class HashTable<T>
                 }
             }
         }
-        return result;
+
+        return (indices, result);
     }
 
     public List<T> GetOrAdd(IReadOnlyList<IColumn> keys, Func<T> initializer)

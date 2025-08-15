@@ -370,8 +370,8 @@ order by n_name
     public void TestJoin()
     {
         var result =
-            Query(@"select * from customer, orders where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and o_orderdate < date '1995-03-15' limit 100;").AsRowList();
-        result.Should().HaveCount(100);
+            Query(@"select count(*) from customer, orders where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and o_orderdate < date '1995-03-15' ;").AsRowList();
+        result.Should().BeEquivalentTo(new List<Row> { new Row([147126]) });
     }
 
     [Test]

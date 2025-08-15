@@ -44,17 +44,18 @@ public record HashJoinOperator(
         var scanKeys = CalculateScanKeys(rowGroup);
 
         var targetRg = Table.AddRowGroup();
-        var count = 0;
 
-        var ids = GetMatchingIdsAndCount(scanKeys, ref count);
+        var (offsets, rowRefs) = PerformIdMatch(scanKeys);
 
-        CopyColumnsToNewTable(rowGroup, ids, count, targetRg);
+        CopyColumnsToNewTable(rowGroup, offsets, rowRefs, targetRg);
 
-        return new RowGroup(count, targetRg, OutputColumnRefs);
+        return new RowGroup(offsets.Count, targetRg, OutputColumnRefs);
     }
 
-    private void CopyColumnsToNewTable(RowGroup rowGroup, RowRef?[] ids, int count, RowGroupRef targetRg)
+    private void CopyColumnsToNewTable(RowGroup rowGroup, IReadOnlyList<int> offsets, IReadOnlyList<RowRef?> rowRefs, RowGroupRef targetRg)
     {
+        var count = offsets.Count;
+
         // TODO need to ensure column ordering between the two tables
         for (var i = 0; i < ScanSource.ColumnRefs.Count; i++)
         {
@@ -69,12 +70,17 @@ public record HashJoinOperator(
                                     $"but output column {outputCol.Name} is of type {outputCol.ClrType}");
             }
 
-            var filtered = FilterArray(sourceCol.ValuesArray, sourceCol.Type, ids, count);
+            var values = Array.CreateInstance(sourceCol.Type, count);
+            for (var j = 0; j < count; j++)
+            {
+                var rowId = offsets[j];
+                values.SetValue(sourceCol[rowId], j);
+            }
 
             var column = ColumnHelper.CreateColumn(
                 outputCol.ClrType,
                 sourceCol.Name,
-                filtered
+                values
             );
             BufferPool.WriteColumn(outputCol.ColumnRef, column, targetRg.RowGroup);
         }
@@ -94,16 +100,12 @@ public record HashJoinOperator(
             }
 
             var pos = 0;
-            for (var j = 0; j < ids.Length; j++)
+            for (var j = 0; j < rowRefs.Count; j++)
             {
-                var rowId = ids[j];
-                if (rowId == null)
-                {
-                    continue;
-                }
-                var sourceCol = BufferPool.GetColumn(columnRef with { RowGroup = rowId.Value.RowGroup.RowGroup });
+                var rowId = rowRefs[j]!.Value;
+                var sourceCol = BufferPool.GetColumn(columnRef with { RowGroup = rowId.RowGroup.RowGroup });
 
-                values.SetValue(sourceCol[rowId.Value.Row], pos);
+                values.SetValue(sourceCol[rowId.Row], pos);
                 pos++;
             }
 
@@ -118,18 +120,12 @@ public record HashJoinOperator(
         // Materializing here is probably slow, would be better to just use ids?
     }
 
-    private RowRef?[] GetMatchingIdsAndCount(List<IColumn> scanKeys, ref int count)
+    // Left side just return the offset into the current row group
+    // Right side is RowRef
+    private (List<int>, List<RowRef?>) PerformIdMatch(List<IColumn> scanKeys)
     {
-        var ids = _hashTable.Get(scanKeys);
-        for (var i = 0; i < ids.Length; i++)
-        {
-            if (ids[i] != null)
-            {
-                count++;
-            }
-        }
-
-        return ids;
+        var (idx, ids) = _hashTable!.Get(scanKeys);
+        return (idx, ids);
     }
 
     private List<IColumn> CalculateScanKeys(RowGroup rowGroup)
@@ -178,22 +174,6 @@ public record HashJoinOperator(
         }
 
         return hashTable;
-    }
-
-    private Array FilterArray(Array source, Type type, RowRef?[] ids, int size)
-    {
-        var target = Array.CreateInstance(type, size);
-        var j = 0;
-        for (var i = 0; i < ids.Length; i++)
-        {
-            if (ids[i] == null)
-            {
-                continue;
-            }
-            target.SetValue(source.GetValue(i), j);
-            j++;
-        }
-        return target;
     }
 
     public override Cost EstimateCost()
