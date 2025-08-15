@@ -81,7 +81,14 @@ public partial class TPCHTests
         var query = ReadQuery("query_05.sql");
 
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new (["INDONESIA" , 55502041.1697m]),
+            new (["VIETNAM"   , 55295086.9967m]),
+            new (["CHINA"     , 53724494.2566m]),
+            new (["INDIA"     , 52035512.0002m]),
+            new (["JAPAN"     , 45410175.6954m]),
+        });
     }
 
     [Test]
@@ -101,7 +108,13 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_07.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new(["FRANCE", "GERMANY", 1995, 54639732.7336m]),
+            new(["FRANCE", "GERMANY", 1996, 54633083.3076m]),
+            new(["GERMANY", "FRANCE", 1995, 52531746.6697m]),
+            new(["GERMANY", "FRANCE", 1996, 52520549.0224m]),
+        });
     }
 
     [Test]
