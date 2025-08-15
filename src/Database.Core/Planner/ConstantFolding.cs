@@ -65,8 +65,8 @@ public static class ConstantFolding
             {
                 var result = b.Operator switch
                 {
-                    PLUS => ldt.Literal + ril.Literal,
-                    MINUS => ldt.Literal - ril.Literal,
+                    PLUS => ril.Literal.Add(ldt.Literal),
+                    MINUS => ril.Literal.Subtract(ldt.Literal),
                     _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
                 };
                 return new DateTimeLiteral(result);
