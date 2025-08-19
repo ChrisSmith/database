@@ -377,7 +377,7 @@ public class Parser
     private BaseExpression ParseEquality()
     {
         var plus = ParsePlusMinus();
-        if (Match(out var token, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, LIKE))
+        if (Match(out var token, IN, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, LIKE))
         {
             var right = ParseEquality();
             return new BinaryExpression(token.TokenType, token.Lexeme, plus, right);
@@ -495,17 +495,32 @@ public class Parser
 
         if (Match(LEFT_PAREN))
         {
+            if (Check(SELECT))
+            {
+                var subquery = (SelectStatement)ParseStatement();
+                Consume(RIGHT_PAREN, "Expected ')'");
+                return new SubQueryExpression(subquery);
+            }
+
             var inner = ParseExpr();
+
+            // We might be in a list of expressions for the IN statement
+            if (Match(COMMA))
+            {
+                var statements = new List<BaseExpression>();
+                do
+                {
+                    statements.Add(ParseExpr());
+                } while (Match(COMMA));
+                Consume(RIGHT_PAREN, "Expected ')'");
+
+                return new ExpressionList(statements);
+            }
+
             // The grouping doesn't need a separate expr type, as the order
             // change happens at tree construction, instead of runtime
             Consume(RIGHT_PAREN, "Expected ')'");
             return inner;
-        }
-
-        if (Check(SELECT))
-        {
-            var subquery = (SelectStatement)ParseStatement();
-            return new SubQueryExpression(subquery);
         }
 
         if (Match(CASE))

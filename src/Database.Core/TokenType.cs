@@ -68,5 +68,6 @@ public enum TokenType
     THEN,
     ELSE,
     END,
+    IN,
     EOF,
 }

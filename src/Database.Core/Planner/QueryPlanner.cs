@@ -23,7 +23,7 @@ public class QueryPlanner
         _catalog = catalog;
         _bufferPool = bufferPool;
         _binder = new ExpressionBinder(bufferPool, new FunctionRegistry());
-        _optimizer = new QueryOptimizer(_options, _binder);
+        _optimizer = new QueryOptimizer(_options, _binder, bufferPool);
         _physicalPlanner = new PhysicalPlanner(_options, catalog, bufferPool);
         _costBasedOptimizer = new CostBasedOptimizer(_options, _physicalPlanner);
     }
@@ -72,6 +72,7 @@ public class QueryPlanner
                 {
                     BoundDataType = sourceCol.DataType,
                     BoundOutputColumn = newColumn.ColumnRef,
+                    BoundMemoryTable = memRef,
                 },
             };
 

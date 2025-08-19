@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks.Dataflow;
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 using Database.Core.Options;
@@ -8,7 +9,7 @@ using BinaryExpression = Database.Core.Expressions.BinaryExpression;
 
 namespace Database.Core.Planner;
 
-public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
+public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, ParquetPool bufferPool)
 {
     public LogicalPlan OptimizePlan(LogicalPlan plan, BindContext context)
     {
@@ -319,6 +320,29 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder)
             var f1 = new Filter(orgInput, left);
             var f2 = new Filter(f1, right);
             return f2;
+        }
+
+        if (filter.Predicate is BinaryExpression { Operator: TokenType.IN } inOp)
+        {
+            if (inOp.Right is SubQueryResultExpression e)
+            {
+                var table = bufferPool.GetMemoryTable(e.BoundMemoryTable.TableId);
+                var scan = new Scan(
+                    e.Alias,
+                    e.BoundMemoryTable.TableId,
+                    null,
+                    table.Schema.Select(c => c with
+                    {
+                        SourceTableAlias = e.Alias,
+                        SourceTableName = e.Alias,
+                    }).ToList()
+                    );
+                var joinCond = new BinaryExpression(
+                    TokenType.EQUAL, "=",
+                    inOp.Left,
+                    new ColumnExpression(table.Schema.Single().Name, e.Alias));
+                return new Join(filter.Input, scan, JoinType.Semi, joinCond);
+            }
         }
 
         // This is not correct, need to look higher up the tree

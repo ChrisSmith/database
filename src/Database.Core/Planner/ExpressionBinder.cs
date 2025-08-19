@@ -124,6 +124,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     AND => functions.BindFunction("and", args),
                     OR => functions.BindFunction("or", args),
                     LIKE => functions.BindFunction("like", args),
+                    IN => new ExpressionListFn(DataType.Bool),
                     _ => throw new QueryPlanException($"operator '{be.Operator}' not setup for binding yet"),
                 };
             }
@@ -209,6 +210,22 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     Conditions = boundConditions,
                     Results = boundResults,
                     Default = boundDefault,
+                };
+            }
+            else if (expression is ExpressionList list)
+            {
+                var bound = new List<BaseExpression>();
+                foreach (var expr in list.Statements)
+                {
+                    bound.Add(Bind(context, expr, columns, ignoreMissingColumns));
+                }
+                var compatType = FindCompatibleType(bound);
+                bound = bound.Select(e => DoCast(e, compatType, context, columns, ignoreMissingColumns)).ToList();
+
+                function = new ExpressionListFn(compatType);
+                expression = list with
+                {
+                    Statements = bound,
                 };
             }
             else

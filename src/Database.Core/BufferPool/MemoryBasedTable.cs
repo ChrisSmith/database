@@ -104,4 +104,9 @@ public class MemoryBasedTable(MemoryStorage storage)
             throw new Exception($"Attempting to write to a column {columnRef.Column} that does not exist in the schema.");
         }
     }
+
+    public List<int> GetRowGroups()
+    {
+        return _rowGroups.Keys.ToList();
+    }
 }

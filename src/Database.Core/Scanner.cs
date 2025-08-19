@@ -52,6 +52,7 @@ public class Scanner
         {"then", THEN},
         {"else", ELSE},
         {"end", END},
+        {"in", IN},
     };
 
     public Scanner(string source)
