@@ -4,10 +4,12 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
 public record HashJoinOperator(
+    JoinType JoinType,
     ParquetPool BufferPool,
     IOperation ScanSource,
     IOperation ProbeSource,
@@ -45,11 +47,63 @@ public record HashJoinOperator(
 
         var targetRg = Table.AddRowGroup();
 
-        var (offsets, rowRefs) = PerformIdMatch(scanKeys);
+        if (JoinType == JoinType.Inner)
+        {
+            var (offsets, rowRefs) = PerformIdMatch(scanKeys);
 
-        CopyColumnsToNewTable(rowGroup, offsets, rowRefs, targetRg);
+            CopyColumnsToNewTable(rowGroup, offsets, rowRefs, targetRg);
 
-        return new RowGroup(offsets.Count, targetRg, OutputColumnRefs);
+            return new RowGroup(offsets.Count, targetRg, OutputColumnRefs);
+        }
+        if (JoinType == JoinType.Semi)
+        {
+            var contains = _hashTable!.Contains(scanKeys);
+            var count = contains.Count(c => c);
+            CopyColumnsToNewTable(rowGroup, contains, count, targetRg);
+
+            return new RowGroup(count, targetRg, OutputColumnRefs);
+        }
+
+        throw new NotImplementedException($"Not implemented {JoinType}");
+    }
+
+    private void CopyColumnsToNewTable(
+        RowGroup rowGroup,
+        IReadOnlyList<bool> sourceRows,
+        int count,
+        RowGroupRef targetRg)
+    {
+        for (var i = 0; i < ScanSource.ColumnRefs.Count; i++)
+        {
+            var columnRef = ScanSource.ColumnRefs[i];
+            var sourceCol = BufferPool.GetColumn(columnRef with { RowGroup = rowGroup.RowGroupRef.RowGroup });
+
+            var outputCol = OutputColumns[i];
+
+            if (sourceCol.Type != outputCol.ClrType)
+            {
+                throw new Exception($"Source Column({i}) {sourceCol.Name} is of type {sourceCol.Type} " +
+                                    $"but output column {outputCol.Name} is of type {outputCol.ClrType}");
+            }
+
+            var values = Array.CreateInstance(sourceCol.Type, count);
+            var k = 0;
+            for (var j = 0; j < sourceRows.Count; j++)
+            {
+                if (sourceRows[j])
+                {
+                    values.SetValue(sourceCol[k], j);
+                    k++;
+                }
+            }
+
+            var column = ColumnHelper.CreateColumn(
+                outputCol.ClrType,
+                sourceCol.Name,
+                values
+            );
+            BufferPool.WriteColumn(outputCol.ColumnRef, column, targetRg.RowGroup);
+        }
     }
 
     private void CopyColumnsToNewTable(RowGroup rowGroup, IReadOnlyList<int> offsets, IReadOnlyList<RowRef?> rowRefs, RowGroupRef targetRg)
@@ -168,7 +222,6 @@ public record HashJoinOperator(
                 rowArray[i] = new RowRef(propRg.RowGroupRef, i);
             }
 
-            // TODO I need a hashtable with duplicates since keys may not be unique
             hashTable.Add(keys, rowArray);
             propRg = ProbeSource.Next();
         }

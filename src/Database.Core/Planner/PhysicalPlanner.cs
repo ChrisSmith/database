@@ -137,9 +137,19 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
     private IOperation CreateScan(Scan scan, BindContext context)
     {
         var outputColumns = scan.OutputColumns;
-
-        var table = catalog.Tables.Single(t => t.Id == scan.TableId);
         var columnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
+
+        var table = catalog.Tables.SingleOrDefault(t => t.Id == scan.TableId);
+        if (table == null)
+        {
+            var memTable = bufferPool.GetMemoryTable(scan.TableId);
+            return new ScanMemoryTable(
+                memTable,
+                catalog,
+                outputColumns,
+                columnRefs
+            );
+        }
 
         if (TryBindPushFilterDown(context, table, scan.Filter, out var filter))
         {
@@ -325,7 +335,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             );
         }
 
-        if (join.JoinType == JoinType.Inner)
+        if (join.JoinType == JoinType.Inner || join.JoinType == JoinType.Semi)
         {
             var expressions = _binder.Bind(context, join.Condition!, inputColumns);
             // TODO split join condition
@@ -355,6 +365,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             }
 
             return new HashJoinOperator(
+                join.JoinType,
                 bufferPool,
                 left,
                 right,
@@ -590,7 +601,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
     {
         var inputColumns = input.Columns;
         var whereExpr = _binder.Bind(context, filter.Predicate, inputColumns);
-        if (whereExpr.BoundFunction is not BoolFunction predicate)
+        if (whereExpr.BoundFunction!.ReturnType != DataType.Bool)
         {
             // TODO cast values to "truthy"
             throw new QueryPlanException($"Filter expression '{filter.Predicate}' is not a boolean expression");

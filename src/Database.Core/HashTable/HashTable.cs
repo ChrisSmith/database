@@ -121,6 +121,39 @@ public class HashTable<T>
         return (indices, result);
     }
 
+    public bool[] Contains(IReadOnlyList<IColumn> keys)
+    {
+        var hashed = HashFunctions.Hash(keys).Values;
+        var result = new bool[hashed.Length];
+
+        for (var i = 0; i < hashed.Length; i++)
+        {
+            var idx = Math.Abs(hashed[i]) % _objects.Length;
+            var startPos = idx;
+            while (true)
+            {
+                if (_occupied[idx] == false)
+                {
+                    // miss
+                    break;
+                }
+                if (KeysMatch(keys, i, idx))
+                {
+                    result[i] = true;
+                    break;
+                }
+                // Must continue to linear probe until we hit an empty spot
+                idx = (idx + 1) % _objects.Length;
+                if (idx == startPos)
+                {
+                    throw new Exception("Hash table get failed");
+                }
+            }
+        }
+
+        return result;
+    }
+
     public List<T> GetOrAdd(IReadOnlyList<IColumn> keys, Func<T> initializer)
     {
         var hashed = HashFunctions.Hash(keys).Values;
