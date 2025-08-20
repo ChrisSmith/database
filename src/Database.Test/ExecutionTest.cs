@@ -205,6 +205,14 @@ public class ExecutionTest
         result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
     }
 
+    [TestCase("(1, 10, 100)")]
+    [TestCase("(id + 1, id + 10, id + 100)")]
+    public void Where_In(string expr)
+    {
+        var result = Query($"SELECT Id FROM table where Id in {expr};").AsRowList();
+        result.Select(r => r.Values.Single()).ToList().Should().BeEquivalentTo([1, 10, 100]);
+    }
+
     [TestCase("CategoricalString like '%i%'", new[] { "bird", "fish", "rabbit" })]
     [TestCase("CategoricalString like '%cat%'", new[] { "cat" })]
     [TestCase("CategoricalString like 'c%t'", new[] { "cat" })]
@@ -431,7 +439,7 @@ order by n_name
         var values = result.Select(r => (int)r.Values[0]).ToList();
         values.Should().BeEquivalentTo(new List<int>
         {
-            20114,
+            100_000,
         });
     }
 

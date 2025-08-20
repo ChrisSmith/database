@@ -4,12 +4,18 @@ using Database.Core.Execution;
 
 namespace Database.Core.Functions;
 
-public record SelectSubQueryFunction(ColumnRef ColumnRef, DataType ReturnType, ParquetPool BufferPool)
+public record SelectSubQueryFunction(ColumnRef ColumnRef, DataType ReturnType, MemoryBasedTable Table, ParquetPool BufferPool)
     : IFunctionWithColumnLength
 {
     public IColumn Execute(int length)
     {
-        var column = BufferPool.GetColumn(ColumnRef with { RowGroup = 0 });
+        var rowGroups = Table.GetRowGroups();
+        if (rowGroups.Count != 1)
+        {
+            throw new Exception($"Scalar Subquery must return a single value, got {rowGroups.Count} rowGroups");
+        }
+
+        var column = BufferPool.GetColumn(ColumnRef with { RowGroup = rowGroups[0] });
         if (column.Length != 1)
         {
             throw new Exception($"Scalar Subquery must return a single value, got {column.Length}");

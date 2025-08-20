@@ -4,7 +4,7 @@ namespace Database.Core;
 
 public record SelectStatement(
     SelectListStatement SelectList,
-    FromStatement From,
+    FromStatement? From,
     BaseExpression? Where,
     GroupByStatement? Group,
     OrderByStatement? Order,
