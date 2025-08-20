@@ -41,6 +41,7 @@ public class Parser
 
             BaseExpression? where = null;
             GroupByStatement? group = null;
+            BaseExpression? having = null;
             OrderByStatement? order = null;
             LimitStatement? limit = null;
 
@@ -54,6 +55,11 @@ public class Parser
                 group = ParseGroupByStatement();
             }
 
+            if (Match(HAVING))
+            {
+                having = ParseHavingStatement();
+            }
+
             if (Match(ORDER))
             {
                 order = ParseOrderByStatement();
@@ -64,10 +70,23 @@ public class Parser
                 limit = ParseLimit();
             }
 
-            return new SelectStatement(selectList, from, where, group, order, limit, Alias: null);
+            return new SelectStatement(
+                selectList,
+                from,
+                where,
+                group,
+                having,
+                order,
+                limit,
+                Alias: null);
         }
 
         throw new ParseException(Peek(), "Expected statement");
+    }
+
+    private BaseExpression ParseHavingStatement()
+    {
+        return ParseExpr();
     }
 
     private LimitStatement ParseLimit()

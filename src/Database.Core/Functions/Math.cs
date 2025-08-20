@@ -194,7 +194,7 @@ public record Avg<T> : IAggregateFunction<T, AvgState<T>, double>
 }
 
 public record Max<T>(DataType ReturnType) : IAggregateFunction<T, ScalarState<T>, T>
-    where T : INumber<T>
+    where T : INumber<T>, IMinMaxValue<T>
 {
     public T Value(ScalarState<T> state) => state.Value;
 
@@ -202,7 +202,10 @@ public record Max<T>(DataType ReturnType) : IAggregateFunction<T, ScalarState<T>
 
     public IAggregateState Initialize()
     {
-        return new ScalarState<T>();
+        return new ScalarState<T>()
+        {
+            Value = T.MinValue,
+        };
     }
 
     public IAggregateState[] InitializeArray(int size)
@@ -227,7 +230,7 @@ public record Max<T>(DataType ReturnType) : IAggregateFunction<T, ScalarState<T>
 
 
 public record Min<T>(DataType ReturnType) : IAggregateFunction<T, ScalarState<T>, T>
-    where T : INumber<T>
+    where T : INumber<T>, IMinMaxValue<T>
 {
     public T Value(ScalarState<T> state) => state.Value;
 
@@ -235,7 +238,10 @@ public record Min<T>(DataType ReturnType) : IAggregateFunction<T, ScalarState<T>
 
     public IAggregateState Initialize()
     {
-        return new ScalarState<T>();
+        return new ScalarState<T>()
+        {
+            Value = T.MaxValue,
+        };
     }
 
     public IAggregateState[] InitializeArray(int size)
