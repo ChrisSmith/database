@@ -7,6 +7,7 @@ public record SelectStatement(
     FromStatement? From,
     BaseExpression? Where,
     GroupByStatement? Group,
+    BaseExpression? Having,
     OrderByStatement? Order,
     LimitStatement? Limit,
     string? Alias

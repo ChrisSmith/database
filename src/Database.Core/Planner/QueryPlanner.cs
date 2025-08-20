@@ -178,9 +178,42 @@ public class QueryPlanner
                     aggregates.Add(groupingExpr);
                 }
             }
-            plan = new Aggregate(plan, groupingExprs, aggregates, select.Alias);
+
+            // Might throw this one away if we still need to extend the schema
+            var aggregatePlan = new Aggregate(plan, groupingExprs, aggregates, select.Alias);
+
+            if (select.Having != null)
+            {
+                var havingExpr = _binder.Bind(context, select.Having, plan.OutputSchema, ignoreMissingColumns: true);
+                var (havingAggregates, havingExprs) = SeparateAggregatesFromExpressions([havingExpr]);
+
+                var modified = false;
+                foreach (var havingAggregate in havingAggregates)
+                {
+                    if (!aggregates.Contains(havingAggregate))
+                    {
+                        aggregates.Add(havingAggregate);
+                        modified = true;
+                    }
+                }
+
+                if (modified)
+                {
+                    aggregatePlan = new Aggregate(plan, groupingExprs, aggregates, select.Alias);
+                }
+
+                plan = new Filter(aggregatePlan, havingExprs.Single());
+            }
+            else
+            {
+                plan = aggregatePlan;
+            }
 
             expressions = _binder.Bind(context, expressions, plan.OutputSchema);
+        }
+        else if (select.Having != null)
+        {
+            throw new QueryPlanException("HAVING clause can only be used with GROUP BY or Aggregates in the select clause");
         }
 
         if (select.Order != null)

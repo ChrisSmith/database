@@ -231,20 +231,22 @@ public class ExecutionTest
     public void GroupBy()
     {
         var result = Query(@$"
-            select CategoricalInt, count(*) as count
+            select CategoricalInt, count(*) as count , max(CategoricalInt), min(CategoricalInt)
             from table
-            group by CategoricalInt;
+            group by CategoricalInt
+            order by CategoricalInt;
         ").AsRowList();
 
-        var values = result.Select(r => new Tuple<int, int>((int)r.Values[0], (int)r.Values[1])).ToList();
+        var values = result.Select(r => new Tuple<int, int, int, int>(
+            (int)r.Values[0], (int)r.Values[1], (int)r.Values[2], (int)r.Values[3])).ToList();
         values.Should().HaveCount(5);
-        values.Should().BeEquivalentTo(new List<Tuple<int, int>>
+        values.Should().BeEquivalentTo(new List<Tuple<int, int, int, int>>
         {
-            new(0, 20114),
-            new(1, 20038),
-            new(2, 20121),
-            new(3, 19639),
-            new(4, 20088),
+            new(0, 20114, 0, 0),
+            new(1, 20038, 1, 1),
+            new(2, 20121, 2, 2),
+            new(3, 19639, 3, 3),
+            new(4, 20088, 4, 4),
         });
     }
 
@@ -292,6 +294,29 @@ order by n_name
             "JAPAN",
             "INDIA"
         ]);
+    }
+
+    [TestCase("count(*) > 20100")]
+    [TestCase("count > 20100")]
+    [TestCase("count(CategoricalInt) > 20100")]
+    [TestCase("max(CategoricalInt) = 0 or min(CategoricalInt) = 2")] // TODO using max twice breaks right now because they're not seen as the "same"
+    [TestCase("max(CategoricalInt) in (0, 2)")]
+    public void Having(string expr)
+    {
+        var result = Query(@$"
+            select CategoricalInt, count(*) as count
+            from table
+            group by CategoricalInt
+            having {expr}
+            order by CategoricalInt;
+        ").AsRowList();
+
+        var values = result.Select(r => new Tuple<int, int>((int)r.Values[0], (int)r.Values[1])).ToList();
+        values.Should().BeEquivalentTo(new List<Tuple<int, int>>
+        {
+            new(0, 20114),
+            new(2, 20121),
+        });
     }
 
     [TestCase("order by Id", false)]
