@@ -20,9 +20,8 @@ public record SubqueryOperator(
             {
                 var subQuery = UncorrelatedSources[i];
                 var sink = UncorrelatedOutputSchemas[i].Single();
-                // var table = BufferPool.GetMemoryTable(((MemoryStorage)sink.ColumnRef.Storage).TableId);
+                var table = BufferPool.GetMemoryTable(((MemoryStorage)sink.ColumnRef.Storage).TableId);
 
-                var rid = 0;
                 RowGroup? next;
                 do
                 {
@@ -35,7 +34,8 @@ public record SubqueryOperator(
                             RowGroup = next.RowGroupRef.RowGroup,
                         });
 
-                        BufferPool.WriteColumn(sink.ColumnRef, column, rid++);
+                        var rid = table.AddRowGroup().RowGroup;
+                        BufferPool.WriteColumn(sink.ColumnRef, column, rid);
                     }
                 } while (next != null);
             }

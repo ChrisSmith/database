@@ -507,7 +507,7 @@ public class Parser
             // We might be in a list of expressions for the IN statement
             if (Match(COMMA))
             {
-                var statements = new List<BaseExpression>();
+                var statements = new List<BaseExpression> { inner };
                 do
                 {
                     statements.Add(ParseExpr());

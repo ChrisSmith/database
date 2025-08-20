@@ -92,7 +92,7 @@ public record HashJoinOperator(
             {
                 if (sourceRows[j])
                 {
-                    values.SetValue(sourceCol[k], j);
+                    values.SetValue(sourceCol[j], k);
                     k++;
                 }
             }

@@ -172,7 +172,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     throw new QueryPlanException($"subquery result '{subQueryRes.Alias}' was not found in the context");
                 }
                 symbol.RefCount++;
-                function = new SelectSubQueryFunction(symbol.ColumnRef, symbol.DataType, bufferPool);
+                var memTable = bufferPool.GetMemoryTable(subQueryRes.BoundMemoryTable.TableId);
+                function = new SelectSubQueryFunction(symbol.ColumnRef, symbol.DataType, memTable, bufferPool);
             }
             else if (expression is CaseExpression caseExpr)
             {

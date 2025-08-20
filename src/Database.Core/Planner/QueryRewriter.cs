@@ -104,9 +104,6 @@ public static class QueryRewriter
         return select with { Where = updatedWhere };
     }
 
-    // TODO dependencies? Arguments?
-    public record SubQueryPlan(SelectStatement Select, SubQueryResultExpression Expression);
-
     public static (SelectStatement, List<SubQueryPlan> result) ExtractSubqueries(
         SelectStatement select,
         Catalog.Catalog catalog,
@@ -128,13 +125,50 @@ public static class QueryRewriter
                 {
                     Alias = $"$subquery_{subQueryId}$",
                 };
-                subQueryPlans.Add(new SubQueryPlan(subQuery.Select, subResult));
+                subQueryPlans.Add(new SubQuerySelectPlan(subQuery.Select, subResult));
 
                 return subResult;
             }
+
+            if (expr is ExpressionList exprList)
+            {
+                // The expression list might be correlated with the outer
+                // query, transform it into an equivalent select and execute that
+                var subResult = new SubQueryResultExpression(++subQueryId)
+                {
+                    Alias = $"$subquery_{subQueryId}$",
+                };
+
+                if (!exprList.Statements.All(s => s is LiteralExpression))
+                {
+                    throw new QueryPlanException("IN clause expression list currently only support literals.");
+                }
+
+                subQueryPlans.Add(new SubQueryInPlan(exprList, subResult));
+
+                return subResult;
+
+                // TODO Use UNION ALL here to join
+                // the expressions into the query query plan
+                // https://www.sqlite.org/lang_select.html
+                /*
+                var select = new SelectStatement(
+                    new SelectListStatement(false, expressions),
+                    null, null, null, null, null, null);
+                subQueryPlans.Add(new SubQueryPlan(select, subResult));
+                */
+            }
+
             return expr;
         });
 
         return (select with { Where = updatedWhere }, subQueryPlans);
     }
 }
+
+// TODO dependencies? Arguments?
+public record SubQueryPlan(SubQueryResultExpression Expression);
+
+public record SubQuerySelectPlan(SelectStatement Select, SubQueryResultExpression Expression) : SubQueryPlan(Expression);
+public record SubQueryInPlan(ExpressionList ExpressionList, SubQueryResultExpression Expression) : SubQueryPlan(Expression);
+
