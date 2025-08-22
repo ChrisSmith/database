@@ -10,20 +10,32 @@ public record SelectSubQueryFunction(ColumnRef ColumnRef, DataType ReturnType, M
     public IColumn Execute(int length)
     {
         var rowGroups = Table.GetRowGroups();
-        if (rowGroups.Count != 1)
+
+        var type = ReturnType.ClrTypeFromDataType();
+        var outputArray = Array.CreateInstance(type, length);
+        var columnSchema = Table.GetColumnSchema(ColumnRef);
+
+        object? scalar = null;
+
+        // hack for not-exists subquery eval, really need null support
+        if (rowGroups.Count == 0 && ReturnType == DataType.Bool)
+        {
+            scalar = false;
+        }
+        else if (rowGroups.Count == 1)
+        {
+            var column = BufferPool.GetColumn(ColumnRef with { RowGroup = rowGroups[0] });
+            if (column.Length != 1)
+            {
+                throw new Exception($"Scalar Subquery must return a single value, got {column.Length}");
+            }
+            scalar = column[0];
+        }
+        else
         {
             throw new Exception($"Scalar Subquery must return a single value, got {rowGroups.Count} rowGroups");
         }
 
-        var column = BufferPool.GetColumn(ColumnRef with { RowGroup = rowGroups[0] });
-        if (column.Length != 1)
-        {
-            throw new Exception($"Scalar Subquery must return a single value, got {column.Length}");
-        }
-        var scalar = column[0];
-
-        var type = ReturnType.ClrTypeFromDataType();
-        var outputArray = Array.CreateInstance(type, length);
         for (var i = 0; i < length; i++)
         {
             outputArray.SetValue(scalar, i);
@@ -31,7 +43,7 @@ public record SelectSubQueryFunction(ColumnRef ColumnRef, DataType ReturnType, M
 
         return ColumnHelper.CreateColumn(
             type,
-            column.Name,
+            columnSchema.Name,
             outputArray);
     }
 }

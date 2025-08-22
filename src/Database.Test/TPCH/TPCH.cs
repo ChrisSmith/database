@@ -242,7 +242,30 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_18.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().HaveCount(57);
+        result[0..20].Should().BeEquivalentTo(new List<Row>
+        {
+            new(["Customer#000128120", 128120L, 4722021L, new DateTime(1994, 04, 07), 544089.09m, 323.00m]),
+            new(["Customer#000144617", 144617L, 3043270L, new DateTime(1997, 02, 12), 530604.44m, 317.00m]),
+            new(["Customer#000013940", 13940L, 2232932L, new DateTime(1997, 04, 13), 522720.61m, 304.00m]),
+            new(["Customer#000066790", 66790L, 2199712L, new DateTime(1996, 09, 30), 515531.82m, 327.00m]),
+            new(["Customer#000046435", 46435L, 4745607L, new DateTime(1997, 07, 03), 508047.99m, 309.00m]),
+            new(["Customer#000015272", 15272L, 3883783L, new DateTime(1993, 07, 28), 500241.33m, 302.00m]),
+            new(["Customer#000146608", 146608L, 3342468L, new DateTime(1994, 06, 12), 499794.58m, 303.00m]),
+            new(["Customer#000096103", 96103L, 5984582L, new DateTime(1992, 03, 16), 494398.79m, 312.00m]),
+            new(["Customer#000024341", 24341L, 1474818L, new DateTime(1992, 11, 15), 491348.26m, 302.00m]),
+            new(["Customer#000137446", 137446L, 5489475L, new DateTime(1997, 05, 23), 487763.25m, 311.00m]),
+            new(["Customer#000107590", 107590L, 4267751L, new DateTime(1994, 11, 04), 485141.38m, 301.00m]),
+            new(["Customer#000050008", 50008L, 2366755L, new DateTime(1996, 12, 09), 483891.26m, 302.00m]),
+            new(["Customer#000015619", 15619L, 3767271L, new DateTime(1996, 08, 07), 480083.96m, 318.00m]),
+            new(["Customer#000077260", 77260L, 1436544L, new DateTime(1992, 09, 12), 479499.43m, 307.00m]),
+            new(["Customer#000109379", 109379L, 5746311L, new DateTime(1996, 10, 10), 478064.11m, 302.00m]),
+            new(["Customer#000054602", 54602L, 5832321L, new DateTime(1997, 02, 09), 471220.08m, 307.00m]),
+            new(["Customer#000105995", 105995L, 2096705L, new DateTime(1994, 07, 03), 469692.58m, 307.00m]),
+            new(["Customer#000148885", 148885L, 2942469L, new DateTime(1992, 05, 31), 469630.44m, 313.00m]),
+            new(["Customer#000114586", 114586L, 551136L, new DateTime(1993, 05, 19), 469605.59m, 308.00m]),
+            new(["Customer#000105260", 105260L, 5296167L, new DateTime(1996, 09, 06), 469360.57m, 303.00m]),
+        });
     }
 
     [Test]

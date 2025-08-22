@@ -567,4 +567,24 @@ order by n_name
             new (4, 0),
         });
     }
+
+    [TestCase("q.CategoricalString = 'cat'", Description = "Uncorrelated Exists", ExpectedResult = 100_000)]
+    [TestCase("q.CategoricalString = 'catfish'", Description = "Uncorrelated Does not Exists", ExpectedResult = 0)]
+    [TestCase("q.CategoricalString = t.CategoricalString and q.CategoricalString = 'cat'", Description = "Correlated filter", ExpectedResult = 10_000)]
+    [TestCase("q.CategoricalString = t.CategoricalString", Description = "Correlated full join", ExpectedResult = 100_000)]
+    public int Exists(string expr)
+    {
+        var result = Query(@$"
+            select count(*) as count
+            from table t
+            where exists (
+                select *
+                from table q
+                where {expr}
+            )
+        ").AsRowList();
+
+        var value = result.Select(r => (int)r.Values[0]).Single();
+        return value;
+    }
 }

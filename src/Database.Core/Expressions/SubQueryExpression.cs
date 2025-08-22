@@ -1,6 +1,6 @@
 namespace Database.Core.Expressions;
 
-public record SubQueryExpression(SelectStatement Select) : BaseExpression()
+public record SubQueryExpression(SelectStatement Select, bool ExistsOnly) : BaseExpression()
 {
     public override IEnumerable<BaseExpression> Children()
     {

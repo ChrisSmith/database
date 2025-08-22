@@ -219,14 +219,19 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
         Console.WriteLine();
 
 
-        var plans = optimizer.OptimizePlanWithHistory(plan, context);
-        for (var i = 0; i < plans.Count; i++)
-        {
-            plan = plans[i];
-            Console.WriteLine($"Step {i}");
-            Console.WriteLine("====================");
-            Console.WriteLine(explainer.Explain(plan));
-        }
+        // var plans = optimizer.OptimizePlanWithHistory(plan, context);
+        // for (var i = 0; i < plans.Count; i++)
+        // {
+        //     plan = plans[i];
+        //     Console.WriteLine($"Step {i}");
+        //     Console.WriteLine("====================");
+        //     Console.WriteLine(explainer.Explain(plan));
+        // }
+
+        plan = optimizer.OptimizePlan(plan, context);
+        Console.WriteLine($"Optimized Logical Plan");
+        Console.WriteLine("====================");
+        Console.WriteLine(explainer.Explain(plan));
 
         var physicalPlan = physicalPlanner.CreatePhysicalPlan(plan, context);
         Console.WriteLine($"Physical Plan");

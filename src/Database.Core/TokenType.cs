@@ -69,5 +69,6 @@ public enum TokenType
     ELSE,
     END,
     IN,
+    EXISTS,
     EOF,
 }
