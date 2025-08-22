@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Database.Core.Expressions;
 
 public record CaseExpression(List<BaseExpression> Conditions, List<BaseExpression> Results, BaseExpression? Default) : BaseExpression
@@ -23,5 +25,18 @@ public record CaseExpression(List<BaseExpression> Conditions, List<BaseExpressio
     protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
     {
         throw new NotImplementedException();
+    }
+
+    public override string ToString()
+    {
+        var builder = new StringBuilder("CASE(");
+        for (var i = 0; i < Conditions.Count; i++)
+        {
+            var condition = Conditions[i];
+            var result = Results[i];
+            builder.Append($"WHEN {condition} THEN {result}");
+        }
+        builder.Append(')');
+        return builder.ToString();
     }
 }
