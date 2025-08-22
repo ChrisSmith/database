@@ -135,6 +135,11 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 var lower = Bind(context, bt.Lower, columns, ignoreMissingColumns);
                 var upper = Bind(context, bt.Upper, columns, ignoreMissingColumns);
 
+                var compatType = FindCompatibleType([value, lower, upper]);
+                value = DoCast(value, compatType, context, columns, ignoreMissingColumns);
+                lower = DoCast(lower, compatType, context, columns, ignoreMissingColumns);
+                upper = DoCast(upper, compatType, context, columns, ignoreMissingColumns);
+
                 expression = bt with
                 {
                     Value = value,
@@ -302,6 +307,12 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             }
         }
 
+        var dates = new[] { DataType.Date, DataType.DateTime };
+        if (allTypes.All(t => dates.Contains(t)))
+        {
+            return DataType.DateTime;
+        }
+
         var allTypesStr = string.Join(", ", allTypes.Select(t => t.ToString()));
         throw new QueryPlanException($"unable to automatically convert types '{allTypesStr}' to a compatible type.");
 
@@ -353,6 +364,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             DataType.Float => "cast_float",
             DataType.Double => "cast_double",
             DataType.Decimal => "cast_decimal",
+            DataType.DateTime => "cast_datetime",
             _ => throw new QueryPlanException($"unsupported cast type '{targetType}'"),
         };
     }

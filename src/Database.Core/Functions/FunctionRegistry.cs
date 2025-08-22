@@ -215,6 +215,10 @@ public class FunctionRegistry
             { DataType.Float, typeof(CastDecimal<float>)},
             { DataType.Double, typeof(CastDecimal<double>) },
         }));
+        _funcs.Add("cast_datetime", new("cast_datetime", 1, new()
+        {
+            { DataType.Date, typeof(CastDateToDateTime)},
+        }));
         _funcs.Add("and", new("and", 2, new()
         {
             { DataType.Bool, typeof(LogicalAnd) },
@@ -234,6 +238,10 @@ public class FunctionRegistry
         _funcs.Add("extract", new("extract", 2, new()
         {
             { DataType.String, typeof(ExtractPart) },
+        }));
+        _funcs.Add("date", new("date", 1, new()
+        {
+            { DataType.String, typeof(CreateDate) },
         }));
     }
 
