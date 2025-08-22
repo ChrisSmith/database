@@ -1,0 +1,35 @@
+﻿{
+  Statement: {
+    SelectList: {
+      Distinct: false,
+      Expressions: [
+        {
+          Column: Id,
+          Alias: Id
+        }
+      ]
+    },
+    From: {
+      TableStatements: [
+        {
+          Table: table,
+          Alias: t
+        }
+      ]
+    },
+    Where: {
+      Operator: LIKE,
+      OperatorLiteral: like,
+      Left: {
+        Column: Foo,
+        Alias: Foo
+      },
+      Right: {
+        Literal: %bar%,
+        Alias: 
+      },
+      Alias: 
+    }
+  },
+  Explain: false
+}

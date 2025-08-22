@@ -167,6 +167,15 @@ public class FunctionRegistry
             { DataType.Decimal, typeof(Between<decimal>) },
             { DataType.DateTime, typeof(BetweenDateTime) },
         }));
+        _funcs.Add("not_between", new("not_between", 3, new()
+        {
+            { DataType.Int, typeof(NotBetween<int>)},
+            { DataType.Long, typeof(NotBetween<long>)},
+            { DataType.Float, typeof(NotBetween<float>)},
+            { DataType.Double, typeof(NotBetween<double>)},
+            { DataType.Decimal, typeof(NotBetween<decimal>) },
+            { DataType.DateTime, typeof(NotBetweenDateTime) },
+        }));
         _funcs.Add("cast_int", new("cast_int", 1, new()
         {
             { DataType.Int, typeof(CastInt<int>)},

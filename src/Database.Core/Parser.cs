@@ -389,7 +389,7 @@ public class Parser
     {
         if (Match(NOT, out var token))
         {
-            var right = ParseNot();
+            var right = ParseExpr();
             return new UnaryExpression(token.TokenType, right);
         }
         var equality = ParseEquality();
@@ -399,10 +399,26 @@ public class Parser
     private BaseExpression ParseEquality()
     {
         var plus = ParsePlusMinus();
+        // TODO do I need a peek here (just for IN, BETWEEN, LIKE)
+        var negate = Match(NOT);
+
         if (Match(out var token, IN, EQUAL, BANG_EQUAL, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, LIKE))
         {
-            var right = ParseEquality();
-            return new BinaryExpression(token.TokenType, token.Lexeme, plus, right);
+            if (negate)
+            {
+                if (token.TokenType is not (IN or LIKE))
+                {
+                    throw new ParseException(token, "Expected negation");
+                }
+                var right = ParseEquality();
+                return new UnaryExpression(NOT,
+                    new BinaryExpression(token.TokenType, token.Lexeme, plus, right));
+            }
+            else
+            {
+                var right = ParseEquality();
+                return new BinaryExpression(token.TokenType, token.Lexeme, plus, right);
+            }
         }
 
         if (Match(out token, BETWEEN))
@@ -410,7 +426,12 @@ public class Parser
             var middle = ParseEquality();
             Consume(AND, "Expected AND after BETWEEN expression");
             var right = ParseEquality();
-            return new BetweenExpression(plus, middle, right);
+            return new BetweenExpression(plus, middle, right, negate);
+        }
+
+        if (negate)
+        {
+            throw new ParseException(Peek(), "Expected expression after NOT");
         }
 
         return plus;

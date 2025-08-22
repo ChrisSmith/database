@@ -159,6 +159,20 @@ public record Between<T>() : BoolFunction, IFilterThreeColsThree<T>
     }
 }
 
+public record NotBetween<T>() : BoolFunction, IFilterThreeColsThree<T>
+    where T : INumber<T>
+{
+    public bool[] Ok(T[] value, T[] lower, T[] upper)
+    {
+        var result = new bool[value.Length];
+        for (var i = 0; i < value.Length; i++)
+        {
+            result[i] = lower[i] > value[i] || value[i] > upper[i];
+        }
+        return result;
+    }
+}
+
 public record BetweenDateTime() : BoolFunction, IFilterThreeColsThree<DateTime>
 {
     public bool[] Ok(DateTime[] value, DateTime[] lower, DateTime[] upper)
@@ -167,6 +181,19 @@ public record BetweenDateTime() : BoolFunction, IFilterThreeColsThree<DateTime>
         for (var i = 0; i < value.Length; i++)
         {
             result[i] = lower[i] <= value[i] && value[i] <= upper[i];
+        }
+        return result;
+    }
+}
+
+public record NotBetweenDateTime() : BoolFunction, IFilterThreeColsThree<DateTime>
+{
+    public bool[] Ok(DateTime[] value, DateTime[] lower, DateTime[] upper)
+    {
+        var result = new bool[value.Length];
+        for (var i = 0; i < value.Length; i++)
+        {
+            result[i] = lower[i] > value[i] || value[i] > upper[i];
         }
         return result;
     }

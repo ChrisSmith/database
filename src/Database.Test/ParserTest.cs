@@ -55,8 +55,10 @@ public class ParserTest
     [TestCase("100 >= Id")]
     [TestCase("100 = Id")]
     [TestCase("100 != Id")]
-    // [TestCase("Id between 0 and 1")]
-    // [TestCase("Id not between 0 and 1")]
+    [TestCase("Id between 10 and 100")]
+    [TestCase("Id not between 10 and 100")]
+    [TestCase("Foo like '%bar%'")]
+    [TestCase("Foo not like '%bar%'")]
     public Task Where(string expr)
     {
         var scanner = new Scanner($"SELECT Id FROM table t where {expr};");
