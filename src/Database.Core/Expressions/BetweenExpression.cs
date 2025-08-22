@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace Database.Core.Expressions;
 
 [DebuggerDisplay("{Value} between {Lower} and {Upper}")]
-public record BetweenExpression(BaseExpression Value, BaseExpression Lower, BaseExpression Upper) : BaseExpression
+public record BetweenExpression(BaseExpression Value, BaseExpression Lower, BaseExpression Upper, bool Negate) : BaseExpression
 {
     public override IEnumerable<BaseExpression> Children()
     {
@@ -14,7 +14,8 @@ public record BetweenExpression(BaseExpression Value, BaseExpression Lower, Base
 
     public override string ToString()
     {
-        return $"{Value} between {Lower} and {Upper}";
+        var prefix = Negate ? "not " : string.Empty;
+        return $"{Value} {prefix}between {Lower} and {Upper}";
     }
 
     protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)

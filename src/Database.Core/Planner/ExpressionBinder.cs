@@ -141,7 +141,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     Lower = lower,
                     Upper = upper,
                 };
-                function = functions.BindFunction("between", [value, lower, upper]);
+                var name = bt.Negate ? "not_between" : "between";
+                function = functions.BindFunction(name, [value, lower, upper]);
             }
             else if (expression is FunctionExpression fn)
             {
