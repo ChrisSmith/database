@@ -29,7 +29,7 @@ public abstract record BaseExpression(
 
         foreach (var child in Children())
         {
-            if (predicate(child))
+            if (child.AnyChildOrSelf(predicate))
             {
                 return true;
             }

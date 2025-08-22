@@ -364,6 +364,8 @@ order by n_name
     [TestCase("select Id as foo from table")]
     [TestCase("select count(Id) + sum(Id) from table")]
     [TestCase("select sum(Id) / 2 as foo from table")]
+    [TestCase("select 100 * sum(Id) / count(Id) from table")]
+    [TestCase("select sum(case when Id % 2 = 0 then 1 else 0 end) / sum(case when Id = 0 then 1 else 0 end) as foo from table")]
     public void ValidateQueryDoesntCrash(string query)
     {
         var result = Query(query + ";").AsRowList();
@@ -480,7 +482,7 @@ order by n_name
                 where q.CategoricalString = t.CategoricalString
             )
             group by t.CategoricalInt
-        ").AsRowList();
+        ;").AsRowList();
 
         var values = result.Select(r => new Tuple<int, int>((int)r.Values[0], (int)r.Values[1])).ToList();
         values.Should().BeEquivalentTo(new List<Tuple<int, int>>
