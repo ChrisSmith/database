@@ -307,7 +307,12 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
         var outputColumns = new List<ColumnSchema>(inputColumns.Count);
         var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
-        for (var i = 0; i < inputColumns.Count; i++)
+
+        var numOutputColumns = join.JoinType == JoinType.Semi
+            ? left.Columns.Count
+            : inputColumns.Count;
+
+        for (var i = 0; i < numOutputColumns; i++)
         {
             var existingColumn = inputColumns[i];
             var newColumn = memTable.AddColumnToSchema(

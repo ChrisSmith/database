@@ -40,125 +40,31 @@ public class QueryPlanner
         select = ConstantFolding.Fold(select);
         select = QueryRewriter.ExpandStarStatements(select, _catalog);
         select = QueryRewriter.DuplicateSelectExpressions(select);
-        (select, var subQueryStatements) = QueryRewriter.ExtractSubqueries(select, _catalog, _bufferPool);
 
-        // IFF the subqueries are uncorrelated we can bind them first. they'll be run first
-        var queryPlans = new List<LogicalPlan>();
-        var subPlanContext = new List<BindContext>();
-        var updatedWhere = select.Where;
-        for (var i = 0; i < subQueryStatements.Count; i++)
+        var allQueryPlans = new List<LogicalPlan>();
+        var allSubPlanContext = new List<BindContext>();
+
+        if (select.Where != null)
         {
-            var subQueryStmt = subQueryStatements[i];
-            var bindContext = new BindContext();
+            var (updatedWhere, subQueryStatements) = QueryRewriter.ExtractSubqueries(select.Where, subQueryId: allQueryPlans.Count);
 
-            var memRef = _bufferPool.OpenMemoryTable();
-            var table = _bufferPool.GetMemoryTable(memRef.TableId);
+            (var queryPlans, var subPlanContext, updatedWhere) = ProcessSubQueries(context, updatedWhere, subQueryStatements);
+            allQueryPlans.AddRange(queryPlans);
+            allSubPlanContext.AddRange(subPlanContext);
 
-            if (subQueryStmt is SubQuerySelectPlan subQueryPlan)
-            {
-                var subPlan = CreateLogicalPlan(subQueryPlan.Select, bindContext);
-                if (subPlan.OutputSchema.Count != 1)
-                {
-                    throw new QueryPlanException("Subquery must return a single column.");
-                }
-
-                var sourceCol = subPlan.OutputSchema[0];
-                var newColumn = table.AddColumnToSchema(sourceCol.Name, sourceCol.DataType, "", "");
-
-                subPlan = subPlan with
-                {
-                    PreBoundOutputs = [newColumn],
-                };
-
-                var subQueryId = subQueryPlan.Expression.SubQueryId;
-                subQueryStatements[i] = subQueryPlan = subQueryPlan with
-                {
-                    Expression = subQueryPlan.Expression with
-                    {
-                        BoundDataType = sourceCol.DataType,
-                        BoundOutputColumn = newColumn.ColumnRef,
-                        BoundMemoryTable = memRef,
-                    },
-                };
-
-                context.AddSymbol(subQueryPlan.Expression);
-
-                // The subquery output now has an output table/type.
-                // Bind it to the things reading from it
-                updatedWhere = updatedWhere!.Rewrite(e =>
-                {
-                    if (e is SubQueryResultExpression re && re.SubQueryId == subQueryId)
-                    {
-                        return subQueryPlan.Expression;
-                    }
-                    return e;
-                });
-
-                queryPlans.Add(subPlan);
-                subPlanContext.Add(bindContext);
-            }
-            else if (subQueryStmt is SubQueryInPlan inPlan)
-            {
-                var bound = (ExpressionList)_binder.Bind(context, inPlan.ExpressionList, []);
-                var dataType = bound.Statements[0].BoundDataType!.Value;
-                var columnName = inPlan.Expression.Alias;
-                var newColumn = table.AddColumnToSchema(columnName, dataType, "", "");
-
-                var rg = table.AddRowGroup();
-                var array = Array.CreateInstance(dataType.ClrTypeFromDataType(), bound.Statements.Count);
-                // Insert the rows into the table
-                for (var j = 0; j < bound.Statements.Count; j++)
-                {
-                    var litExpr = (LiteralExpression)bound.Statements[j];
-                    object val = litExpr switch
-                    {
-                        BoolLiteral boolLiteral => boolLiteral.Literal,
-                        DateLiteral dateLiteral => dateLiteral.Literal,
-                        DateTimeLiteral dateTimeLiteral => dateTimeLiteral.Literal,
-                        DecimalLiteral decimalLiteral => decimalLiteral.Literal,
-                        IntegerLiteral integerLiteral => integerLiteral.Literal,
-                        IntervalLiteral intervalLiteral => intervalLiteral.Literal,
-                        StringLiteral stringLiteral => stringLiteral.Literal,
-                        NullLiteral nullLiteral => throw new NotImplementedException(),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                    array.SetValue(val, j);
-                }
-
-                var column = ColumnHelper.CreateColumn(dataType.ClrTypeFromDataType(), columnName, array);
-                table.PutColumn(newColumn.ColumnRef with { RowGroup = rg.RowGroup }, column);
-
-                var subQueryId = inPlan.Expression.SubQueryId;
-                subQueryStatements[i] = inPlan = inPlan with
-                {
-                    Expression = inPlan.Expression with
-                    {
-                        BoundDataType = newColumn.DataType,
-                        BoundOutputColumn = newColumn.ColumnRef,
-                        BoundMemoryTable = memRef,
-                    },
-                };
-
-                context.AddSymbol(inPlan.Expression);
-
-                // The subquery output now has an output table/type.
-                // Bind it to the things reading from it
-                updatedWhere = updatedWhere!.Rewrite(e =>
-                {
-                    if (e is SubQueryResultExpression re && re.SubQueryId == subQueryId)
-                    {
-                        return inPlan.Expression;
-                    }
-                    return e;
-                });
-            }
-            else
-            {
-                throw new QueryPlanException($"Unknown subquery type. {subQueryStmt}");
-            }
+            select = select with { Where = updatedWhere };
         }
 
-        select = select with { Where = updatedWhere };
+        if (select.Having != null)
+        {
+            var (updatedHaving, subQueryStatements) = QueryRewriter.ExtractSubqueries(select.Having, subQueryId: allQueryPlans.Count);
+
+            (var queryPlans, var subPlanContext, updatedHaving) = ProcessSubQueries(context, updatedHaving, subQueryStatements);
+            allQueryPlans.AddRange(queryPlans);
+            allSubPlanContext.AddRange(subPlanContext);
+
+            select = select with { Having = updatedHaving };
+        }
 
         var expressions = select.SelectList.Expressions;
         var plan = BindRelations(context, select);
@@ -240,11 +146,137 @@ public class QueryPlanner
             plan = new Limit(plan, select.Limit.Count);
         }
 
-        if (queryPlans.Count > 0)
+        if (allQueryPlans.Count > 0)
         {
-            return new PlanWithSubQueries(plan, queryPlans, subPlanContext);
+            return new PlanWithSubQueries(plan, allQueryPlans, allSubPlanContext);
         }
         return plan;
+    }
+
+    private (List<LogicalPlan>, List<BindContext>, BaseExpression) ProcessSubQueries(
+        BindContext context,
+        BaseExpression expression,
+        List<SubQueryPlan> subQueryStatements
+        )
+    {
+        // IFF the subqueries are uncorrelated we can bind them first. they'll be run first
+        var queryPlans = new List<LogicalPlan>();
+        var subPlanContext = new List<BindContext>();
+        var updatedExpression = expression;
+
+        for (var i = 0; i < subQueryStatements.Count; i++)
+        {
+            var subQueryStmt = subQueryStatements[i];
+            var bindContext = new BindContext();
+
+            var memRef = _bufferPool.OpenMemoryTable();
+            var table = _bufferPool.GetMemoryTable(memRef.TableId);
+
+            if (subQueryStmt is SubQuerySelectPlan subQueryPlan)
+            {
+                var subPlan = CreateLogicalPlan(subQueryPlan.Select, bindContext);
+                if (subPlan.OutputSchema.Count != 1)
+                {
+                    throw new QueryPlanException("Subquery must return a single column.");
+                }
+
+                var sourceCol = subPlan.OutputSchema[0];
+                var newColumn = table.AddColumnToSchema(sourceCol.Name, sourceCol.DataType, "", "");
+
+                subPlan = subPlan with
+                {
+                    PreBoundOutputs = [newColumn],
+                };
+
+                var subQueryId = subQueryPlan.Expression.SubQueryId;
+                subQueryStatements[i] = subQueryPlan = subQueryPlan with
+                {
+                    Expression = subQueryPlan.Expression with
+                    {
+                        BoundDataType = sourceCol.DataType,
+                        BoundOutputColumn = newColumn.ColumnRef,
+                        BoundMemoryTable = memRef,
+                    },
+                };
+
+                context.AddSymbol(subQueryPlan.Expression);
+
+                // The subquery output now has an output table/type.
+                // Bind it to the things reading from it
+                updatedExpression = updatedExpression.Rewrite(e =>
+                {
+                    if (e is SubQueryResultExpression re && re.SubQueryId == subQueryId)
+                    {
+                        return subQueryPlan.Expression;
+                    }
+                    return e;
+                });
+
+                queryPlans.Add(subPlan);
+                subPlanContext.Add(bindContext);
+            }
+            else if (subQueryStmt is SubQueryInPlan inPlan)
+            {
+                var bound = (ExpressionList)_binder.Bind(context, inPlan.ExpressionList, []);
+                var dataType = bound.Statements[0].BoundDataType!.Value;
+                var columnName = inPlan.Expression.Alias;
+                var newColumn = table.AddColumnToSchema(columnName, dataType, "", "");
+
+                var rg = table.AddRowGroup();
+                var array = Array.CreateInstance(dataType.ClrTypeFromDataType(), bound.Statements.Count);
+                // Insert the rows into the table
+                for (var j = 0; j < bound.Statements.Count; j++)
+                {
+                    var litExpr = (LiteralExpression)bound.Statements[j];
+                    object val = litExpr switch
+                    {
+                        BoolLiteral boolLiteral => boolLiteral.Literal,
+                        DateLiteral dateLiteral => dateLiteral.Literal,
+                        DateTimeLiteral dateTimeLiteral => dateTimeLiteral.Literal,
+                        DecimalLiteral decimalLiteral => decimalLiteral.Literal,
+                        IntegerLiteral integerLiteral => integerLiteral.Literal,
+                        IntervalLiteral intervalLiteral => intervalLiteral.Literal,
+                        StringLiteral stringLiteral => stringLiteral.Literal,
+                        NullLiteral nullLiteral => throw new NotImplementedException(),
+                        _ => throw new ArgumentOutOfRangeException()
+                    };
+                    array.SetValue(val, j);
+                }
+
+                var column = ColumnHelper.CreateColumn(dataType.ClrTypeFromDataType(), columnName, array);
+                table.PutColumn(newColumn.ColumnRef with { RowGroup = rg.RowGroup }, column);
+
+                var subQueryId = inPlan.Expression.SubQueryId;
+                subQueryStatements[i] = inPlan = inPlan with
+                {
+                    Expression = inPlan.Expression with
+                    {
+                        BoundDataType = newColumn.DataType,
+                        BoundOutputColumn = newColumn.ColumnRef,
+                        BoundMemoryTable = memRef,
+                    },
+                };
+
+                context.AddSymbol(inPlan.Expression);
+
+                // The subquery output now has an output table/type.
+                // Bind it to the things reading from it
+                updatedExpression = updatedExpression.Rewrite(e =>
+                {
+                    if (e is SubQueryResultExpression re && re.SubQueryId == subQueryId)
+                    {
+                        return inPlan.Expression;
+                    }
+                    return e;
+                });
+            }
+            else
+            {
+                throw new QueryPlanException($"Unknown subquery type. {subQueryStmt}");
+            }
+        }
+
+        return (queryPlans, subPlanContext, updatedExpression);
     }
 
     public static IReadOnlyList<ColumnSchema> SchemaFromExpressions(
