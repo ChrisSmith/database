@@ -67,6 +67,17 @@ public class FunctionRegistry
             { DataType.Decimal, typeof(EqualTwo<decimal>) },
             { DataType.String, typeof(EqualTwoString) },
         }));
+        _funcs.Add("!=", new("!=", 2, new()
+        {
+            { DataType.Int, typeof(NotEqualTwo<int>) },
+            { DataType.Long, typeof(NotEqualTwo<long>) },
+            { DataType.Float, typeof(NotEqualTwo<float>) },
+            { DataType.Double, typeof(NotEqualTwo<double>) },
+            { DataType.Date, typeof(NotEqualTwoDateOnly) },
+            { DataType.DateTime, typeof(NotEqualTwoDateTime) },
+            { DataType.Decimal, typeof(NotEqualTwo<decimal>) },
+            { DataType.String, typeof(NotEqualTwoString) },
+        }));
         _funcs.Add(">", new(">", 2, new()
         {
             { DataType.Int, typeof(GreaterThanTwo<int>) },

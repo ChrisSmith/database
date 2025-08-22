@@ -111,6 +111,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 var args = new[] { left, right };
                 function = (be.Operator) switch
                 {
+                    BANG_EQUAL => functions.BindFunction("!=", args),
                     EQUAL => functions.BindFunction("=", args),
                     GREATER => functions.BindFunction(">", args),
                     GREATER_EQUAL => functions.BindFunction(">=", args),

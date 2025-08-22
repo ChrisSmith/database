@@ -194,7 +194,11 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_12.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new (["MAIL", 6202, 9324]),
+            new (["SHIP", 6200, 9262]),
+        });
     }
 
     [Test]
