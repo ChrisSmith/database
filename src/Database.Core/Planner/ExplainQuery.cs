@@ -87,6 +87,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
         {
             Write($"Limit(n={limit.Count})", writer, ident);
             WriteOutputColumns(limit.OutputSchema, writer);
+            WriteLine("", writer, ident);
             Explain(limit.Input, writer, ident + 1);
             return;
         }
@@ -279,6 +280,19 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
             Write($"ScanMemoryTable({scan.Table})", writer, ident);
             WriteCost(scan, writer, ident: 0);
             WriteOutputColumns(scan.OutputColumns, writer);
+            return;
+        }
+
+        if (physicalPlan is SubqueryOperator subqueryOp)
+        {
+            Write($"PlanWithSubQueries(n={subqueryOp.UncorrelatedSources.Count})", writer, ident);
+            WriteOutputColumns(subqueryOp.Columns, writer);
+            WriteLine("", writer, ident);
+            foreach (var subquery in subqueryOp.UncorrelatedSources)
+            {
+                Explain(subquery, writer, ident + 1);
+            }
+            Explain(subqueryOp.Source, writer, ident + 1);
             return;
         }
 

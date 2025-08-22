@@ -53,6 +53,7 @@ public class Scanner
         {"else", ELSE},
         {"end", END},
         {"in", IN},
+        {"exists", EXISTS},
     };
 
     public Scanner(string source)

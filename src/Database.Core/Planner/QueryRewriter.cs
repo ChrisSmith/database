@@ -115,7 +115,7 @@ public static class QueryRewriter
                 {
                     Alias = $"$subquery_{subQueryId}$",
                 };
-                subQueryPlans.Add(new SubQuerySelectPlan(subQuery.Select, subResult));
+                subQueryPlans.Add(new SubQuerySelectPlan(subQuery.Select, subResult, subQuery.ExistsOnly));
 
                 return subResult;
             }
@@ -159,6 +159,6 @@ public static class QueryRewriter
 // TODO dependencies? Arguments?
 public record SubQueryPlan(SubQueryResultExpression Expression);
 
-public record SubQuerySelectPlan(SelectStatement Select, SubQueryResultExpression Expression) : SubQueryPlan(Expression);
+public record SubQuerySelectPlan(SelectStatement Select, SubQueryResultExpression Expression, bool ExistsOnly) : SubQueryPlan(Expression);
 public record SubQueryInPlan(ExpressionList ExpressionList, SubQueryResultExpression Expression) : SubQueryPlan(Expression);
 

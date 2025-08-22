@@ -177,7 +177,15 @@ public class QueryPlanner
                 var subPlan = CreateLogicalPlan(subQueryPlan.Select, bindContext);
                 if (subPlan.OutputSchema.Count != 1)
                 {
-                    throw new QueryPlanException("Subquery must return a single column.");
+                    if (!subQueryPlan.ExistsOnly)
+                    {
+                        throw new QueryPlanException("Subquery must return a single column.");
+                    }
+                    // Rewrite to literal 1 top 1
+                    IReadOnlyList<BaseExpression> litOne = [new BoolLiteral(true)];
+                    litOne = _binder.Bind(bindContext, litOne, subPlan.OutputSchema);
+                    subPlan = new Projection(subPlan, litOne, SchemaFromExpressions(litOne, null), null);
+                    subPlan = new Limit(subPlan, 1);
                 }
 
                 var sourceCol = subPlan.OutputSchema[0];

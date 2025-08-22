@@ -7,10 +7,9 @@ where
     and o_orderdate < date '1993-07-01' + interval '3' month
     and exists (
         select *
-        from
+        from lineitem
         where
-        lineitem
-        l_orderkey = o_orderkey
+            l_orderkey = o_orderkey
         and l_commitdate < l_receiptdate
     )
 group by

@@ -518,7 +518,7 @@ public class Parser
             {
                 var subquery = (SelectStatement)ParseStatement();
                 Consume(RIGHT_PAREN, "Expected ')'");
-                return new SubQueryExpression(subquery);
+                return new SubQueryExpression(subquery, ExistsOnly: false);
             }
 
             var inner = ParseExpr();
@@ -548,6 +548,14 @@ public class Parser
             Consume(END, "Expected END");
             return caseExpression;
 
+        }
+
+        if (Match(EXISTS))
+        {
+            Consume(LEFT_PAREN, "Expected '('");
+            var subquery = (SelectStatement)ParseStatement();
+            Consume(RIGHT_PAREN, "Expected ')'");
+            return new SubQueryExpression(subquery, ExistsOnly: true);
         }
 
         throw new ParseException(Peek(), "Expected expression");
