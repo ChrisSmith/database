@@ -246,7 +246,34 @@ public class Parser
             if (Match(AS) || Check(IDENTIFIER))
             {
                 var alias = Consume(IDENTIFIER, "Expected alias").Lexeme;
-                return nestedQuery with { Alias = alias };
+                nestedQuery = nestedQuery with { Alias = alias };
+
+                // column alias? not in sqlite but in Q13
+                if (Match(LEFT_PAREN))
+                {
+                    var aliases = new List<string>();
+
+                    do
+                    {
+                        aliases.Add(Consume(IDENTIFIER, "Expected column alias").Lexeme);
+                    } while (Match(COMMA));
+                    Consume(RIGHT_PAREN, "Expected ')'");
+
+                    var nestedSelect = nestedQuery.SelectList;
+                    if (nestedSelect.Expressions.Count != aliases.Count)
+                    {
+                        throw new ParseException(Peek(), $"Expected number of aliases to match number of columns. {nestedSelect.Expressions.Count} != {aliases.Count}");
+                    }
+                    var expressions = new List<BaseExpression>(nestedSelect.Expressions.Count);
+                    for (var i = 0; i < nestedSelect.Expressions.Count; i++)
+                    {
+                        expressions.Add(nestedSelect.Expressions[i] with { Alias = aliases[i] });
+                    }
+
+                    return nestedQuery with { SelectList = nestedSelect with { Expressions = expressions } };
+                }
+
+                return nestedQuery;
             }
 
             return nestedQuery;
