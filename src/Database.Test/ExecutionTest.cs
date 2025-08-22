@@ -510,13 +510,16 @@ order by n_name
         });
     }
 
-    [Test]
-    public void TestBetweenDates()
+    [TestCase("date '1998-01-01'", Description = "Date keyword")]
+    // [TestCase("date '1998-01-01' - interval '0' day", Description = "Date keyword math")]
+    [TestCase("date('1998-01-01')", Description = "Date function")]
+    // [TestCase("date('1998-01-01') - interval '0' day", Description = "Date function math")]
+    public void TestBetweenDates(string expr)
     {
         var result = Query(@$"
             select count(*) as count
             from lineitem
-            where l_shipdate between date '1998-01-01' and date '1998-12-31'
+            where l_shipdate between {expr} and date '1998-12-31'
         ").AsRowList();
 
         var values = result.Select(r => (int)r.Values[0]).ToList();

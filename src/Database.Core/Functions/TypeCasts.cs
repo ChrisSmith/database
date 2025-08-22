@@ -78,3 +78,16 @@ public record CastDecimal<T>() : Cast<T, decimal>(DataType.Decimal)
         return result;
     }
 }
+
+public record CastDateToDateTime() : Cast<DateOnly, DateTime>(DataType.DateTime)
+{
+    public override DateTime[] Execute(DateOnly[] values)
+    {
+        var result = new DateTime[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i].ToDateTime(TimeOnly.MinValue);
+        }
+        return result;
+    }
+}

@@ -174,6 +174,18 @@ public class ExpressionInterpreter
         {
             outputArray = smddcm2.Execute((double[])col.ValuesArray);
         }
+        else if (fun is IScalarMathOne<string, DateOnly> smsdo)
+        {
+            outputArray = smsdo.Execute((string[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<string, DateTime> smsdt)
+        {
+            outputArray = smsdt.Execute((string[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<DateOnly, DateTime> smdodt)
+        {
+            outputArray = smdodt.Execute((DateOnly[])col.ValuesArray);
+        }
         else if (fun is IFilterFunctionOne<bool> fb)
         {
             outputArray = fb.Ok((bool[])col.ValuesArray);
