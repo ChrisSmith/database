@@ -68,6 +68,19 @@ public record EqualTwoDateOnly() : BoolFunction, IFilterFunctionTwo<DateOnly>
     }
 }
 
+public record NotEqualTwoDateOnly() : BoolFunction, IFilterFunctionTwo<DateOnly>
+{
+    public bool[] Ok(DateOnly[] left, DateOnly[] right)
+    {
+        var result = new bool[left.Length];
+        for (var i = 0; i < left.Length; i++)
+        {
+            result[i] = left[i] != right[i];
+        }
+        return result;
+    }
+}
+
 // Date Time
 public record GreaterThanTwoDateTime() : BoolFunction, IFilterFunctionTwo<DateTime>
 {
@@ -129,6 +142,19 @@ public record EqualTwoDateTime() : BoolFunction, IFilterFunctionTwo<DateTime>
         for (var i = 0; i < left.Length; i++)
         {
             result[i] = left[i] == right[i];
+        }
+        return result;
+    }
+}
+
+public record NotEqualTwoDateTime() : BoolFunction, IFilterFunctionTwo<DateTime>
+{
+    public bool[] Ok(DateTime[] left, DateTime[] right)
+    {
+        var result = new bool[left.Length];
+        for (var i = 0; i < left.Length; i++)
+        {
+            result[i] = left[i] != right[i];
         }
         return result;
     }

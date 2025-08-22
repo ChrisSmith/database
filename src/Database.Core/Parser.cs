@@ -203,7 +203,10 @@ public class Parser
             case JOIN:
                 return JoinType.Inner;
             case LEFT:
-                Match(OUTER);
+                if (Match(OUTER))
+                {
+                    Consume(JOIN, "Expected JOIN after OUTER");
+                }
                 return JoinType.Left;
             case RIGHT:
                 Match(OUTER);

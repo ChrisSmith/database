@@ -108,7 +108,7 @@ public class Scanner
             case '!': AddToken(Match('=') ? BANG_EQUAL : throw new ParseException(_line, _column, $"unexpected character '{c}'.")); break;
             case '=': AddToken(EQUAL); break;
             case '>': AddToken(Match('=') ? GREATER_EQUAL : GREATER); break;
-            case '<': AddToken(Match('=') ? LESS_EQUAL : LESS); break;
+            case '<': HandleLessThanToken(); break;
 
             case ' ':
             case '\r':
@@ -139,6 +139,20 @@ public class Scanner
                 }
 
                 break;
+        }
+
+        return;
+
+        void HandleLessThanToken()
+        {
+            if (Match('>'))
+            {
+                AddToken(BANG_EQUAL);
+            }
+            else
+            {
+                AddToken(Match('=') ? LESS_EQUAL : LESS);
+            }
         }
     }
 
