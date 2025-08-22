@@ -206,7 +206,51 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_13.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new([0, 50004]),
+            new([10, 6668]),
+            new([9, 6563]),
+            new([11, 6004]),
+            new([8, 5890]),
+            new([12, 5600]),
+            new([13, 5029]),
+            new([19, 4805]),
+            new([7, 4680]),
+            new([18, 4531]),
+            new([20, 4507]),
+            new([14, 4473]),
+            new([15, 4463]),
+            new([17, 4445]),
+            new([16, 4410]),
+            new([21, 4168]),
+            new([22, 3742]),
+            new([6, 3273]),
+            new([23, 3189]),
+            new([24, 2700]),
+            new([25, 2090]),
+            new([5, 1957]),
+            new([26, 1653]),
+            new([27, 1177]),
+            new([4, 1010]),
+            new([28, 901]),
+            new([29, 564]),
+            new([3, 408]),
+            new([30, 378]),
+            new([31, 242]),
+            new([32, 133]),
+            new([2, 128]),
+            new([33, 72]),
+            new([34, 52]),
+            new([35, 32]),
+            new([36, 20]),
+            new([1, 20]),
+            new([37, 8]),
+            new([38, 4]),
+            new([41, 3]),
+            new([40, 3]),
+            new([39, 1]),
+        });
     }
 
     [Test]
