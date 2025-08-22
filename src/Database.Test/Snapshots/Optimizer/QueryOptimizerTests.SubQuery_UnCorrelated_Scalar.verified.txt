@@ -24,8 +24,8 @@ Optimized
 PlanWithSubQueries(n=1) -> .count
  Project(max(CategoricalInt)) -> .max(CategoricalInt) 
     Agg(max(CategoricalInt)) group by () -> .max(CategoricalInt)    
-       Filter(CategoricalString = cat) -> q.CategoricalInt       
-          Scan(table) with projection  -> q.CategoricalInt          
+       Filter(CategoricalString = cat) -> q.CategoricalInt, q.CategoricalString       
+          Scan(table) with projection  -> q.CategoricalInt, q.CategoricalString          
  Project(count) -> .count 
     Agg(count(*)) group by () -> .count    
        Filter(CategoricalInt = subquery(1)) -> t.CategoricalInt       
