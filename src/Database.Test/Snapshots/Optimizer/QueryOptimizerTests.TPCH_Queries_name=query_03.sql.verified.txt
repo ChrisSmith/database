@@ -16,9 +16,10 @@ limit 10;
 
 
 Original
-Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority Project(l_orderkey, revenue, o_orderdate, o_shippriority) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority 
-    Sort(revenue DESC, o_orderdate ASC) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority    
-       Agg(l_orderkey, sum(l_extendedprice * cast(1 as Decimal) - l_discount), o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority       
+Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
+ Project(l_orderkey, revenue, o_orderdate, o_shippriority) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority 
+    Sort(revenue DESC, o_orderdate ASC) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
+       Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority       
           JoinSet(customer (Inner) x orders (Inner) x lineitem (Inner)) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
           UnaryEdge { Expression = c_mktsegment = BUILDING, Relation = customer }
           BinaryEdge { Expression = c_custkey = o_custkey, One = customer, Two = orders }
@@ -31,9 +32,10 @@ Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority Project(l_or
 
 
 Optimized
-Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority Project(l_orderkey, revenue, o_orderdate, o_shippriority) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority 
-    Sort(revenue DESC, o_orderdate ASC) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority    
-       Agg(l_orderkey, sum(l_extendedprice * cast(1 as Decimal) - l_discount), o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority       
+Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
+ Project(l_orderkey, revenue, o_orderdate, o_shippriority) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority 
+    Sort(revenue DESC, o_orderdate ASC) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
+       Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority       
           Join(Inner on l_orderkey = o_orderkey) -> .c_custkey, .c_mktsegment, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
              Join(Inner on c_custkey = o_custkey) -> .c_custkey, .c_mktsegment, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
                 Filter(c_mktsegment = BUILDING) -> .c_custkey, .c_mktsegment                
