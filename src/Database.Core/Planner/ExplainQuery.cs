@@ -216,7 +216,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (physicalPlan is HashJoinOperator hj)
         {
-            Write($"HashJoin({Expressions(hj.ProbeKeys)}, {Expressions(hj.ScanKeys)})", writer, ident);
+            Write($"HashJoin({hj.JoinType} {Expressions(hj.ProbeKeys)}, {Expressions(hj.ScanKeys)})", writer, ident);
             WriteCost(hj, writer, ident: 0);
             WriteOutputColumns(hj.OutputColumns, writer);
             WriteLine("", writer, ident);
@@ -271,6 +271,14 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
             WriteOutputColumns(limit.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(limit.Source, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is ScanMemoryTable scan)
+        {
+            Write($"ScanMemoryTable({scan.Table})", writer, ident);
+            WriteCost(scan, writer, ident: 0);
+            WriteOutputColumns(scan.OutputColumns, writer);
             return;
         }
 

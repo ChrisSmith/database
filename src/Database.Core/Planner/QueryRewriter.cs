@@ -1,4 +1,3 @@
-using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 
@@ -104,20 +103,11 @@ public static class QueryRewriter
         return select with { Where = updatedWhere };
     }
 
-    public static (SelectStatement, List<SubQueryPlan> result) ExtractSubqueries(
-        SelectStatement select,
-        Catalog.Catalog catalog,
-        ParquetPool bufferPool
-        )
+    public static (BaseExpression, List<SubQueryPlan> result) ExtractSubqueries(BaseExpression expression, int subQueryId = 0)
     {
-        var subQueryId = 0;
-        if (select.Where == null)
-        {
-            return (select, []);
-        }
         var subQueryPlans = new List<SubQueryPlan>();
 
-        var updatedWhere = select.Where.Rewrite(expr =>
+        var updatedExpression = expression.Rewrite(expr =>
         {
             if (expr is SubQueryExpression subQuery)
             {
@@ -162,7 +152,7 @@ public static class QueryRewriter
             return expr;
         });
 
-        return (select with { Where = updatedWhere }, subQueryPlans);
+        return (updatedExpression, subQueryPlans);
     }
 }
 
