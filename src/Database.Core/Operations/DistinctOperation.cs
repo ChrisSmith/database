@@ -14,6 +14,13 @@ public record DistinctOperation(
 {
     private HashSet<Row> _unique = null;
 
+    public override void Reset()
+    {
+        Source.Reset();
+        MemoryTable.Truncate();
+        _unique = null;
+    }
+
     public override RowGroup? Next()
     {
         var rowGroup = Source.Next();

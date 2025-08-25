@@ -109,4 +109,9 @@ public class MemoryBasedTable(MemoryStorage storage)
     {
         return _rowGroups.Keys.ToList();
     }
+
+    public void Truncate()
+    {
+        _rowGroups.Clear();
+    }
 }

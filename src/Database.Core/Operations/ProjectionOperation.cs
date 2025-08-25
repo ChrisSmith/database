@@ -19,6 +19,12 @@ public record ProjectionOperation(
 {
     private ExpressionInterpreter _interpreter = new();
 
+    public override void Reset()
+    {
+        Source.Reset();
+        MemoryTable.Truncate();
+    }
+
     public override RowGroup? Next()
     {
         var next = Source.Next();

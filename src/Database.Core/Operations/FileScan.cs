@@ -19,6 +19,14 @@ public record FileScan(
     private bool _done = false;
     private ParquetFileHandle _handle;
 
+    public override void Reset()
+    {
+        _done = false;
+        _group = -1;
+        _handle = null;
+        _reader = null;
+    }
+
     public override RowGroup? Next()
     {
         if (_done)

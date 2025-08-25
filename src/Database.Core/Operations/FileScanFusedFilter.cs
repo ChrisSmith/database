@@ -25,6 +25,15 @@ public record FileScanFusedFilter(
     private ExpressionInterpreter _interpreter = new();
     private List<int> RowGroupsKeep;
 
+    public override void Reset()
+    {
+        _done = false;
+        _reader = null;
+        _groupIdx = -1;
+        _handle = null;
+        RowGroupsKeep = null;
+    }
+
     public override RowGroup? Next()
     {
         if (_done)
