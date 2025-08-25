@@ -9,6 +9,11 @@ public interface IFunction
     public DataType ReturnType { get; }
 }
 
+public interface IFunctionWithRowGroup : IFunction
+{
+    public IColumn Execute(RowGroup rowGroup);
+}
+
 public interface IFunctionWithColumnLength : IFunction
 {
     IColumn Execute(int length);

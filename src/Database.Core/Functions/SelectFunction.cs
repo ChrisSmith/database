@@ -4,9 +4,9 @@ using Database.Core.Execution;
 
 namespace Database.Core.Functions;
 
-public record SelectFunction(ColumnRef ColumnRef, DataType ReturnType, ParquetPool BufferPool) : IFunction
+public record SelectFunction(ColumnRef ColumnRef, DataType ReturnType, ParquetPool BufferPool) : IFunctionWithRowGroup
 {
-    public IColumn SelectColumn(RowGroup rowGroup)
+    public IColumn Execute(RowGroup rowGroup)
     {
         var column = BufferPool.GetColumn(ColumnRef with
         {
