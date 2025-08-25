@@ -51,9 +51,9 @@ public class ExpressionInterpreter
             return ExecuteCaseStatement(ce, rowGroup);
         }
 
-        if (exp.BoundFunction is SelectFunction select)
+        if (exp.BoundFunction is IFunctionWithRowGroup fun)
         {
-            return select.SelectColumn(rowGroup);
+            return fun.Execute(rowGroup);
         }
 
         if (exp.BoundFunction is IFunctionWithColumnLength literal)
