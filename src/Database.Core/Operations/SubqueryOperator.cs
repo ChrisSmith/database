@@ -12,6 +12,11 @@ public record SubqueryOperator(
 {
     private bool _executedSubQueries;
 
+    public override void Reset()
+    {
+        Source.Reset();
+    }
+
     public override RowGroup? Next()
     {
         if (!_executedSubQueries)

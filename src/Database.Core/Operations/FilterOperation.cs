@@ -20,6 +20,13 @@ public record FilterOperation(
 
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
+    public override void Reset()
+    {
+        Source.Reset();
+        MemoryTable.Truncate();
+        _done = false;
+    }
+
     public override RowGroup? Next()
     {
         if (_done)

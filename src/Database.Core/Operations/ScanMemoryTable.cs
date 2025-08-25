@@ -17,6 +17,11 @@ public record ScanMemoryTable(
     private int _group = -1;
     private bool _done = false;
 
+    public override void Reset()
+    {
+        _done = false;
+    }
+
     public override RowGroup? Next()
     {
         if (_done)

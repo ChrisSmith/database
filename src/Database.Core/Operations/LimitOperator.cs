@@ -17,6 +17,14 @@ public record LimitOperator(
     private bool _done = false;
     private int _count = 0;
 
+    public override void Reset()
+    {
+        _done = false;
+        _count = 0;
+        Source.Reset();
+        MemoryTable.Truncate();
+    }
+
     public override RowGroup? Next()
     {
         if (_done)

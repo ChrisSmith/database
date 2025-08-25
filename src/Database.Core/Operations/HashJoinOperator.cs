@@ -24,6 +24,15 @@ public record HashJoinOperator(
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
     private HashTable<RowRef?>? _hashTable;
 
+    public override void Reset()
+    {
+        ScanSource.Reset();
+        ProbeSource.Reset();
+        Table.Truncate();
+        _done = false;
+        _hashTable = null;
+    }
+
     public override RowGroup? Next()
     {
         if (_done)

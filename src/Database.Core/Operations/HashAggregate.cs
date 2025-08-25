@@ -21,6 +21,13 @@ public record HashAggregate(
 
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
 
+    public override void Reset()
+    {
+        Source.Reset();
+        GroupingTable.Truncate();
+        _done = false;
+    }
+
     public override RowGroup? Next()
     {
         if (_done)

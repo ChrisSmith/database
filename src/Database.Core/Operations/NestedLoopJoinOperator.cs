@@ -22,6 +22,17 @@ public record NestedLoopJoinOperator(
     private RowGroup? _leftNext = null;
     private int _rightIndex = 0;
 
+    public override void Reset()
+    {
+        _done = false;
+        _rightIndex = 0;
+        _leftNext = null;
+        _rightRows = null;
+        LeftSource.Reset();
+        RightSource.Reset();
+        Table.Truncate();
+    }
+
     public override RowGroup? Next()
     {
         if (_done)

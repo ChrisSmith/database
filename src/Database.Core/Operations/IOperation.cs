@@ -17,6 +17,7 @@ public interface IOperation
     RowGroup? Next();
 
     Cost EstimateCost();
+    void Reset();
 }
 
 public abstract record BaseOperation(
@@ -24,6 +25,8 @@ public abstract record BaseOperation(
     IReadOnlyList<ColumnRef> ColumnRefs) : IOperation
 {
     public abstract RowGroup? Next();
+
+    public abstract void Reset();
 
     public abstract Cost EstimateCost();
 }
