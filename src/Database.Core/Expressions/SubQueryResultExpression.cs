@@ -1,12 +1,23 @@
 using System.Diagnostics;
 using Database.Core.Execution;
+using Database.Core.Planner;
 
 namespace Database.Core.Expressions;
 
 [DebuggerDisplay("subquery({SubQueryId})")]
-public record SubQueryResultExpression(int SubQueryId) : BaseExpression
+public record SubQueryResultExpression(int SubQueryId, bool Correlated) : BaseExpression
 {
+    /// <summary>
+    /// Output memory table
+    /// </summary>
     public MemoryStorage BoundMemoryTable { get; set; }
+
+    /// <summary>
+    /// Input memory table
+    /// </summary>
+    public MemoryStorage BoundInputMemoryTable { get; set; }
+
+    public LogicalPlan? BoundLogicalPlan { get; set; }
 
     public override IEnumerable<BaseExpression> Children()
     {
@@ -15,7 +26,8 @@ public record SubQueryResultExpression(int SubQueryId) : BaseExpression
 
     public override string ToString()
     {
-        return $"subquery({SubQueryId})";
+        var prefix = Correlated ? "correlated-" : string.Empty;
+        return $"{prefix}subquery({SubQueryId})";
     }
 
     protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)

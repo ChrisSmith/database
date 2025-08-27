@@ -2,6 +2,7 @@ namespace Database.Core.Catalog;
 
 public enum DataType
 {
+    Unknown, // Used for late binding (subqueries)
     Int,
     Long,
     String,

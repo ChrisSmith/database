@@ -13,24 +13,29 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
 {
     public LogicalPlan OptimizePlan(LogicalPlan plan, BindContext context)
     {
-        if (!config.LogicalOptimization)
-        {
-            return plan;
-        }
-
         if (plan is PlanWithSubQueries planWithSub)
         {
-            var optimized = new List<LogicalPlan>();
+            var optCorrelated = new List<LogicalPlan>();
+            for (var i = 0; i < planWithSub.Correlated.Count; i++)
+            {
+                var subquery = planWithSub.Correlated[i];
+                var subContext = subquery.BindContext ?? throw new QueryPlanException("Subquery has no bind context");
+                subContext.SupportsLateBinding = false;
+                optCorrelated.Add(PerformOptimizationSteps(subquery, subContext));
+            }
+
+            var optUncorrelated = new List<LogicalPlan>();
             for (var i = 0; i < planWithSub.Uncorrelated.Count; i++)
             {
-                var subContext = planWithSub.BindContext[i];
                 var subquery = planWithSub.Uncorrelated[i];
-                optimized.Add(PerformOptimizationSteps(subquery, subContext));
+                var subContext = subquery.BindContext ?? throw new QueryPlanException("Subquery has no bind context");
+                optUncorrelated.Add(PerformOptimizationSteps(subquery, subContext));
             }
 
             return planWithSub with
             {
-                Uncorrelated = optimized,
+                Correlated = optCorrelated,
+                Uncorrelated = optUncorrelated,
                 Plan = PerformOptimizationSteps(planWithSub.Plan, context),
             };
         }
@@ -300,7 +305,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
 
     private LogicalPlan OptimizeJoin(Join join, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
-        if (!config.OptJoin)
+        if (!config.LogicalOptimization || !config.OptJoin)
         {
             return join;
         }
@@ -400,7 +405,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
         left = null;
         right = null;
 
-        if (!config.OptSplitPredicates)
+        if (!config.LogicalOptimization || !config.OptSplitPredicates)
         {
             return false;
         }
@@ -423,7 +428,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
     {
         updated = null;
 
-        if (!config.OptPushDownFilter)
+        if (!config.LogicalOptimization || !config.OptPushDownFilter)
         {
             return false;
         }
@@ -519,7 +524,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
     {
         try
         {
-            boundExpression = _binder.Bind(new BindContext(), expression, columns, ignoreMissingColumns: false);
+            boundExpression = _binder.Bind(new BindContext(), expression, columns, ignoreMissingColumns: false, mutateContext: false);
             return true;
         }
         catch (Exception e)
@@ -541,7 +546,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
             return false;
         }
 
-        if (!config.OptProjectionPushDown)
+        if (!config.LogicalOptimization || !config.OptProjectionPushDown)
         {
             return false;
         }
@@ -553,14 +558,10 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
             var matches = allSymbols.Where(s =>
                 s.ColumnRef == col.ColumnRef && s.TableName == scan.Table
                 ).ToList();
-            if (matches.Count > 0)
-            {
-                // Its fine, same table might be aliased in the query
-                // So we're just not going to prune as much as we could
-            }
 
-            var match = matches.First();
-            if (match.RefCount > 0)
+            // We're not pruning as much as we could here, but its fine.
+            // This could be made slightly faster if we had better ref counting
+            if (matches.Any(m => m.RefCount > 0))
             {
                 result.Add(col);
             }

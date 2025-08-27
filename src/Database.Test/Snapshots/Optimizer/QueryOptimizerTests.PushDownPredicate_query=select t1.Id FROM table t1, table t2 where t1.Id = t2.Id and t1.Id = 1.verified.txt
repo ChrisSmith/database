@@ -1,7 +1,7 @@
 ﻿select t1.Id FROM table t1, table t2 where t1.Id = t2.Id and t1.Id = 1
 
 Original
-Project(Id) -> .Id
+Project(Id) -> t1.Id
  JoinSet(t1 (Inner) x t2 (Inner)) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString 
  BinaryEdge { Expression = Id = Id, One = t1, Two = t2 }
  UnaryEdge { Expression = Id = 1, Relation = t1 }
@@ -10,7 +10,7 @@ Project(Id) -> .Id
 
 
 Optimized
-Project(Id) -> .Id
+Project(Id) -> t1.Id
  Join(Inner on Id = Id) -> t1.Id, t2.Id 
     Filter(Id = 1) -> t1.Id    
        Scan(table) with projection  -> t1.Id       

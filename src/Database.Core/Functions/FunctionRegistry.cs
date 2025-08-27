@@ -263,7 +263,7 @@ public class FunctionRegistry
 
         if (!func.Functions.TryGetValue(dataType, out var funcType))
         {
-            throw new FunctionBindException($"{dataType} not supported for {func.Name}");
+            throw new FunctionBindException($"datatype {dataType} not supported for function {func.Name}");
         }
 
         var ctorArgs = new object[] { dataType };
