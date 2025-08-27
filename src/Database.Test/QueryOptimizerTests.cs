@@ -123,7 +123,7 @@ public class QueryOptimizerTests
     [TestCase("query_01.sql")]
     [TestCase("query_02.sql")]
     [TestCase("query_03.sql")]
-    // [TestCase("query_04.sql")]
+    [TestCase("query_04.sql")]
     [TestCase("query_05.sql")]
     [TestCase("query_06.sql")]
     [TestCase("query_07.sql")]
@@ -137,8 +137,8 @@ public class QueryOptimizerTests
     /*
     [TestCase("query_15.sql")]
     [TestCase("query_16.sql")]
-    [TestCase("query_17.sql")]
     */
+    [TestCase("query_17.sql")]
     [TestCase("query_18.sql")]
     /*
     [TestCase("query_19.sql")]

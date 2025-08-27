@@ -18,13 +18,14 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         BindContext context,
         IReadOnlyList<OrderingExpression> expressions,
         IReadOnlyList<ColumnSchema> columns,
-        bool ignoreMissingColumns = false
+        bool ignoreMissingColumns = false,
+        bool mutateContext = true
     )
     {
         var result = new List<OrderingExpression>(expressions.Count);
         foreach (var expr in expressions)
         {
-            result.Add((OrderingExpression)Bind(context, expr, columns, ignoreMissingColumns));
+            result.Add((OrderingExpression)Bind(context, expr, columns, ignoreMissingColumns, mutateContext));
         }
         return result;
     }
@@ -34,13 +35,14 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         BindContext context,
         IReadOnlyList<BaseExpression> expressions,
         IReadOnlyList<ColumnSchema> columns,
-        bool ignoreMissingColumns = false
+        bool ignoreMissingColumns = false,
+        bool mutateContext = true
     )
     {
         var result = new List<BaseExpression>(expressions.Count);
         foreach (var expr in expressions)
         {
-            result.Add(Bind(context, expr, columns, ignoreMissingColumns));
+            result.Add(Bind(context, expr, columns, ignoreMissingColumns, mutateContext));
         }
         return result;
     }
@@ -50,7 +52,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         BindContext context,
         BaseExpression expression,
         IReadOnlyList<ColumnSchema> columns,
-        bool ignoreMissingColumns = false
+        bool ignoreMissingColumns = false,
+        bool mutateContext = true
         )
     {
         IFunction? function = expression switch
@@ -70,7 +73,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         {
             if (expression is ColumnExpression column)
             {
-                var (_, columnRef, colType, isCorrelatedLookup) = FindColumnIndex(context, columns, column, ignoreMissingColumns);
+                var (_, columnRef, colType, isCorrelatedLookup) = FindColumnIndex(context, columns, column, ignoreMissingColumns, mutateContext);
 
                 if (colType == DataType.Unknown)
                 {
@@ -93,7 +96,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             }
             else if (expression is UnaryExpression unary)
             {
-                var expr = Bind(context, unary.Expression, columns, ignoreMissingColumns);
+                var expr = Bind(context, unary.Expression, columns, ignoreMissingColumns, mutateContext);
                 var args = new[] { expr };
                 expression = unary with
                 {
@@ -107,7 +110,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             }
             else if (expression is CastExpression cast)
             {
-                var expr = Bind(context, cast.Expression, columns, ignoreMissingColumns);
+                var expr = Bind(context, cast.Expression, columns, ignoreMissingColumns, mutateContext);
                 var args = new[] { expr };
                 expression = cast with
                 {
@@ -117,10 +120,10 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             }
             else if (expression is BinaryExpression be)
             {
-                var left = Bind(context, be.Left, columns, ignoreMissingColumns);
-                var right = Bind(context, be.Right, columns, ignoreMissingColumns);
+                var left = Bind(context, be.Left, columns, ignoreMissingColumns, mutateContext);
+                var right = Bind(context, be.Right, columns, ignoreMissingColumns, mutateContext);
 
-                (left, right) = MakeCompatibleTypes(context, left, right, columns, ignoreMissingColumns);
+                (left, right) = MakeCompatibleTypes(context, left, right, columns, ignoreMissingColumns, mutateContext);
 
                 expression = be with
                 {
@@ -151,14 +154,14 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             }
             else if (expression is BetweenExpression bt)
             {
-                var value = Bind(context, bt.Value, columns, ignoreMissingColumns);
-                var lower = Bind(context, bt.Lower, columns, ignoreMissingColumns);
-                var upper = Bind(context, bt.Upper, columns, ignoreMissingColumns);
+                var value = Bind(context, bt.Value, columns, ignoreMissingColumns, mutateContext);
+                var lower = Bind(context, bt.Lower, columns, ignoreMissingColumns, mutateContext);
+                var upper = Bind(context, bt.Upper, columns, ignoreMissingColumns, mutateContext);
 
                 var compatType = FindCompatibleType([value, lower, upper]);
-                value = DoCast(value, compatType, context, columns, ignoreMissingColumns);
-                lower = DoCast(lower, compatType, context, columns, ignoreMissingColumns);
-                upper = DoCast(upper, compatType, context, columns, ignoreMissingColumns);
+                value = DoCast(value, compatType, context, columns, ignoreMissingColumns, mutateContext);
+                lower = DoCast(lower, compatType, context, columns, ignoreMissingColumns, mutateContext);
+                upper = DoCast(upper, compatType, context, columns, ignoreMissingColumns, mutateContext);
 
                 expression = bt with
                 {
@@ -174,7 +177,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 var boundArgs = new BaseExpression[fn.Args.Length];
                 for (var i = 0; i < fn.Args.Length; i++)
                 {
-                    boundArgs[i] = Bind(context, fn.Args[i], columns, ignoreMissingColumns);
+                    boundArgs[i] = Bind(context, fn.Args[i], columns, ignoreMissingColumns, mutateContext);
                 }
 
                 expression = fn with
@@ -185,7 +188,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             }
             else if (expression is OrderingExpression order)
             {
-                var inner = Bind(context, order.Expression, columns, ignoreMissingColumns);
+                var inner = Bind(context, order.Expression, columns, ignoreMissingColumns, mutateContext);
                 function = inner.BoundFunction; // Is this ok?
                 expression = order with
                 {
@@ -209,9 +212,11 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 {
                     // Will be bound later by the physical planner
                     var subQueryOp = (subQueryRes.BoundFunction as CorrelatedSubQueryFunction)?.SubQuery;
-                    var inputTable = subQueryRes.BoundInputMemoryTable != default
-                        ? bufferPool.GetMemoryTable(subQueryRes.BoundInputMemoryTable.TableId)
-                        : null!;
+                    if (subQueryRes.BoundInputMemoryTable == default)
+                    {
+                        throw new Exception("expected memory table for correlated subquery");
+                    }
+                    var inputTable = bufferPool.GetMemoryTable(subQueryRes.BoundInputMemoryTable.TableId);
 
                     if (subQueryOp == null && context.CorrelatedSubQueryOps.Count != 0)
                     {
@@ -233,29 +238,29 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 var boundConditions = new List<BaseExpression>(caseExpr.Conditions.Count);
                 foreach (var condition in caseExpr.Conditions)
                 {
-                    boundConditions.Add(Bind(context, condition, columns, ignoreMissingColumns));
+                    boundConditions.Add(Bind(context, condition, columns, ignoreMissingColumns, mutateContext));
                 }
                 var boundResults = new List<BaseExpression>(caseExpr.Results.Count);
                 foreach (var result in caseExpr.Results)
                 {
-                    boundResults.Add(Bind(context, result, columns, ignoreMissingColumns));
+                    boundResults.Add(Bind(context, result, columns, ignoreMissingColumns, mutateContext));
                 }
 
                 BaseExpression? boundDefault = null;
                 DataType compatType;
                 if (caseExpr.Default != null)
                 {
-                    boundDefault = Bind(context, caseExpr.Default, columns, ignoreMissingColumns);
+                    boundDefault = Bind(context, caseExpr.Default, columns, ignoreMissingColumns, mutateContext);
 
                     compatType = FindCompatibleType([.. boundResults, boundDefault]);
-                    boundDefault = DoCast(boundDefault, compatType, context, columns, ignoreMissingColumns);
+                    boundDefault = DoCast(boundDefault, compatType, context, columns, ignoreMissingColumns, mutateContext);
                 }
                 else
                 {
                     compatType = FindCompatibleType(boundResults);
                 }
 
-                boundResults = boundResults.Select(e => DoCast(e, compatType, context, columns, ignoreMissingColumns)).ToList();
+                boundResults = boundResults.Select(e => DoCast(e, compatType, context, columns, ignoreMissingColumns, mutateContext)).ToList();
 
 
                 function = new CaseWhen(boundResults[0].BoundDataType!.Value);
@@ -271,10 +276,10 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 var bound = new List<BaseExpression>();
                 foreach (var expr in list.Statements)
                 {
-                    bound.Add(Bind(context, expr, columns, ignoreMissingColumns));
+                    bound.Add(Bind(context, expr, columns, ignoreMissingColumns, mutateContext));
                 }
                 var compatType = FindCompatibleType(bound);
-                bound = bound.Select(e => DoCast(e, compatType, context, columns, ignoreMissingColumns)).ToList();
+                bound = bound.Select(e => DoCast(e, compatType, context, columns, ignoreMissingColumns, mutateContext)).ToList();
 
                 function = new ExpressionListFn(compatType);
                 expression = list with
@@ -378,13 +383,14 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         BaseExpression left,
         BaseExpression right,
         IReadOnlyList<ColumnSchema> columns,
-        bool ignoreMissingColumns
+        bool ignoreMissingColumns,
+        bool mutateContext
         )
     {
         var compatType = FindCompatibleType([left, right]);
         return (
-            DoCast(left, compatType, context, columns, ignoreMissingColumns),
-            DoCast(right, compatType, context, columns, ignoreMissingColumns)
+            DoCast(left, compatType, context, columns, ignoreMissingColumns, mutateContext),
+            DoCast(right, compatType, context, columns, ignoreMissingColumns, mutateContext)
         );
     }
 
@@ -393,7 +399,9 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         DataType targetType,
         BindContext context,
         IReadOnlyList<ColumnSchema> columns,
-        bool ignoreMissingColumns)
+        bool ignoreMissingColumns,
+        bool mutateContext
+        )
     {
         if (expr.BoundDataType!.Value == targetType)
         {
@@ -412,7 +420,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         return Bind(context, new CastExpression(expr, targetType)
         {
             Alias = expr.Alias,
-        }, columns, ignoreMissingColumns);
+        }, columns, ignoreMissingColumns, mutateContext);
     }
 
     private string CastFnForType(DataType targetType)
@@ -433,7 +441,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         BindContext context,
         IReadOnlyList<ColumnSchema> columns,
         ColumnExpression column,
-        bool ignoreMissingColumns
+        bool ignoreMissingColumns,
+        bool mutateContext
         )
     {
         ColumnSchema? col = null;
@@ -443,7 +452,11 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             return c.Name == column.Column && (column.Table == null || column.Table == c.SourceTableAlias || column.Table == c.SourceTableName);
         }).ToList();
 
-        context.ReferenceSymbol(column.Column, column.Table, out var symbol);
+        BindSymbol? symbol = null;
+        if (mutateContext)
+        {
+            context.ReferenceSymbol(column.Column, column.Table, out symbol);
+        }
 
         if (matchingColumns.Count == 1)
         {
@@ -470,7 +483,10 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
 
             if (context.SupportsLateBinding)
             {
-                context.ReferenceLateBoundSymbol(column.Column, column.Table);
+                if (mutateContext)
+                {
+                    context.ReferenceLateBoundSymbol(column.Column, column.Table);
+                }
                 return (column.Column, default, DataType.Unknown, false);
             }
 
@@ -491,7 +507,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
 
 
             var columnNames = string.Join(", ", columns.Select(c => $"{c.SourceTableAlias}.{c.Name}"));
-            throw new QueryPlanException($"Column '{column.Table}.{column.Column}' was not found in list of available columns {columnNames}");
+            throw new QueryPlanException($"Column '{column.Table}.{column.Column}' was not found in the list of available columns {columnNames}");
         }
 
         return (column.Column, col.ColumnRef, col.DataType, false);
@@ -506,7 +522,7 @@ public class BindContext
 
     public bool SupportsLateBinding { get; set; }
 
-    public HashSet<Tuple<string, string?>> LateBoundSymbols { get; } = new();
+    public Dictionary<Tuple<string, string?>, BindSymbol?> LateBoundSymbols { get; } = new();
 
     public List<IOperation> CorrelatedSubQueryOps { get; } = new();
 
@@ -585,7 +601,7 @@ public class BindContext
 
     public void ReferenceLateBoundSymbol(string columnName, string? tableOrAlias)
     {
-        LateBoundSymbols.Add(new Tuple<string, string?>(columnName, tableOrAlias));
+        LateBoundSymbols.Add(new Tuple<string, string?>(columnName, tableOrAlias), null);
     }
 }
 
