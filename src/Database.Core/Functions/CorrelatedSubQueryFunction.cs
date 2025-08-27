@@ -21,6 +21,8 @@ public record CorrelatedSubQueryFunction(
 {
     private bool _initialized = false;
 
+    private Dictionary<object, object> _cache = new();
+
     public IColumn Execute(RowGroup rowGroup)
     {
         if (!_initialized)
@@ -59,6 +61,16 @@ public record CorrelatedSubQueryFunction(
             InputTable.Truncate();
             SubQuery.Reset();
 
+            if (sourceColumns.Count == 1)
+            {
+                var key = sourceColumns[0][i];
+                if (_cache.TryGetValue(key!, out var scalar))
+                {
+                    outputArray.SetValue(scalar, i);
+                    continue;
+                }
+            }
+
             // Copy over input var
             for (var j = 0; j < sourceColumns.Count; j++)
             {
@@ -82,10 +94,22 @@ public record CorrelatedSubQueryFunction(
                 });
                 var scalar = column.ValuesArray.GetValue(0);
                 outputArray.SetValue(scalar, i);
+
+                if (sourceColumns.Count == 1)
+                {
+                    var key = sourceColumns[0][i];
+                    _cache[key!] = scalar!;
+                }
             }
             else
             {
                 // TODO null values?
+
+                if (sourceColumns.Count == 1)
+                {
+                    var key = sourceColumns[0][i];
+                    _cache[key!] = null!;
+                }
             }
         }
 

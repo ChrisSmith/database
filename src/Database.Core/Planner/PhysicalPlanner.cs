@@ -640,7 +640,15 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 var inputTable = bufferPool.GetMemoryTable(inputTableRef.TableId);
                 var subQueryInputColumns = inputTable.Schema;
 
-                var sourceInputColumns = inputColumns.Skip(1).ToList();
+                var sourceInputColumns = new List<ColumnSchema>(subQueryInputColumns.Count);
+                foreach (var col in subQueryInputColumns)
+                {
+                    // TODO this is essentially a bind, can we unify it?
+                    // Maybe make the subquery columns available in the Bind context?
+                    var matching = inputColumns.Single(c => c.Name == col.Name);
+                    sourceInputColumns.Add(matching);
+                }
+
                 if (sourceInputColumns.Count == 0)
                 {
                     return f;
@@ -650,7 +658,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 {
                     BoundFunction = subFn with
                     {
-                        SourceInputColumns = sourceInputColumns, // TODO
+                        SourceInputColumns = sourceInputColumns,
                         SubQueryCopyInputColumns = subQueryInputColumns,
                     },
                 };

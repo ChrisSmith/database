@@ -259,30 +259,7 @@ public class QueryPlanner
             var (subQueryId, tableRef) = parentContext.CorrelatedSubQueryInputs.Single(); // TODO
             var table = _bufferPool.GetMemoryTable(tableRef.TableId);
 
-            BaseExpression BlahBlah(BaseExpression expr)
-            {
-                return expr.Rewrite(e =>
-                {
-                    if (e is ColumnExpression { BoundFunction: UnboundCorrelatedSubQueryFunction } col)
-                    {
-                        if (!subQueryContext.ReferenceSymbol(col.Column, col.Table, out var symbol))
-                        {
-                            throw new QueryPlanException($"Failed to resolve symbol '{col.Table}.{col.Column}'");
-                        }
-
-                        return e with
-                        {
-                            // BoundOutputColumn = symbol.ColumnRef,
-                            BoundDataType = symbol.DataType,
-                            // TODO this is wrong. Maybe I can move all this binding until later?
-                            BoundFunction = new SelectSubQueryFunction(symbol.ColumnRef, symbol.DataType, table, _bufferPool),
-                        };
-                    }
-                    return e;
-                });
-            }
-
-            foreach (var (columnName, tableAlias) in subQueryContext.LateBoundSymbols)
+            foreach (var (columnName, tableAlias) in subQueryContext.LateBoundSymbols.Keys)
             {
                 if (!parentContext.ReferenceSymbol(columnName, tableAlias, out var symbol))
                 {
@@ -300,39 +277,15 @@ public class QueryPlanner
                     ? columnName
                     : $"{tableAlias}.{columnName}";
 
-                var copiedSymbol = new BindSymbol(columnName, symbol.TableName, symbol.DataType, columnSchema.ColumnRef, 0);
+                var copiedSymbol = new BindSymbol(columnName, symbol.TableName, symbol.DataType, columnSchema.ColumnRef, 1);
+                subQueryContext.LateBoundSymbols[new(columnName, tableAlias)] = copiedSymbol;
                 if (!subQueryContext.TryAddSymbol(ident, copiedSymbol))
                 {
                     throw new QueryPlanException($"Duplicate symbol for ident {ident} '{symbol}'");
                 }
             }
 
-            rewrittenPlans.Add(plan.Rewrite(p =>
-            {
-                if (p is Filter filter)
-                {
-                    var updated = filter.Predicate.Rewrite(BlahBlah);
-                    if (updated != filter.Predicate)
-                    {
-                        return filter with
-                        {
-                            Predicate = updated,
-                        };
-                    }
-                }
-                else if (p is JoinSet joinSet)
-                {
-                    var updated = BaseExpression.RewriteList(joinSet.Filters, BlahBlah);
-                    if (!ReferenceEquals(updated, joinSet.Filters))
-                    {
-                        return joinSet with
-                        {
-                            Filters = updated,
-                        };
-                    }
-                }
-                return p;
-            }));
+            rewrittenPlans.Add(plan);
         }
 
         return rewrittenPlans;
@@ -386,9 +339,10 @@ public class QueryPlanner
 
                 var subQueryId = subQueryPlan.Expression.SubQueryId;
                 var isCorrelated = bindContext.LateBoundSymbols.Any();
+                MemoryStorage correlatedInputTable = default;
                 if (isCorrelated)
                 {
-                    var correlatedInputTable = _bufferPool.OpenMemoryTable();
+                    correlatedInputTable = _bufferPool.OpenMemoryTable();
                     var tuple = new Tuple<int, MemoryStorage>(subQueryId, correlatedInputTable);
                     parentContext.CorrelatedSubQueryInputs.Add(tuple);
                     bindContext.CorrelatedSubQueryInputs.Add(tuple);
@@ -399,6 +353,7 @@ public class QueryPlanner
                     Expression = subQueryPlan.Expression with
                     {
                         Correlated = isCorrelated,
+                        BoundInputMemoryTable = correlatedInputTable,
                         BoundDataType = sourceCol.DataType,
                         BoundOutputColumn = newColumn.ColumnRef,
                         BoundMemoryTable = memRef,
@@ -567,6 +522,9 @@ public class QueryPlanner
         var edges = new List<Edge>();
         var filters = new List<BaseExpression>();
 
+        var supportsLateBinding = context.SupportsLateBinding;
+        context.SupportsLateBinding = false; // In the context of joins, we don't support late binding
+
         foreach (var expr in conjunctions)
         {
             var found = false;
@@ -576,7 +534,8 @@ public class QueryPlanner
                 // TODO do this without exceptions
                 try
                 {
-                    _ = _binder.Bind(context, expr, one.Plan.OutputSchema);
+                    _ = _binder.Bind(context, expr, one.Plan.OutputSchema, mutateContext: false);
+                    _ = _binder.Bind(context, expr, one.Plan.OutputSchema, mutateContext: true);
                     edges.Add(new UnaryEdge(one.Name, expr));
                     found = true;
                     break;
@@ -600,7 +559,8 @@ public class QueryPlanner
                     try
                     {
                         var mergedSchema = ExtendSchema(one.Plan.OutputSchema, two.Plan.OutputSchema);
-                        _ = _binder.Bind(context, expr, mergedSchema);
+                        _ = _binder.Bind(context, expr, mergedSchema, mutateContext: false);
+                        _ = _binder.Bind(context, expr, mergedSchema, mutateContext: true);
                         edges.Add(new BinaryEdge(one.Name, two.Name, expr));
                         found = true;
                         break;
@@ -640,6 +600,8 @@ public class QueryPlanner
                 }
             }
         }
+
+        context.SupportsLateBinding = supportsLateBinding;
 
         if (relations.Count == 1)
         {
@@ -776,42 +738,6 @@ public class QueryPlanner
         }
         return result;
     }
-
-    // private bool MaybeRewriteExpressions(
-    //     BindContext context,
-    //     BaseExpression expression,
-    //     [NotNullWhen(true)] out BaseExpression? hoisted
-    //     )
-    // {
-    //     hoisted = null;
-    //
-    //     var any = false;
-    //     expression = expression.Rewrite(e =>
-    //     {
-    //         if (e is ColumnExpression { BoundFunction: UnboundCorrelatedSubQueryFunction } col)
-    //         {
-    //             if (!context.ReferenceSymbol(col.Column, col.Table, out var symbol))
-    //             {
-    //                 throw new QueryPlanException($"Failed to resolve symbol '{col.Table}.{col.Column}'");
-    //             }
-    //
-    //             any = true;
-    //             return e with
-    //             {
-    //                 // BoundOutputColumn = symbol.ColumnRef,
-    //                 BoundDataType = symbol.DataType,
-    //                 BoundFunction = new SelectFunction(symbol.ColumnRef, symbol.DataType, _bufferPool),
-    //             };
-    //         }
-    //         return e;
-    //     });
-    //
-    //     if (any)
-    //     {
-    //         hoisted = expression;
-    //     }
-    //     return any;
-    // }
 }
 
 public class QueryPlanException(string message) : Exception(message);

@@ -491,7 +491,7 @@ order by n_name
         });
     }
 
-    [Ignore("slow")]
+    // This is ~100ms w/ subquery cache and 3m without
     [Test]
     public void TestNestedQuery_Correlated()
     {
@@ -597,7 +597,7 @@ order by n_name
 
     [TestCase("q.CategoricalString = 'cat'", Description = "Uncorrelated Exists", ExpectedResult = 100_000)]
     [TestCase("q.CategoricalString = 'catfish'", Description = "Uncorrelated Does not Exists", ExpectedResult = 0)]
-    [TestCase("q.CategoricalString = t.CategoricalString and q.CategoricalString = 'cat'", Description = "Correlated filter", ExpectedResult = 10_000)]
+    [TestCase("q.CategoricalString = t.CategoricalString and q.CategoricalString = 'cat'", Description = "Correlated filter", ExpectedResult = 19_852)]
     [TestCase("q.CategoricalString = t.CategoricalString", Description = "Correlated full join", ExpectedResult = 100_000)]
     public int Exists(string expr)
     {

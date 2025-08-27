@@ -186,7 +186,30 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_11.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().HaveCount(1048);
+        result[..20].Should().BeEquivalentTo(new List<Row>
+        {
+            new([129760, 17538456.86m]),
+            new([166726, 16503353.92m]),
+            new([191287, 16474801.97m]),
+            new([161758, 16101755.54m]),
+            new([34452, 15983844.72m]),
+            new([139035, 15907078.34m]),
+            new([9403, 15451755.62m]),
+            new([154358, 15212937.88m]),
+            new([38823, 15064802.86m]),
+            new([85606, 15053957.15m]),
+            new([33354, 14408297.40m]),
+            new([154747, 14407580.68m]),
+            new([82865, 14235489.78m]),
+            new([76094, 14094247.04m]),
+            new([222, 13937777.74m]),
+            new([121271, 13908336.00m]),
+            new([55221, 13716120.47m]),
+            new([22819, 13666434.28m]),
+            new([76281, 13646853.68m]),
+            new([85298, 13581154.93m]),
+        });
     }
 
     [Test]
@@ -285,7 +308,10 @@ public partial class TPCHTests
     {
         var query = ReadQuery("query_17.sql");
         var result = Query(query).AsRowList();
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new ([348406.05428571428571428571429m]),
+        });
     }
 
     [Test]
