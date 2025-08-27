@@ -67,7 +67,7 @@ public class ExpressionInterpreter
             throw new ExpressionEvaluationException($"expression does not have BoundFunction bound for evaluation. {exp}");
         }
 
-        throw new ExpressionEvaluationException($"expression {exp} is not supported for evaluation");
+        throw new ExpressionEvaluationException($"expression ({exp.GetType().Name}) ({exp?.BoundFunction.GetType().Name}) {exp} is not supported for evaluation");
     }
 
     public IColumn Execute(BaseExpression expr, IFunction fun, IColumn col)

@@ -49,6 +49,26 @@ public abstract record BaseExpression(
 
     protected abstract BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren);
 
+    public static IReadOnlyList<BaseExpression> RewriteList(IReadOnlyList<BaseExpression> expressions, Func<BaseExpression, BaseExpression?> rewriter)
+    {
+        var output = new List<BaseExpression>(expressions.Count);
+        var any = false;
+        foreach (var expr in expressions)
+        {
+            var rewritten = rewriter(expr);
+            if (ReferenceEquals(expr, rewritten))
+            {
+                output.Add(expr);
+            }
+            else
+            {
+                any = true;
+                output.Add(rewritten!);
+            }
+        }
+        return any ? output : expressions;
+    }
+
     public BaseExpression Rewrite(Func<BaseExpression, BaseExpression?> rewriter)
     {
         var replaced = rewriter(this);

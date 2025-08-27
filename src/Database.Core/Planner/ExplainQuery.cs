@@ -116,9 +116,13 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (plan is PlanWithSubQueries planWithSub)
         {
-            Write($"PlanWithSubQueries(n={planWithSub.Uncorrelated.Count})", writer, ident);
+            Write($"PlanWithSubQueries(c={planWithSub.Correlated.Count}, u={planWithSub.Uncorrelated.Count})", writer, ident);
             WriteOutputColumns(planWithSub.OutputSchema, writer);
             WriteLine("", writer, ident);
+            foreach (var subquery in planWithSub.Correlated)
+            {
+                Explain(subquery, writer, ident + 1);
+            }
             foreach (var subquery in planWithSub.Uncorrelated)
             {
                 Explain(subquery, writer, ident + 1);
@@ -285,7 +289,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (physicalPlan is SubqueryOperator subqueryOp)
         {
-            Write($"PlanWithSubQueries(n={subqueryOp.UncorrelatedSources.Count})", writer, ident);
+            Write($"PlanWithSubQueries(u={subqueryOp.UncorrelatedSources.Count})", writer, ident);
             WriteOutputColumns(subqueryOp.Columns, writer);
             WriteLine("", writer, ident);
             foreach (var subquery in subqueryOp.UncorrelatedSources)

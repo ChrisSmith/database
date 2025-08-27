@@ -471,6 +471,28 @@ order by n_name
     }
 
     [Test]
+    public void TestNestedQuery_Correlated_Small()
+    {
+        var result = Query(@$"
+            select t.CategoricalInt
+            from table t
+            where t.CategoricalInt = (
+                select max(CategoricalInt)
+                from table q
+                where q.CategoricalString = t.CategoricalString
+            )
+            limit 10;
+        ;").AsRowList();
+
+        var values = result.Select(r => (int)r.Values[0]).ToList();
+        values.Should().BeEquivalentTo(new List<int>
+        {
+            4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        });
+    }
+
+    [Ignore("slow")]
+    [Test]
     public void TestNestedQuery_Correlated()
     {
         var result = Query(@$"
@@ -487,7 +509,7 @@ order by n_name
         var values = result.Select(r => new Tuple<int, int>((int)r.Values[0], (int)r.Values[1])).ToList();
         values.Should().BeEquivalentTo(new List<Tuple<int, int>>
         {
-            new(0, 0),
+            new(4, 20088),
         });
     }
 

@@ -78,6 +78,10 @@ public class ParquetPool
 
     public MemoryBasedTable GetMemoryTable(TableId id)
     {
+        if (id == default)
+        {
+            throw new Exception("Invalid TableId. Default value passed to GetMemoryTable.");
+        }
         return _memoryTables[id];
     }
 

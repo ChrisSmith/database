@@ -1,0 +1,62 @@
+﻿SELECT
+    l_shipmode,
+    SUM(CASE
+        WHEN o_orderpriority = '1-URGENT'
+            OR o_orderpriority = '2-HIGH'
+        THEN 1
+        ELSE 0
+    END) AS high_line_count,
+    SUM(CASE
+        WHEN o_orderpriority <> '1-URGENT'
+            AND o_orderpriority <> '2-HIGH'
+        THEN 1
+        ELSE 0
+    END) AS low_line_count
+FROM
+    orders,
+    lineitem
+WHERE
+    o_orderkey = l_orderkey
+    AND l_shipmode IN ('MAIL', 'SHIP')
+    AND l_commitdate < l_receiptdate
+    AND l_shipdate < l_commitdate
+    AND l_receiptdate >= date '1994-01-01'
+    AND l_receiptdate < date '1994-01-01' + interval '1' year
+GROUP BY
+    l_shipmode
+ORDER BY
+    l_shipmode;
+
+
+Original
+Project(l_shipmode, high_line_count, low_line_count) -> .l_shipmode, .high_line_count, .low_line_count
+ Sort(l_shipmode ASC) -> .high_line_count, .low_line_count, .l_shipmode 
+    Agg(SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1)), l_shipmode) group by (l_shipmode) -> .high_line_count, .low_line_count, .l_shipmode    
+       JoinSet(orders (Inner) x lineitem (Inner)) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment       
+       BinaryEdge { Expression = o_orderkey = l_orderkey, One = orders, Two = lineitem }
+       UnaryEdge { Expression = l_shipmode IN subquery(1), Relation = lineitem }
+       UnaryEdge { Expression = l_commitdate < l_receiptdate, Relation = lineitem }
+       UnaryEdge { Expression = l_shipdate < l_commitdate, Relation = lineitem }
+       UnaryEdge { Expression = l_receiptdate >= 01/01/1994 00:00:00, Relation = lineitem }
+       UnaryEdge { Expression = l_receiptdate < 01/01/1995 00:00:00, Relation = lineitem }
+          Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment          
+          Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
+
+
+Optimized
+Project(l_shipmode, high_line_count, low_line_count) -> .l_shipmode, .high_line_count, .low_line_count
+ Sort(l_shipmode ASC) -> .high_line_count, .low_line_count, .l_shipmode 
+    Agg(SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1)), l_shipmode) group by (l_shipmode) -> .high_line_count, .low_line_count, .l_shipmode    
+       Join(Semi on l_shipmode = $subquery_1$) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, $subquery_1$.$subquery_1$       
+          Join(Inner on o_orderkey = l_orderkey) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
+             Scan(orders) with projection  -> .o_orderkey, .o_orderpriority             
+          
+             Filter(l_receiptdate < 01/01/1995 00:00:00) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
+                Filter(l_receiptdate >= 01/01/1994 00:00:00) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
+                   Filter(l_shipdate < l_commitdate) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                   
+                      Filter(l_commitdate < l_receiptdate) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                      
+                         Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                         
+       
+          Scan($subquery_1$) -> $subquery_1$.$subquery_1$          
+
+

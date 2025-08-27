@@ -111,7 +111,7 @@ public static class QueryRewriter
         {
             if (expr is SubQueryExpression subQuery)
             {
-                var subResult = new SubQueryResultExpression(++subQueryId)
+                var subResult = new SubQueryResultExpression(++subQueryId, Correlated: false)
                 {
                     Alias = $"$subquery_{subQueryId}$",
                 };
@@ -124,7 +124,7 @@ public static class QueryRewriter
             {
                 // The expression list might be correlated with the outer
                 // query, transform it into an equivalent select and execute that
-                var subResult = new SubQueryResultExpression(++subQueryId)
+                var subResult = new SubQueryResultExpression(++subQueryId, Correlated: false)
                 {
                     Alias = $"$subquery_{subQueryId}$",
                 };

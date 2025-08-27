@@ -41,27 +41,36 @@ public class QueryPlanner
         select = QueryRewriter.ExpandStarStatements(select, _catalog);
         select = QueryRewriter.DuplicateSelectExpressions(select);
 
-        var allQueryPlans = new List<LogicalPlan>();
-        var allSubPlanContext = new List<BindContext>();
+        var uncorrelatedPlans = new List<LogicalPlan>();
+        var correlatedPlans = new List<LogicalPlan>();
 
         if (select.Where != null)
         {
-            var (updatedWhere, subQueryStatements) = QueryRewriter.ExtractSubqueries(select.Where, subQueryId: allQueryPlans.Count);
+            var (updatedWhere, subQueryStatements) = QueryRewriter.ExtractSubqueries(select.Where, subQueryId: uncorrelatedPlans.Count);
 
-            (var queryPlans, var subPlanContext, updatedWhere) = ProcessSubQueries(context, updatedWhere, subQueryStatements);
-            allQueryPlans.AddRange(queryPlans);
-            allSubPlanContext.AddRange(subPlanContext);
+            (var queryPlans, updatedWhere) = ProcessSubQueries(context, updatedWhere, subQueryStatements);
+            for (var i = 0; i < queryPlans.Count; i++)
+            {
+                var queryPlan = queryPlans[i];
+                if (queryPlan.BindContext!.LateBoundSymbols.Count > 0)
+                {
+                    correlatedPlans.Add(queryPlan);
+                }
+                else
+                {
+                    uncorrelatedPlans.Add(queryPlan);
+                }
+            }
 
             select = select with { Where = updatedWhere };
         }
 
         if (select.Having != null)
         {
-            var (updatedHaving, subQueryStatements) = QueryRewriter.ExtractSubqueries(select.Having, subQueryId: allQueryPlans.Count);
+            var (updatedHaving, subQueryStatements) = QueryRewriter.ExtractSubqueries(select.Having, subQueryId: uncorrelatedPlans.Count);
 
-            (var queryPlans, var subPlanContext, updatedHaving) = ProcessSubQueries(context, updatedHaving, subQueryStatements);
-            allQueryPlans.AddRange(queryPlans);
-            allSubPlanContext.AddRange(subPlanContext);
+            (var queryPlans, updatedHaving) = ProcessSubQueries(context, updatedHaving, subQueryStatements);
+            uncorrelatedPlans.AddRange(queryPlans);
 
             select = select with { Having = updatedHaving };
         }
@@ -69,8 +78,18 @@ public class QueryPlanner
         var expressions = select.SelectList.Expressions;
         var plan = BindRelations(context, select);
 
-        // Must bind here before ExpressionContainsAggregate so there are functions to check
+        // Must bind here so that
+        // 1. Aggregate expression can be found using ExpressionContainsAggregate
+        // 2. Nested Subqueries can be found using ExpressionContainsNestedSubQuery
         expressions = _binder.Bind(context, expressions, plan.OutputSchema);
+
+        if (correlatedPlans.Count > 0)
+        {
+            // At this point all the table symbols are available, identify and rewrite the nested subqueries to use the intermediate result table
+            correlatedPlans = LateBindSymbolsAndAllocateInputTable(context, correlatedPlans);
+            (plan, expressions) = BindCorrelatedSubPlan(context, plan, expressions, correlatedPlans);
+        }
+
         if (select.Group?.Expressions != null || expressions.Any(ExpressionContainsAggregate))
         {
             var groupingExprs = _binder.Bind(context, select.Group?.Expressions ?? [], plan.OutputSchema);
@@ -146,28 +165,196 @@ public class QueryPlanner
             plan = new Limit(plan, select.Limit.Count);
         }
 
-        if (allQueryPlans.Count > 0)
+        if (correlatedPlans.Count > 0 || uncorrelatedPlans.Count > 0)
         {
-            return new PlanWithSubQueries(plan, allQueryPlans, allSubPlanContext);
+            return new PlanWithSubQueries(plan, correlatedPlans, uncorrelatedPlans);
         }
-        return plan;
+        return plan with
+        {
+            BindContext = context,
+        };
     }
 
-    private (List<LogicalPlan>, List<BindContext>, BaseExpression) ProcessSubQueries(
+    private (LogicalPlan, IReadOnlyList<BaseExpression>) BindCorrelatedSubPlan(
         BindContext context,
+        LogicalPlan rootPlan,
+        IReadOnlyList<BaseExpression> expressions,
+        List<LogicalPlan> correlatedPlans)
+    {
+        var subPlan = correlatedPlans.Single();
+
+        BaseExpression? RewriteSubQueryInput(BaseExpression expr)
+        {
+            if (expr is SubQueryResultExpression { Correlated: true } re && re.BoundInputMemoryTable == default)
+            {
+                var (subQueryId, inputMemTable) = context.CorrelatedSubQueryInputs.Single();
+                return re with
+                {
+                    // TODO this doesn't look right, The SubQueryResultExpression should have an output table bound?
+                    // or actually it doesn't matter since its evaled as a column
+                    BoundInputMemoryTable = inputMemTable,
+                };
+            }
+            return expr;
+        }
+
+        rootPlan = rootPlan.Rewrite(p =>
+        {
+            if (p is Filter filter)
+            {
+                var updated = filter.Predicate.Rewrite(RewriteSubQueryInput);
+                if (updated != filter.Predicate)
+                {
+                    return filter with
+                    {
+                        Predicate = updated,
+                    };
+                }
+            }
+            else if (p is JoinSet joinSet)
+            {
+                var updated = BaseExpression.RewriteList(joinSet.Filters, RewriteSubQueryInput);
+                if (!ReferenceEquals(updated, joinSet.Filters))
+                {
+                    return joinSet with
+                    {
+                        Filters = updated,
+                    };
+                }
+            }
+            return p;
+        });
+
+
+        var outputExpressions = new List<BaseExpression>(expressions.Count);
+        foreach (var expr in expressions)
+        {
+            outputExpressions.Add(expr.Rewrite(e =>
+            {
+                if (e is SubQueryResultExpression { Correlated: true } re)
+                {
+                    return re with
+                    {
+                        BoundLogicalPlan = subPlan,
+                    };
+                }
+
+                return e;
+            }));
+        }
+
+        return (rootPlan, outputExpressions);
+    }
+
+    private List<LogicalPlan> LateBindSymbolsAndAllocateInputTable(
+        BindContext parentContext,
+        List<LogicalPlan> correlatedPlans
+        )
+    {
+        var rewrittenPlans = new List<LogicalPlan>(correlatedPlans.Count);
+        for (var i = 0; i < correlatedPlans.Count; i++)
+        {
+            var plan = correlatedPlans[i];
+            var subQueryContext = plan.BindContext!;
+            var (subQueryId, tableRef) = parentContext.CorrelatedSubQueryInputs.Single(); // TODO
+            var table = _bufferPool.GetMemoryTable(tableRef.TableId);
+
+            BaseExpression BlahBlah(BaseExpression expr)
+            {
+                return expr.Rewrite(e =>
+                {
+                    if (e is ColumnExpression { BoundFunction: UnboundCorrelatedSubQueryFunction } col)
+                    {
+                        if (!subQueryContext.ReferenceSymbol(col.Column, col.Table, out var symbol))
+                        {
+                            throw new QueryPlanException($"Failed to resolve symbol '{col.Table}.{col.Column}'");
+                        }
+
+                        return e with
+                        {
+                            // BoundOutputColumn = symbol.ColumnRef,
+                            BoundDataType = symbol.DataType,
+                            // TODO this is wrong. Maybe I can move all this binding until later?
+                            BoundFunction = new SelectSubQueryFunction(symbol.ColumnRef, symbol.DataType, table, _bufferPool),
+                        };
+                    }
+                    return e;
+                });
+            }
+
+            foreach (var (columnName, tableAlias) in subQueryContext.LateBoundSymbols)
+            {
+                if (!parentContext.ReferenceSymbol(columnName, tableAlias, out var symbol))
+                {
+                    throw new QueryPlanException($"Failed to resolve symbol '{tableAlias}.{columnName}'");
+                }
+
+                var columnSchema = table.AddColumnToSchema(
+                    symbol.Name,
+                    symbol.DataType,
+                    symbol.TableName,
+                    tableAlias!
+                );
+
+                var ident = tableAlias == null
+                    ? columnName
+                    : $"{tableAlias}.{columnName}";
+
+                var copiedSymbol = new BindSymbol(columnName, symbol.TableName, symbol.DataType, columnSchema.ColumnRef, 0);
+                if (!subQueryContext.TryAddSymbol(ident, copiedSymbol))
+                {
+                    throw new QueryPlanException($"Duplicate symbol for ident {ident} '{symbol}'");
+                }
+            }
+
+            rewrittenPlans.Add(plan.Rewrite(p =>
+            {
+                if (p is Filter filter)
+                {
+                    var updated = filter.Predicate.Rewrite(BlahBlah);
+                    if (updated != filter.Predicate)
+                    {
+                        return filter with
+                        {
+                            Predicate = updated,
+                        };
+                    }
+                }
+                else if (p is JoinSet joinSet)
+                {
+                    var updated = BaseExpression.RewriteList(joinSet.Filters, BlahBlah);
+                    if (!ReferenceEquals(updated, joinSet.Filters))
+                    {
+                        return joinSet with
+                        {
+                            Filters = updated,
+                        };
+                    }
+                }
+                return p;
+            }));
+        }
+
+        return rewrittenPlans;
+    }
+
+    private (List<LogicalPlan>, BaseExpression) ProcessSubQueries(
+        BindContext parentContext,
         BaseExpression expression,
         List<SubQueryPlan> subQueryStatements
         )
     {
         // IFF the subqueries are uncorrelated we can bind them first. they'll be run first
         var queryPlans = new List<LogicalPlan>();
-        var subPlanContext = new List<BindContext>();
         var updatedExpression = expression;
 
         for (var i = 0; i < subQueryStatements.Count; i++)
         {
             var subQueryStmt = subQueryStatements[i];
-            var bindContext = new BindContext();
+            var bindContext = new BindContext
+            {
+                SupportsLateBinding = true,
+            };
 
             var memRef = _bufferPool.OpenMemoryTable();
             var table = _bufferPool.GetMemoryTable(memRef.TableId);
@@ -194,20 +381,31 @@ public class QueryPlanner
                 subPlan = subPlan with
                 {
                     PreBoundOutputs = [newColumn],
+                    BindContext = bindContext,
                 };
 
                 var subQueryId = subQueryPlan.Expression.SubQueryId;
+                var isCorrelated = bindContext.LateBoundSymbols.Any();
+                if (isCorrelated)
+                {
+                    var correlatedInputTable = _bufferPool.OpenMemoryTable();
+                    var tuple = new Tuple<int, MemoryStorage>(subQueryId, correlatedInputTable);
+                    parentContext.CorrelatedSubQueryInputs.Add(tuple);
+                    bindContext.CorrelatedSubQueryInputs.Add(tuple);
+                }
+
                 subQueryStatements[i] = subQueryPlan = subQueryPlan with
                 {
                     Expression = subQueryPlan.Expression with
                     {
+                        Correlated = isCorrelated,
                         BoundDataType = sourceCol.DataType,
                         BoundOutputColumn = newColumn.ColumnRef,
                         BoundMemoryTable = memRef,
                     },
                 };
 
-                context.AddSymbol(subQueryPlan.Expression);
+                parentContext.AddSymbol(subQueryPlan.Expression);
 
                 // The subquery output now has an output table/type.
                 // Bind it to the things reading from it
@@ -221,11 +419,10 @@ public class QueryPlanner
                 });
 
                 queryPlans.Add(subPlan);
-                subPlanContext.Add(bindContext);
             }
             else if (subQueryStmt is SubQueryInPlan inPlan)
             {
-                var bound = (ExpressionList)_binder.Bind(context, inPlan.ExpressionList, []);
+                var bound = (ExpressionList)_binder.Bind(parentContext, inPlan.ExpressionList, []);
                 var dataType = bound.Statements[0].BoundDataType!.Value;
                 var columnName = inPlan.Expression.Alias;
                 var newColumn = table.AddColumnToSchema(columnName, dataType, "", "");
@@ -265,7 +462,7 @@ public class QueryPlanner
                     },
                 };
 
-                context.AddSymbol(inPlan.Expression);
+                parentContext.AddSymbol(inPlan.Expression);
 
                 // The subquery output now has an output table/type.
                 // Bind it to the things reading from it
@@ -284,7 +481,7 @@ public class QueryPlanner
             }
         }
 
-        return (queryPlans, subPlanContext, updatedExpression);
+        return (queryPlans, updatedExpression);
     }
 
     public static IReadOnlyList<ColumnSchema> SchemaFromExpressions(
@@ -294,14 +491,20 @@ public class QueryPlanner
         var schema = new List<ColumnSchema>(expressions.Count);
         foreach (var expr in expressions)
         {
+            string? sourceTable = null;
+            if (expr is ColumnExpression colExpr)
+            {
+                sourceTable = colExpr.Table;
+            }
+
             schema.Add(new ColumnSchema(
                 default,
                 default,
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
                 expr.BoundFunction!.ReturnType.ClrTypeFromDataType(),
-                SourceTableName: selectAlias ?? "",
-                SourceTableAlias: selectAlias ?? ""
+                SourceTableName: selectAlias ?? sourceTable ?? "",
+                SourceTableAlias: selectAlias ?? sourceTable ?? ""
                 ));
         }
 
@@ -381,6 +584,9 @@ public class QueryPlanner
                 catch (QueryPlanException)
                 {
                 }
+                catch (FunctionBindException)
+                {
+                }
             }
 
             for (var i = 0; i < relations.Count && !found; i++)
@@ -400,6 +606,9 @@ public class QueryPlanner
                         break;
                     }
                     catch (QueryPlanException)
+                    {
+                    }
+                    catch (FunctionBindException)
                     {
                     }
                 }
@@ -434,14 +643,18 @@ public class QueryPlanner
 
         if (relations.Count == 1)
         {
+            var plan = relations[0].Plan;
             if (select.Where != null)
             {
-                return new Filter(relations[0].Plan, select.Where);
+                var where = _binder.Bind(context, select.Where, plan.OutputSchema);
+                return new Filter(plan, where);
             }
-            return relations[0].Plan;
+            return plan;
         }
 
-        return new JoinSet(relations, edges, filters);
+        var schema = GetCombinedOutputSchema(relations.Select(r => r.Plan));
+        var boundFilters = filters.Select(f => _binder.Bind(context, f, schema)).ToList();
+        return new JoinSet(relations, edges, boundFilters);
 
         Scan CreateScanForTable(TableStatement tableStmt)
         {
@@ -563,6 +776,42 @@ public class QueryPlanner
         }
         return result;
     }
+
+    // private bool MaybeRewriteExpressions(
+    //     BindContext context,
+    //     BaseExpression expression,
+    //     [NotNullWhen(true)] out BaseExpression? hoisted
+    //     )
+    // {
+    //     hoisted = null;
+    //
+    //     var any = false;
+    //     expression = expression.Rewrite(e =>
+    //     {
+    //         if (e is ColumnExpression { BoundFunction: UnboundCorrelatedSubQueryFunction } col)
+    //         {
+    //             if (!context.ReferenceSymbol(col.Column, col.Table, out var symbol))
+    //             {
+    //                 throw new QueryPlanException($"Failed to resolve symbol '{col.Table}.{col.Column}'");
+    //             }
+    //
+    //             any = true;
+    //             return e with
+    //             {
+    //                 // BoundOutputColumn = symbol.ColumnRef,
+    //                 BoundDataType = symbol.DataType,
+    //                 BoundFunction = new SelectFunction(symbol.ColumnRef, symbol.DataType, _bufferPool),
+    //             };
+    //         }
+    //         return e;
+    //     });
+    //
+    //     if (any)
+    //     {
+    //         hoisted = expression;
+    //     }
+    //     return any;
+    // }
 }
 
 public class QueryPlanException(string message) : Exception(message);

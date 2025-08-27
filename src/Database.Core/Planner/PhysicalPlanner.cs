@@ -65,26 +65,39 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
         if (plan is PlanWithSubQueries planWithSub)
         {
-            var subPlans = new List<IOperation>();
-            for (var i = 0; i < planWithSub.Uncorrelated.Count; i++)
+            var correlatedPlans = new List<IOperation>();
+            for (var i = 0; i < planWithSub.Correlated.Count; i++)
             {
-                var subContext = planWithSub.BindContext[i];
-                var subquery = planWithSub.Uncorrelated[i];
+                var subquery = planWithSub.Correlated[i];
+                var subContext = subquery.BindContext ?? throw new QueryPlanException("Subquery has no bind context");
+                subContext.SupportsLateBinding = false;
                 var subPlan = CreatePhysicalPlan(subquery, subContext);
-                subPlans.Add(subPlan);
+                correlatedPlans.Add(subPlan);
             }
 
+            var unCorrelatedPlans = new List<IOperation>();
+            for (var i = 0; i < planWithSub.Uncorrelated.Count; i++)
+            {
+                var subquery = planWithSub.Uncorrelated[i];
+                var subContext = subquery.BindContext ?? throw new QueryPlanException("Subquery has no bind context");
+                var subPlan = CreatePhysicalPlan(subquery, subContext);
+                unCorrelatedPlans.Add(subPlan);
+            }
+
+            context.CorrelatedSubQueryOps.AddRange(correlatedPlans);
             var main = CreatePhysicalPlan(planWithSub.Plan, context);
-            return CreatePlanWithSubqueries(planWithSub, main, subPlans);
+            return CreatePlanWithSubqueries(planWithSub, main, correlatedPlans, unCorrelatedPlans);
         }
 
-        throw new NotImplementedException();
+        throw new NotImplementedException($"Type {plan.GetType()} is not supported in physical plan");
     }
 
     private IOperation CreatePlanWithSubqueries(
         PlanWithSubQueries planWithSub,
         IOperation main,
-        List<IOperation> subPlans)
+        List<IOperation> correlatedPlans,
+        List<IOperation> uncorrelatedPlans
+        )
     {
         var intermediateOutputs = planWithSub.Uncorrelated.Select(p => p.PreBoundOutputs).ToList();
         foreach (var output in intermediateOutputs.SelectMany(p => p))
@@ -97,7 +110,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
         return new SubqueryOperator(
             bufferPool,
-            subPlans,
+            uncorrelatedPlans,
             intermediateOutputs,
             main
         );
@@ -363,7 +376,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 scanExpr = _binder.Bind(context, leftExpr, left.Columns);
                 probeExpr = _binder.Bind(context, rightExpr, right.Columns);
             }
-            catch (QueryPlanException e) when (e.Message.Contains("was not found in list of available columns"))
+            catch (QueryPlanException e) when (e.Message.Contains("was not found in the list of available columns"))
             {
                 scanExpr = _binder.Bind(context, rightExpr, left.Columns);
                 probeExpr = _binder.Bind(context, leftExpr, right.Columns);
@@ -401,11 +414,17 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
         for (var i = 0; i < groupingExprs.Count; i++)
         {
             var expr = groupingExprs[i];
+            string? sourceTable = null;
+            if (expr is ColumnExpression colExpr)
+            {
+                sourceTable = colExpr.Table;
+            }
+
             var newColumn = memTable.AddColumnToSchema(
                 expr.Alias,
                 expr.BoundFunction!.ReturnType,
-                aggregate.Alias ?? "",
-                aggregate.Alias ?? "");
+                aggregate.Alias ?? sourceTable ?? "",
+                aggregate.Alias ?? sourceTable ?? "");
 
             outputExpressions.Add(expr with
             {
@@ -611,6 +630,33 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             // TODO cast values to "truthy"
             throw new QueryPlanException($"Filter expression '{filter.Predicate}' is not a boolean expression");
         }
+
+        whereExpr = whereExpr.Rewrite(f =>
+        {
+            if (f is SubQueryResultExpression { Correlated: true, } subQuery
+                && f.BoundFunction is CorrelatedSubQueryFunction { SourceInputColumns: [] } subFn)
+            {
+                var inputTableRef = subQuery.BoundInputMemoryTable;
+                var inputTable = bufferPool.GetMemoryTable(inputTableRef.TableId);
+                var subQueryInputColumns = inputTable.Schema;
+
+                var sourceInputColumns = inputColumns.Skip(1).ToList();
+                if (sourceInputColumns.Count == 0)
+                {
+                    return f;
+                }
+
+                return subQuery with
+                {
+                    BoundFunction = subFn with
+                    {
+                        SourceInputColumns = sourceInputColumns, // TODO
+                        SubQueryCopyInputColumns = subQueryInputColumns,
+                    },
+                };
+            }
+            return f;
+        });
 
         var memRef = bufferPool.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);

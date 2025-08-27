@@ -4,9 +4,10 @@ using Database.Core.Execution;
 
 namespace Database.Core.BufferPool;
 
-[DebuggerDisplay("{storage}")]
+[DebuggerDisplay("{_storage}")]
 public class MemoryBasedTable(MemoryStorage storage)
 {
+    private readonly MemoryStorage _storage = storage;
     private Dictionary<int, IColumn[]> _rowGroups { get; set; } = new();
     private List<ColumnSchema> _schema = new();
 

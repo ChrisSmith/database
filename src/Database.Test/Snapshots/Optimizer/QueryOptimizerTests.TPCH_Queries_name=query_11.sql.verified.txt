@@ -1,0 +1,80 @@
+﻿SELECT
+    ps_partkey,
+    SUM(ps_supplycost * ps_availqty) AS value
+FROM
+    partsupp,
+    supplier,
+    nation
+WHERE
+    ps_suppkey = s_suppkey
+    AND s_nationkey = n_nationkey
+    AND n_name = 'GERMANY'
+GROUP BY
+    ps_partkey
+HAVING
+    SUM(ps_supplycost * ps_availqty) > (
+        SELECT
+            SUM(ps_supplycost * ps_availqty) * 0.0001
+        FROM
+            partsupp,
+            supplier,
+            nation
+        WHERE
+            ps_suppkey = s_suppkey
+            AND s_nationkey = n_nationkey
+            AND n_name = 'GERMANY'
+    )
+ORDER BY
+    value DESC;
+
+
+Original
+PlanWithSubQueries(c=0, u=1) -> .ps_partkey, .value
+ Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
+    Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by () -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+       JoinSet(partsupp (Inner) x supplier (Inner) x nation (Inner)) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .n_comment       
+       BinaryEdge { Expression = ps_suppkey = s_suppkey, One = partsupp, Two = supplier }
+       BinaryEdge { Expression = s_nationkey = n_nationkey, One = supplier, Two = nation }
+       UnaryEdge { Expression = n_name = GERMANY, Relation = nation }
+          Scan(partsupp) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment          
+          Scan(supplier) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment          
+          Scan(nation) -> .n_nationkey, .n_name, .n_regionkey, .n_comment          
+ Project(ps_partkey, value) -> .ps_partkey, .value 
+    Sort(value DESC) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal)) > subquery(1)) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))       
+          Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal)), ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by (ps_partkey) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))          
+             JoinSet(partsupp (Inner) x supplier (Inner) x nation (Inner)) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .n_comment             
+             BinaryEdge { Expression = ps_suppkey = s_suppkey, One = partsupp, Two = supplier }
+             BinaryEdge { Expression = s_nationkey = n_nationkey, One = supplier, Two = nation }
+             UnaryEdge { Expression = n_name = GERMANY, Relation = nation }
+                Scan(partsupp) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment                
+                Scan(supplier) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment                
+                Scan(nation) -> .n_nationkey, .n_name, .n_regionkey, .n_comment                
+
+
+Optimized
+PlanWithSubQueries(c=0, u=1) -> .ps_partkey, .value
+ Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
+    Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by () -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+       Join(Inner on s_nationkey = n_nationkey) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name       
+          Join(Inner on ps_suppkey = s_suppkey) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey          
+             Scan(partsupp) with projection  -> .ps_suppkey, .ps_availqty, .ps_supplycost             
+          
+             Scan(supplier) with projection  -> .s_suppkey, .s_nationkey             
+       
+          Filter(n_name = GERMANY) -> .n_nationkey, .n_name          
+             Scan(nation) with projection  -> .n_nationkey, .n_name             
+ Project(ps_partkey, value) -> .ps_partkey, .value 
+    Sort(value DESC) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal)) > subquery(1)) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))       
+          Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal)), ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by (ps_partkey) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))          
+             Join(Inner on s_nationkey = n_nationkey) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name             
+                Join(Inner on ps_suppkey = s_suppkey) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey                
+                   Scan(partsupp) with projection  -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost                   
+                
+                   Scan(supplier) with projection  -> .s_suppkey, .s_nationkey                   
+             
+                Filter(n_name = GERMANY) -> .n_nationkey, .n_name                
+                   Scan(nation) with projection  -> .n_nationkey, .n_name                   
+
+
