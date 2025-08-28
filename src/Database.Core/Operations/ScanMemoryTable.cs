@@ -22,7 +22,7 @@ public record ScanMemoryTable(
         _done = false;
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {

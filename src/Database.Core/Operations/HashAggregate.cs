@@ -28,7 +28,7 @@ public record HashAggregate(
         _done = false;
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {
@@ -43,7 +43,7 @@ public record HashAggregate(
             .Where(e => e.BoundFunction is not IAggregateFunction)
             .ToList();
 
-        var rowGroup = Source.Next();
+        var rowGroup = Source.Next(token);
 
         var keyTypes = groupingExpressions.Select(g => g.BoundDataType!.Value.ClrTypeFromDataType()).ToArray();
         var hashToAggState = new HashTable<List<IAggregateState>>(keyTypes);
@@ -51,16 +51,16 @@ public record HashAggregate(
         while (rowGroup != null)
         {
             // Build up the grouping keys, one per row
-            var groupingKeys = GroupByKeys(rowGroup, groupingExpressions);
+            var groupingKeys = GroupByKeys(rowGroup, groupingExpressions, token);
 
             // This is by aggregate column
             var stateArray = InitializeAggregateStates(aggregates, rowGroup, groupingKeys, hashToAggState);
 
             // Update all aggregate states. Since these are pointers to the global states,
             // they're updating the global stats too
-            ComputeAggregates(aggregates, stateArray, rowGroup);
+            ComputeAggregates(aggregates, stateArray, rowGroup, token);
 
-            rowGroup = Source.Next();
+            rowGroup = Source.Next(token);
         }
 
         var resRows = hashToAggState.KeyValuePairs();
@@ -71,7 +71,7 @@ public record HashAggregate(
         return groupedRowGroup;
     }
 
-    private void ComputeAggregates(List<BaseExpression> aggregates, List<IAggregateState[]> stateArray, RowGroup rowGroup)
+    private void ComputeAggregates(List<BaseExpression> aggregates, List<IAggregateState[]> stateArray, RowGroup rowGroup, CancellationToken token)
     {
         for (var a = 0; a < aggregates.Count; a++)
         {
@@ -80,7 +80,7 @@ public record HashAggregate(
             var aggFunctionExpr = (FunctionExpression)expression;
             var state = stateArray[a];
 
-            _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, state);
+            _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, state, token);
         }
     }
 
@@ -127,7 +127,7 @@ public record HashAggregate(
         return stateArray;
     }
 
-    private List<IColumn> GroupByKeys(RowGroup rowGroup, IReadOnlyList<BaseExpression> groupingExpressions)
+    private List<IColumn> GroupByKeys(RowGroup rowGroup, IReadOnlyList<BaseExpression> groupingExpressions, CancellationToken token)
     {
         var numColumns = groupingExpressions.Count;
         var result = new List<IColumn>(numColumns);
@@ -135,7 +135,7 @@ public record HashAggregate(
         for (var i = 0; i < numColumns; i++)
         {
             var expression = groupingExpressions[i];
-            var column = _interpreter.Execute(expression, rowGroup);
+            var column = _interpreter.Execute(expression, rowGroup, token);
             result.Add(column);
         }
         return result;

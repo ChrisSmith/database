@@ -33,7 +33,7 @@ public record HashJoinOperator(
         _hashTable = null;
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {
@@ -42,17 +42,17 @@ public record HashJoinOperator(
 
         if (_hashTable == null)
         {
-            _hashTable = BuildHashTable();
+            _hashTable = BuildHashTable(token);
         }
 
-        var rowGroup = ScanSource.Next();
+        var rowGroup = ScanSource.Next(token);
         if (rowGroup == null)
         {
             _done = true;
             return null;
         }
 
-        var scanKeys = CalculateScanKeys(rowGroup);
+        var scanKeys = CalculateScanKeys(rowGroup, token);
 
         var targetRg = Table.AddRowGroup();
 
@@ -191,19 +191,19 @@ public record HashJoinOperator(
         return (idx, ids);
     }
 
-    private List<IColumn> CalculateScanKeys(RowGroup rowGroup)
+    private List<IColumn> CalculateScanKeys(RowGroup rowGroup, CancellationToken token)
     {
         var scanKeys = new List<IColumn>(ScanKeys.Count);
         foreach (var key in ScanKeys)
         {
-            var res = _interpreter.Execute(key, rowGroup);
+            var res = _interpreter.Execute(key, rowGroup, token);
             scanKeys.Add(res);
         }
 
         return scanKeys;
     }
 
-    private HashTable<RowRef?> BuildHashTable()
+    private HashTable<RowRef?> BuildHashTable(CancellationToken token)
     {
         if (ProbeKeys.Count != ScanKeys.Count)
         {
@@ -215,13 +215,13 @@ public record HashJoinOperator(
         var keyTypes = ProbeKeys.Select(p => p.BoundDataType!.Value.ClrTypeFromDataType()).ToArray();
         var hashTable = new HashTable<RowRef?>(keyTypes, size: estimatedRows);
 
-        var propRg = ProbeSource.Next();
+        var propRg = ProbeSource.Next(token);
         while (propRg != null)
         {
             var keys = new List<IColumn>(ProbeKeys.Count);
             foreach (var key in ProbeKeys)
             {
-                var res = _interpreter.Execute(key, propRg);
+                var res = _interpreter.Execute(key, propRg, token);
                 keys.Add(res);
             }
 
@@ -232,7 +232,7 @@ public record HashJoinOperator(
             }
 
             hashTable.Add(keys, rowArray);
-            propRg = ProbeSource.Next();
+            propRg = ProbeSource.Next(token);
         }
 
         return hashTable;

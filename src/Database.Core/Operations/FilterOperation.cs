@@ -27,7 +27,7 @@ public record FilterOperation(
         _done = false;
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {
@@ -36,14 +36,14 @@ public record FilterOperation(
 
         while (true)
         {
-            var next = Source.Next();
+            var next = Source.Next(token);
             if (next == null)
             {
                 _done = true;
                 return null;
             }
 
-            var res = (Column<bool>)_interpreter.Execute(Expression, next);
+            var res = (Column<bool>)_interpreter.Execute(Expression, next, token);
             var keep = res.Values;
 
             var count = 0;

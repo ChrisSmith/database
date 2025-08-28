@@ -21,9 +21,9 @@ public record DistinctOperation(
         _unique = null;
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
-        var rowGroup = Source.Next();
+        var rowGroup = Source.Next(token);
         if (rowGroup == null)
         {
             return null;
@@ -44,7 +44,7 @@ public record DistinctOperation(
                 {
                     _unique.Add(row);
                 }
-                rowGroup = Source.Next();
+                rowGroup = Source.Next(token);
             }
         }
 

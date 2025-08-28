@@ -11,7 +11,7 @@ public interface IFunction
 
 public interface IFunctionWithRowGroup : IFunction
 {
-    public IColumn Execute(RowGroup rowGroup);
+    public IColumn Execute(RowGroup rowGroup, CancellationToken token);
 }
 
 public interface IFunctionWithColumnLength : IFunction

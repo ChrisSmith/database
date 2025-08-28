@@ -25,9 +25,9 @@ public record ProjectionOperation(
         MemoryTable.Truncate();
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
-        var next = Source.Next();
+        var next = Source.Next(token);
         if (next == null)
         {
             return null;
@@ -45,7 +45,7 @@ public record ProjectionOperation(
 
             // Other functions will need to be materialized
             // Drop them into the buffer pool
-            var columnRes = _interpreter.Execute(expr, next);
+            var columnRes = _interpreter.Execute(expr, next, token);
             var column = ColumnHelper.CreateColumn(
                 fun.ReturnType.ClrTypeFromDataType(),
                 expr.Alias,

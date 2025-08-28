@@ -23,7 +23,7 @@ public record CorrelatedSubQueryFunction(
 
     private Dictionary<object, object> _cache = new();
 
-    public IColumn Execute(RowGroup rowGroup)
+    public IColumn Execute(RowGroup rowGroup, CancellationToken token)
     {
         if (!_initialized)
         {
@@ -60,6 +60,7 @@ public record CorrelatedSubQueryFunction(
         {
             InputTable.Truncate();
             SubQuery.Reset();
+            token.ThrowIfCancellationRequested();
 
             if (sourceColumns.Count == 1)
             {
@@ -84,7 +85,7 @@ public record CorrelatedSubQueryFunction(
             }
 
             // Execute Subquery
-            var next = SubQuery.Next();
+            var next = SubQuery.Next(token);
             if (next != null)
             {
                 var sourceColumnRef = next.Columns.Single();

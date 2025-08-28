@@ -8,12 +8,12 @@ public class Interpreter(ParquetPool BufferPool)
     public IEnumerable<MaterializedRowGroup> Execute(QueryPlan plan, CancellationToken token)
     {
         var operation = plan.Operation;
-        var group = operation.Next();
+        var group = operation.Next(token);
         while (group != null)
         {
             token.ThrowIfCancellationRequested();
             yield return Materialize(group);
-            group = operation.Next();
+            group = operation.Next(token);
         }
     }
 

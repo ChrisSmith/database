@@ -26,7 +26,7 @@ public record UngroupedAggregate(
         _done = false;
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {
@@ -46,7 +46,7 @@ public record UngroupedAggregate(
             states.Add(arr);
         }
 
-        var rowGroup = Source.Next();
+        var rowGroup = Source.Next(token);
         while (rowGroup != null)
         {
             for (var i = 0; i < aggregates.Count; i++)
@@ -63,10 +63,10 @@ public record UngroupedAggregate(
                     stateArray[j] = states[i][0];
                 }
 
-                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, stateArray);
+                _interpreter.ExecuteAggregate(aggFunctionExpr, aggregate, rowGroup, stateArray, token);
             }
 
-            rowGroup = Source.Next();
+            rowGroup = Source.Next(token);
         }
 
 

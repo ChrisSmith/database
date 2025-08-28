@@ -6,32 +6,32 @@ namespace Database.Core.Expressions;
 
 public class ExpressionInterpreter
 {
-    public IColumn Execute(BaseExpression exp, RowGroup rowGroup)
+    public IColumn Execute(BaseExpression exp, RowGroup rowGroup, CancellationToken token)
     {
         if (exp is BinaryExpression be)
         {
-            var left = Execute(be.Left, rowGroup);
-            var right = Execute(be.Right, rowGroup);
+            var left = Execute(be.Left, rowGroup, token);
+            var right = Execute(be.Right, rowGroup, token);
             return Execute(exp, be.BoundFunction!, left, right);
         }
 
         if (exp is CastExpression cast)
         {
-            var col = Execute(cast.Expression, rowGroup);
+            var col = Execute(cast.Expression, rowGroup, token);
             return Execute(exp, cast.BoundFunction!, col);
         }
 
         if (exp is UnaryExpression ue)
         {
-            var col = Execute(ue.Expression, rowGroup);
+            var col = Execute(ue.Expression, rowGroup, token);
             return Execute(exp, ue.BoundFunction!, col);
         }
 
         if (exp is BetweenExpression bt)
         {
-            var value = Execute(bt.Value, rowGroup);
-            var lower = Execute(bt.Lower, rowGroup);
-            var upper = Execute(bt.Upper, rowGroup);
+            var value = Execute(bt.Value, rowGroup, token);
+            var lower = Execute(bt.Lower, rowGroup, token);
+            var upper = Execute(bt.Upper, rowGroup, token);
             return Execute(exp, bt.BoundFunction!, value, lower, upper);
         }
 
@@ -40,7 +40,7 @@ public class ExpressionInterpreter
             var args = new IColumn[fe.Args.Length];
             for (var i = 0; i < fe.Args.Length; i++)
             {
-                args[i] = Execute(fe.Args[i], rowGroup);
+                args[i] = Execute(fe.Args[i], rowGroup, token);
             }
 
             return Execute(fe, fe.BoundFunction!, args);
@@ -48,12 +48,12 @@ public class ExpressionInterpreter
 
         if (exp is CaseExpression ce)
         {
-            return ExecuteCaseStatement(ce, rowGroup);
+            return ExecuteCaseStatement(ce, rowGroup, token);
         }
 
         if (exp.BoundFunction is IFunctionWithRowGroup fun)
         {
-            return fun.Execute(rowGroup);
+            return fun.Execute(rowGroup, token);
         }
 
         if (exp.BoundFunction is IFunctionWithColumnLength literal)
@@ -356,18 +356,18 @@ public class ExpressionInterpreter
         // return (IColumn)column;
     }
 
-    public void ExecuteAggregate(FunctionExpression expr, IAggregateFunction fun, RowGroup rowGroup, IAggregateState[] state)
+    public void ExecuteAggregate(FunctionExpression expr, IAggregateFunction fun, RowGroup rowGroup, IAggregateState[] state, CancellationToken token)
     {
         if (expr.Args.Length != 1)
         {
             throw new ExpressionEvaluationException($"expected aggregate function {fun.GetType().Name} to have 1 argument got {expr.Args}");
         }
-        var column = Execute(expr.Args[0], rowGroup);
+        var column = Execute(expr.Args[0], rowGroup, token);
 
         fun.InvokeNext(column.ValuesArray, state);
     }
 
-    public IColumn ExecuteCaseStatement(CaseExpression caseExpr, RowGroup rowGroup)
+    public IColumn ExecuteCaseStatement(CaseExpression caseExpr, RowGroup rowGroup, CancellationToken token)
     {
         var numRows = rowGroup.NumRows;
         var totalMatches = 0;
@@ -378,14 +378,14 @@ public class ExpressionInterpreter
         for (var i = 0; i < caseExpr.Conditions.Count && totalMatches < numRows; i++)
         {
             var cond = caseExpr.Conditions[i];
-            var condValue = Execute(cond, rowGroup);
+            var condValue = Execute(cond, rowGroup, token);
             if (condValue.ValuesArray is not bool[] condition)
             {
                 throw new ExpressionEvaluationException($"expected case statement condition to be boolean got {condValue.GetType().Name}");
             }
 
             var thenExpr = caseExpr.Results[i];
-            var thenValue = Execute(thenExpr, rowGroup);
+            var thenValue = Execute(thenExpr, rowGroup, token);
             if (thenValue.ValuesArray.GetType() != outputArray.GetType())
             {
                 throw new ExpressionEvaluationException($"expected case statement result to be {outputArray.GetType().Name} got {thenValue.GetType().Name}");
@@ -404,7 +404,7 @@ public class ExpressionInterpreter
 
         if (totalMatches != numRows)
         {
-            var defaults = Execute(caseExpr.Default ?? throw new ExpressionEvaluationException("nullable returns from case statements not supported"), rowGroup);
+            var defaults = Execute(caseExpr.Default ?? throw new ExpressionEvaluationException("nullable returns from case statements not supported"), rowGroup, token);
             for (var i = 0; i < numRows; i++)
             {
                 if (!resultIsSet[i])

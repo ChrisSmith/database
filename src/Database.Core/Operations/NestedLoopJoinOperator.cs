@@ -33,7 +33,7 @@ public record NestedLoopJoinOperator(
         Table.Truncate();
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {
@@ -44,18 +44,18 @@ public record NestedLoopJoinOperator(
         if (_rightRows == null)
         {
             _rightRows = new List<RowGroup>();
-            var rightNextInner = RightSource.Next();
+            var rightNextInner = RightSource.Next(token);
             while (rightNextInner != null)
             {
                 _rightRows.Add(rightNextInner);
-                rightNextInner = RightSource.Next();
+                rightNextInner = RightSource.Next(token);
             }
         }
 
         if (_rightIndex >= _rightRows.Count || _leftNext == null)
         {
             _rightIndex = 0;
-            _leftNext = LeftSource.Next();
+            _leftNext = LeftSource.Next(token);
             if (_leftNext == null)
             {
                 _done = true;

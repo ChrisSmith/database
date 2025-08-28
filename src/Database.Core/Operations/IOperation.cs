@@ -14,7 +14,7 @@ public interface IOperation
 
     IReadOnlyList<ColumnRef> ColumnRefs { get; }
 
-    RowGroup? Next();
+    RowGroup? Next(CancellationToken token);
 
     Cost EstimateCost();
     void Reset();
@@ -24,7 +24,7 @@ public abstract record BaseOperation(
     IReadOnlyList<ColumnSchema> Columns,
     IReadOnlyList<ColumnRef> ColumnRefs) : IOperation
 {
-    public abstract RowGroup? Next();
+    public abstract RowGroup? Next(CancellationToken token);
 
     public abstract void Reset();
 

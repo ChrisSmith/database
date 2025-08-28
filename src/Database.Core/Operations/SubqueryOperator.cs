@@ -17,7 +17,7 @@ public record SubqueryOperator(
         Source.Reset();
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (!_executedSubQueries)
         {
@@ -30,7 +30,7 @@ public record SubqueryOperator(
                 RowGroup? next;
                 do
                 {
-                    next = subQuery.Next();
+                    next = subQuery.Next(token);
                     if (next != null)
                     {
                         var sourceColumnRef = next.Columns.Single();
@@ -48,7 +48,7 @@ public record SubqueryOperator(
             _executedSubQueries = true;
         }
 
-        return Source.Next();
+        return Source.Next(token);
     }
 
     public override Cost EstimateCost()

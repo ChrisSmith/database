@@ -34,7 +34,7 @@ public record FileScanFusedFilter(
         RowGroupsKeep = null;
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {
@@ -51,7 +51,7 @@ public record FileScanFusedFilter(
             // Then execute the expression against them
 
             var statsRgRef = _table.StatsRowGroup;
-            var res = (Column<bool>)_interpreter.Execute(Expression, statsRgRef);
+            var res = (Column<bool>)_interpreter.Execute(Expression, statsRgRef, token);
             var keep = res.Values;
 
             RowGroupsKeep = new List<int>(res.Values.Length);

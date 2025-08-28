@@ -6,7 +6,7 @@ namespace Database.Core.Functions;
 
 public record SelectFunction(ColumnRef ColumnRef, DataType ReturnType, ParquetPool BufferPool) : IFunctionWithRowGroup
 {
-    public IColumn Execute(RowGroup rowGroup)
+    public IColumn Execute(RowGroup rowGroup, CancellationToken token)
     {
         var column = BufferPool.GetColumn(ColumnRef with
         {

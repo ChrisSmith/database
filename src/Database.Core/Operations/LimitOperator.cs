@@ -25,14 +25,14 @@ public record LimitOperator(
         MemoryTable.Truncate();
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {
             return null;
         }
 
-        var next = Source.Next();
+        var next = Source.Next(token);
         if (next == null)
         {
             _done = true;

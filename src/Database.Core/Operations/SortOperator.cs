@@ -27,7 +27,7 @@ public record SortOperator(
         _done = false;
     }
 
-    public override RowGroup? Next()
+    public override RowGroup? Next(CancellationToken token)
     {
         if (_done)
         {
@@ -35,7 +35,7 @@ public record SortOperator(
         }
 
         var allRows = new List<Row>();
-        var next = Source.Next();
+        var next = Source.Next(token);
 
         while (next != null)
         {
@@ -43,7 +43,7 @@ public record SortOperator(
             for (var i = 0; i < OrderExpressions.Count; i++)
             {
                 var expression = OrderExpressions[i];
-                var column = _interpreter.Execute(expression, next);
+                var column = _interpreter.Execute(expression, next, token);
 
                 var columnRef = SortColumns[i].ColumnRef;
                 BufferPool.WriteColumn(columnRef, column, next.RowGroupRef.RowGroup);
@@ -53,7 +53,7 @@ public record SortOperator(
             // Need to re-write this operator to use a b+ tree
             var updatedRg = next with { Columns = updatedColumnRefs };
             allRows.AddRange(updatedRg.MaterializeRows(BufferPool));
-            next = Source.Next();
+            next = Source.Next(token);
         }
         _done = true;
 
