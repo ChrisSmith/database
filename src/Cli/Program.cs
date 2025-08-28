@@ -249,7 +249,7 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
     else
     {
         var plan = queryPlanner.CreatePlan(statement.Statement);
-        var result = it.Execute(plan).ToList();
+        var result = it.Execute(plan, CancellationToken.None).ToList();
         stopwatch.Stop();
 
         PrintTable(result);

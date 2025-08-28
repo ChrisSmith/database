@@ -34,7 +34,7 @@ public class ExecutionTest
         var it = new Interpreter(_bufferPool);
         var planner = new QueryPlanner(_options, _catalog, _bufferPool);
         var plan = planner.CreatePlan(statement.Statement);
-        var result = it.Execute(plan).ToList();
+        var result = it.Execute(plan, CancellationToken.None).ToList();
         return result;
     }
 

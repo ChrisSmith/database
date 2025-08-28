@@ -5,12 +5,13 @@ namespace Database.Core.Execution;
 
 public class Interpreter(ParquetPool BufferPool)
 {
-    public IEnumerable<MaterializedRowGroup> Execute(QueryPlan plan)
+    public IEnumerable<MaterializedRowGroup> Execute(QueryPlan plan, CancellationToken token)
     {
         var operation = plan.Operation;
         var group = operation.Next();
         while (group != null)
         {
+            token.ThrowIfCancellationRequested();
             yield return Materialize(group);
             group = operation.Next();
         }

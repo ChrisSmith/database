@@ -22,7 +22,7 @@ public partial class TPCHTests
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 
-    protected List<MaterializedRowGroup> Query(string query)
+    protected List<MaterializedRowGroup> Query(string query, CancellationToken token)
     {
         var scanner = new Scanner(query);
         var tokens = scanner.ScanTokens();
@@ -32,7 +32,7 @@ public partial class TPCHTests
         var it = new Interpreter(_bufferPool);
         var planner = new QueryPlanner(_options, _catalog, _bufferPool);
         var plan = planner.CreatePlan(statement.Statement);
-        var result = it.Execute(plan).ToList();
+        var result = it.Execute(plan, token).ToList();
         return result;
     }
 

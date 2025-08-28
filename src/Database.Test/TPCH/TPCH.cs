@@ -3,14 +3,15 @@ using FluentAssertions;
 
 namespace Database.Test.TPCH;
 
+[CancelAfter(30_000)]
 public partial class TPCHTests
 {
     [Test]
-    public void Q01()
+    public void Q01(CancellationToken token)
     {
         var query = ReadQuery("query_01.sql");
 
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCount(4);
 
         result.Should().BeEquivalentTo(new List<Row>
@@ -36,20 +37,20 @@ public partial class TPCHTests
     // - verify parquet > 2.9 where PageIndex is used for zone maps
 
     [Test]
-    public void Q02()
+    public void Q02(CancellationToken token)
     {
         var query = ReadQuery("query_02.sql");
 
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
     [Test]
-    public void Q03()
+    public void Q03(CancellationToken token)
     {
         var query = ReadQuery("query_03.sql");
 
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().BeEquivalentTo(new List<Row>
         {
             new ([2456423, 406181.0111m, new DateTime(1995, 03, 05), 0]),
@@ -67,20 +68,20 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q04()
+    public void Q04(CancellationToken token)
     {
         var query = ReadQuery("query_04.sql");
 
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
     [Test]
-    public void Q05()
+    public void Q05(CancellationToken token)
     {
         var query = ReadQuery("query_05.sql");
 
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().BeEquivalentTo(new List<Row>
         {
             new (["INDONESIA" , 55502041.1697m]),
@@ -92,10 +93,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q06()
+    public void Q06(CancellationToken token)
     {
         var query = ReadQuery("query_06.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
         result.Should().BeEquivalentTo(new List<Row>
         {
@@ -104,10 +105,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q07()
+    public void Q07(CancellationToken token)
     {
         var query = ReadQuery("query_07.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().BeEquivalentTo(new List<Row>
         {
             new(["FRANCE", "GERMANY", 1995, 54639732.7336m]),
@@ -118,10 +119,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q08()
+    public void Q08(CancellationToken token)
     {
         var query = ReadQuery("query_08.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().BeEquivalentTo(new List<Row>
         {
             new ([1995, 0.0344358904066547974259817099M]),
@@ -130,10 +131,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q09()
+    public void Q09(CancellationToken token)
     {
         var query = ReadQuery("query_09.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCount(175);
         result[0..20].Should().BeEquivalentTo(new List<Row>
         {
@@ -161,10 +162,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q10()
+    public void Q10(CancellationToken token)
     {
         var query = ReadQuery("query_10.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         // result.Should().HaveCount(37967);
         result[0..10].Should().BeEquivalentTo(new List<Row>
         {
@@ -182,10 +183,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q11()
+    public void Q11(CancellationToken token)
     {
         var query = ReadQuery("query_11.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCount(1048);
         result[..20].Should().BeEquivalentTo(new List<Row>
         {
@@ -213,10 +214,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q12()
+    public void Q12(CancellationToken token)
     {
         var query = ReadQuery("query_12.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().BeEquivalentTo(new List<Row>
         {
             new (["MAIL", 6202, 9324]),
@@ -225,10 +226,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q13()
+    public void Q13(CancellationToken token)
     {
         var query = ReadQuery("query_13.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().BeEquivalentTo(new List<Row>
         {
             new([0, 50004]),
@@ -277,10 +278,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q14()
+    public void Q14(CancellationToken token)
     {
         var query = ReadQuery("query_14.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().BeEquivalentTo(new List<Row>
         {
             new([16.380778626395540147992741460m]),
@@ -288,26 +289,26 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q15()
+    public void Q15(CancellationToken token)
     {
         var query = ReadQuery("query_15.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
     [Test]
-    public void Q16()
+    public void Q16(CancellationToken token)
     {
         var query = ReadQuery("query_16.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
     [Test]
-    public void Q17()
+    public void Q17(CancellationToken token)
     {
         var query = ReadQuery("query_17.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().BeEquivalentTo(new List<Row>
         {
             new ([348406.05428571428571428571429m]),
@@ -315,10 +316,10 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q18()
+    public void Q18(CancellationToken token)
     {
         var query = ReadQuery("query_18.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCount(57);
         result[0..20].Should().BeEquivalentTo(new List<Row>
         {
@@ -346,34 +347,34 @@ public partial class TPCHTests
     }
 
     [Test]
-    public void Q19()
+    public void Q19(CancellationToken token)
     {
         var query = ReadQuery("query_19.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
     [Test]
-    public void Q20()
+    public void Q20(CancellationToken token)
     {
         var query = ReadQuery("query_20.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
     [Test]
-    public void Q21()
+    public void Q21(CancellationToken token)
     {
         var query = ReadQuery("query_21.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
     [Test]
-    public void Q22()
+    public void Q22(CancellationToken token)
     {
         var query = ReadQuery("query_22.sql");
-        var result = Query(query).AsRowList();
+        var result = Query(query, token).AsRowList();
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 }
