@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- <PackageReference Include="Parquet.Net" Version="5.1.1" /> -->
-    <ProjectReference Include="$(MSBuildThisFileDirectory)/../parquet-dotnet/src/Parquet/Parquet.csproj" />
+    <PackageReference Include="Parquet.Net" Version="5.2.0" />
+    <!-- <ProjectReference Include="$(MSBuildThisFileDirectory)/../parquet-dotnet/src/Parquet/Parquet.csproj" /> -->
   </ItemGroup>
 </Project>
