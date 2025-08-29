@@ -13,7 +13,7 @@ public record ScanMemoryTable(
     IReadOnlyList<ColumnRef> OutputColumnRefs)
     : BaseOperation(OutputColumns, OutputColumnRefs)
 {
-    private List<int>? _rowGroups = null;
+    private IReadOnlyList<int>? _rowGroups = null;
     private int _group = -1;
     private bool _done = false;
 

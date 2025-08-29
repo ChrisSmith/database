@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics;
 using Database.Core.Catalog;
 using Database.Core.Execution;
@@ -8,7 +9,9 @@ namespace Database.Core.BufferPool;
 public class MemoryBasedTable(MemoryStorage storage)
 {
     private readonly MemoryStorage _storage = storage;
-    private Dictionary<int, IColumn[]> _rowGroups { get; set; } = new();
+
+    private List<int> _rowGroupIndexes { get; set; } = new();
+    private List<IColumn[]> _rowGroups { get; set; } = new();
     private List<ColumnSchema> _schema = new();
 
     public int NumColumns => _schema.Count;
@@ -57,10 +60,12 @@ public class MemoryBasedTable(MemoryStorage storage)
     {
         ValidateColumnReference(columnRef);
 
-        if (!_rowGroups.TryGetValue(columnRef.RowGroup, out var rowGroup))
+        var rowGroupIndex = GetRowGroupIndex(columnRef.RowGroup);
+        if (rowGroupIndex == -1)
         {
             throw new Exception($"Row group {columnRef} not found from {_rowGroups.Count} row groups.");
         }
+        var rowGroup = _rowGroups[rowGroupIndex];
 
         var column = rowGroup[columnRef.Column];
         if (column == null)
@@ -80,10 +85,17 @@ public class MemoryBasedTable(MemoryStorage storage)
             throw new Exception($"Attempting to write a column {column.Name} of type {column.Type} to a column {columnSchema.Name} of type {columnSchema.ClrType}");
         }
 
-        if (!_rowGroups.TryGetValue(columnRef.RowGroup, out var rowGroup))
+        var rowGroupIndex = GetRowGroupIndex(columnRef.RowGroup);
+        IColumn[] rowGroup;
+        if (rowGroupIndex == -1)
         {
             rowGroup = new IColumn[NumColumns];
-            _rowGroups[columnRef.RowGroup] = rowGroup;
+            _rowGroupIndexes.Add(columnRef.RowGroup);
+            _rowGroups.Add(rowGroup);
+        }
+        else
+        {
+            rowGroup = _rowGroups[rowGroupIndex];
         }
 
         if (rowGroup[columnRef.Column] != null)
@@ -106,13 +118,26 @@ public class MemoryBasedTable(MemoryStorage storage)
         }
     }
 
-    public List<int> GetRowGroups()
+    private int GetRowGroupIndex(int rowGroup)
     {
-        return _rowGroups.Keys.ToList();
+        for (var i = 0; i < _rowGroupIndexes.Count; i++)
+        {
+            if (_rowGroupIndexes[i] == rowGroup)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public IReadOnlyList<int> GetRowGroups()
+    {
+        return _rowGroupIndexes;
     }
 
     public void Truncate()
     {
+        _rowGroupIndexes.Clear();
         _rowGroups.Clear();
     }
 }
