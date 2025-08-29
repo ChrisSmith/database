@@ -11,15 +11,16 @@ public class ParquetPoolTests
     public void WriteToMemoryTable()
     {
         var pool = new ParquetPool();
-        var memRef = pool.OpenMemoryTable();
+        var catalog = new Catalog(pool);
+        var memRef = catalog.OpenMemoryTable();
         var table = pool.GetMemoryTable(memRef.TableId);
         table.AddColumnToSchema("foo", DataType.Int, "", "");
         table.AddColumnToSchema("bar", DataType.String, "", "");
 
-        var colRef1 = new ColumnRef(memRef, 0, 0);
+        var colRef1 = new ColumnRef(catalog.NextColumnId(), memRef, 0, 0);
         table.PutColumn(colRef1, ColumnHelper.CreateColumn(typeof(int), "foo", new int[] { 1, 2, 3 }));
 
-        var colRef2 = new ColumnRef(memRef, 0, 1);
+        var colRef2 = new ColumnRef(catalog.NextColumnId(), memRef, 0, 1);
         table.PutColumn(colRef2, ColumnHelper.CreateColumn(typeof(string), "bar", new string[] { "one", "two", "three" }));
 
         var column = table.GetColumn(colRef1);

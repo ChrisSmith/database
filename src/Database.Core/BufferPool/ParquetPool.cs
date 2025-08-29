@@ -26,7 +26,6 @@ public class ParquetPool
 
     private Dictionary<ColumnRef, IColumn> _columnCache = new();
 
-    private int _nextMemoryTableId = 0;
     private Dictionary<TableId, MemoryBasedTable> _memoryTables = new();
 
     public ParquetFileHandle OpenFile(string path)
@@ -67,13 +66,9 @@ public class ParquetPool
         }
     }
 
-    // TODO add some descritive info in here for debugging, like a name, how it was created
-    public MemoryStorage OpenMemoryTable()
+    public void PutMemoryTable(MemoryBasedTable table)
     {
-        var id = (TableId)(--_nextMemoryTableId);
-        var storage = new MemoryStorage(id);
-        _memoryTables.Add(id, new MemoryBasedTable(storage));
-        return storage;
+        _memoryTables.Add(table.Storage.TableId, table);
     }
 
     public MemoryBasedTable GetMemoryTable(TableId id)

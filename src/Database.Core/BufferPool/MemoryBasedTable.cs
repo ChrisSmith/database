@@ -6,9 +6,10 @@ using Database.Core.Execution;
 namespace Database.Core.BufferPool;
 
 [DebuggerDisplay("{_storage}")]
-public class MemoryBasedTable(MemoryStorage storage)
+public class MemoryBasedTable(MemoryStorage storage, Catalog.Catalog catalog)
 {
     private readonly MemoryStorage _storage = storage;
+    public MemoryStorage Storage => _storage;
 
     private List<int> _rowGroupIndexes { get; set; } = new();
     private List<IColumn[]> _rowGroups { get; set; } = new();
@@ -32,11 +33,11 @@ public class MemoryBasedTable(MemoryStorage storage)
             throw new Exception("Column name cannot be empty");
         }
 
-        var columnId = NumColumns;
-        var columnRef = new ColumnRef(storage, -1, columnId);
+        var columnId = catalog.NextColumnId();
+        var columnRef = new ColumnRef(columnId, storage, -1, NumColumns);
         var newColumn = new ColumnSchema(
             columnRef,
-            (ColumnId)columnId,
+            columnId,
             name,
             type,
             type.ClrTypeFromDataType(),

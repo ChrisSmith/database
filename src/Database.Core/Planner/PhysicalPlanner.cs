@@ -120,7 +120,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
     {
         var inputColumns = input.Columns;
 
-        var memRef = bufferPool.OpenMemoryTable();
+        var memRef = catalog.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
         var outputColumns = new List<ColumnSchema>(inputColumns.Count);
@@ -315,7 +315,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
     private IOperation CreateJoin(Join join, IOperation left, IOperation right, BindContext context)
     {
         var inputColumns = QueryPlanner.ExtendSchema(left.Columns, right.Columns);
-        var memRef = bufferPool.OpenMemoryTable();
+        var memRef = catalog.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
         var outputColumns = new List<ColumnSchema>(inputColumns.Count);
@@ -406,7 +406,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
 
         // Transformation 1. Grouping + Aggregation
-        var memRef1 = bufferPool.OpenMemoryTable();
+        var memRef1 = catalog.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef1.TableId);
 
         var outputExpressions = new List<BaseExpression>(expressions.Count);
@@ -479,7 +479,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
         IOperation input,
         BindContext context)
     {
-        var memRef = bufferPool.OpenMemoryTable();
+        var memRef = catalog.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
         var inputColumns = input.Columns;
@@ -525,7 +525,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
     private IOperation CreateDistinct(Distinct distinct, IOperation source, BindContext context)
     {
         var inputColumns = source.Columns;
-        var memRef = bufferPool.OpenMemoryTable();
+        var memRef = catalog.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
         var outputColumns = new List<ColumnSchema>(inputColumns.Count);
@@ -574,7 +574,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             expressions = _binder.Bind(context, mutExprssions, input.Columns);
         }
 
-        var memRef = bufferPool.OpenMemoryTable();
+        var memRef = catalog.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
         var outputExpressions = new List<BaseExpression>(expressions.Count);
@@ -666,7 +666,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             return f;
         });
 
-        var memRef = bufferPool.OpenMemoryTable();
+        var memRef = catalog.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
 
         var outputColumns = new List<ColumnSchema>(inputColumns.Count);

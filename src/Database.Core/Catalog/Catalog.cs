@@ -8,8 +8,9 @@ public record Catalog(ParquetPool BufferPool)
 {
     public List<TableSchema> Tables { get; } = new();
 
-    private int _nextTableId = 0;
-    private int _nextColumnId = 0;
+    private static volatile int _nextTableId = 0;
+    private static volatile int _nextColumnId = 0;
+    private static volatile int _nextMemoryTableId = 0;
 
     public TableSchema GetTable(string name)
     {
@@ -23,7 +24,7 @@ public record Catalog(ParquetPool BufferPool)
 
     public void LoadTable(string name, string path)
     {
-        var id = (TableId)(++_nextTableId);
+        var id = (TableId)Interlocked.Increment(ref _nextTableId);
         var handle = BufferPool.OpenFile(path);
         var reader = handle.Reader;
         var meta = reader.Metadata ?? throw new Exception("No metadata");
@@ -34,9 +35,9 @@ public record Catalog(ParquetPool BufferPool)
         for (var i = 0; i < numColumns; i++)
         {
             var field = handle.DataFields[i];
-            var columnId = (ColumnId)(++_nextColumnId);
+            var columnId = NextColumnId();
 
-            var columnRef = new ColumnRef(tableRef, -1, i);
+            var columnRef = new ColumnRef(columnId, tableRef, -1, i);
             schema.Add(new ColumnSchema(
                 columnRef,
                 columnId,
@@ -90,7 +91,7 @@ public record Catalog(ParquetPool BufferPool)
 
     public (MemoryStorage, RowGroup) BuildStatsTable(TableSchema table)
     {
-        var memRef = BufferPool.OpenMemoryTable();
+        var memRef = OpenMemoryTable();
         var memTable = BufferPool.GetMemoryTable(memRef.TableId);
 
         var statsRg = memTable.AddRowGroup();
@@ -182,5 +183,19 @@ public record Catalog(ParquetPool BufferPool)
     public TableSchema GetTableByPath(string path)
     {
         return Tables.First(table => table.Location == path);
+    }
+
+    public ColumnId NextColumnId()
+    {
+        return (ColumnId)Interlocked.Increment(ref _nextColumnId);
+    }
+
+    // TODO add some descritive info in here for debugging, like a name, how it was created
+    public MemoryStorage OpenMemoryTable()
+    {
+        var id = (TableId)Interlocked.Decrement(ref _nextMemoryTableId);
+        var storage = new MemoryStorage(id);
+        BufferPool.PutMemoryTable(new MemoryBasedTable(storage, this));
+        return storage;
     }
 }

@@ -309,7 +309,7 @@ public class QueryPlanner
                 SupportsLateBinding = true,
             };
 
-            var memRef = _bufferPool.OpenMemoryTable();
+            var memRef = _catalog.OpenMemoryTable();
             var table = _bufferPool.GetMemoryTable(memRef.TableId);
 
             if (subQueryStmt is SubQuerySelectPlan subQueryPlan)
@@ -342,7 +342,7 @@ public class QueryPlanner
                 MemoryStorage correlatedInputTable = default;
                 if (isCorrelated)
                 {
-                    correlatedInputTable = _bufferPool.OpenMemoryTable();
+                    correlatedInputTable = _catalog.OpenMemoryTable();
                     var tuple = new Tuple<int, MemoryStorage>(subQueryId, correlatedInputTable);
                     parentContext.CorrelatedSubQueryInputs.Add(tuple);
                     bindContext.CorrelatedSubQueryInputs.Add(tuple);
