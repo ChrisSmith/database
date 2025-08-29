@@ -24,9 +24,16 @@ public class DatabaseRunner : IQueryRunner
         _planner = new QueryPlanner(_options, _catalog, _bufferPool);
     }
 
+    public TimeSpan Timeout { get; set; }
+
     public void Initialize()
     {
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
+    }
+
+    public string Transform(string query)
+    {
+        return query;
     }
 
     public List<Row> Run(string query, CancellationToken token)

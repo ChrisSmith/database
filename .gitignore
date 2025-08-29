@@ -301,3 +301,5 @@ demo.db
 demo.db.wal
 
 BenchmarkDotNet.Artifacts/
+metastore_db/
+sqlite_database.db

@@ -1,25 +1,28 @@
+using System.Data.Odbc;
+using System.Text.RegularExpressions;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using DuckDB.NET.Data;
+using Microsoft.Data.Sqlite;
 
 namespace Database.BenchmarkRunner;
 
-public class DuckDbRunner : IQueryRunner
+public class SparkRunner : IQueryRunner
 {
-    private DuckDBConnection _conn;
-
+    private OdbcConnection _conn;
     public TimeSpan Timeout { get; set; }
 
     public void Initialize()
     {
-        _conn = new DuckDBConnection("Data Source=:memory:;threads=1");
+        string connStr = "DSN=SparkODBC;UID=;PWD=;";
+        _conn = new OdbcConnection(connStr);
         _conn.Open();
 
         var tables = TestDatasets.InputFiles();
         foreach (var (table, path) in tables)
         {
             using var cmd = _conn.CreateCommand();
-            cmd.CommandText = $"create view {table} as select * from read_parquet('{path}');";
+            cmd.CommandText = @$"CREATE OR REPLACE TEMPORARY VIEW {table} USING parquet OPTIONS (path '{path}');";
             cmd.ExecuteNonQuery();
         }
     }

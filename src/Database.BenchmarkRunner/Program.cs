@@ -5,10 +5,23 @@ using Database.BenchmarkRunner;
 
 Console.WriteLine("Running Benchmarks");
 
-var runners = new IQueryRunner[] { new DuckDbRunner(), new DatabaseRunner() };
-var queries = Enumerable.Range(1, 22).Select(i => TPCHHelpers.ReadQuery($"query_{i:00}.sql")).ToList();
+var runners = new IQueryRunner[]
+{
+    new SparkRunner(),
+    new SqliteRunner(),
+    new DuckDbRunner(),
+    new DatabaseRunner(),
+};
 
 var timeout = TimeSpan.FromSeconds(30);
+foreach (var runner in runners)
+{
+    runner.Timeout = timeout;
+}
+
+var queries = Enumerable.Range(1, 22).Select(i => TPCHHelpers.ReadQuery($"query_{i:00}.sql")).ToList();
+
+
 
 var runnerNames = runners.Select(r => r.GetType().Name.Replace("Runner", "")).ToList();
 
@@ -32,6 +45,9 @@ foreach (var runner in runners)
     {
         var query = queries[i];
         var queryId = i + 1;
+
+        query = runner.Transform(query);
+
         var source = new CancellationTokenSource(timeout);
         var sw = Stopwatch.StartNew();
 
@@ -54,6 +70,7 @@ foreach (var runner in runners)
             sw.Stop();
             status = "FAILED";
             Console.WriteLine($"query_{queryId:00} FAILED after {sw.ElapsedMilliseconds}ms");
+            Console.WriteLine(e.Message);
         }
 
         results[i][runnerName] = (status, sw.ElapsedMilliseconds);
@@ -96,7 +113,9 @@ var runnerStats = runnerNames.ToDictionary(name => name, name => new
 
 for (int i = 0; i < queries.Count; i++)
 {
-    var row = new StringBuilder($"| query_{i:00} |");
+    var queryName = $"query_{i + 1:00}";
+    var queryLink = $"[{queryName}](Queries/{queryName}.sql)";
+    var row = new StringBuilder($"| {queryLink} |");
     var baselineResult = results[i][baselineRunner];
 
     foreach (var runnerName in runnerNames)

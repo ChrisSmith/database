@@ -13,4 +13,4 @@ speedscope2:
 	dotnet-trace collect --format SpeedScope --duration "00:00:00:45" -- ./bin/cli/Cli -f "src/Database.BenchmarkRunner/Queries/query_06.sql"
             
 benchmark:
-	cd src/Database.BenchmarkRunner && dotnet run -c Release
+	cd src/Database.BenchmarkRunner && DYLD_LIBRARY_PATH=/opt/homebrew/lib dotnet run -c Release
