@@ -16,7 +16,8 @@ var planner = new QueryPlanner(config, catalog, bufferPool);
 var previousLines = new List<string>();
 
 // Load history from ~/.cache/databasecli.txt
-var cacheDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache");
+var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+var cacheDir = Path.Combine(homeDir, ".cache");
 var historyPath = Path.Combine(cacheDir, "databasecli.txt");
 
 if (File.Exists(historyPath))
@@ -27,7 +28,31 @@ Directory.CreateDirectory(cacheDir);
 
 if (args.Length > 0)
 {
-    var query = args[0];
+    string? query;
+    if (args.Length >= 2 && (args[0] == "--file" || args[0] == "-f"))
+    {
+        var file = args[1];
+        if (file.StartsWith("~/"))
+        {
+            file = Path.Combine(homeDir, file[2..]);
+        }
+
+        if (!File.Exists(file))
+        {
+            Console.WriteLine($"File {file} does not exist");
+            return;
+        }
+        query = File.ReadAllText(file);
+
+        if (args.Length >= 3 && args[2] == "--explain")
+        {
+            query = "EXPLAIN " + query;
+        }
+
+        EvalQuery(query, planner);
+        return;
+    }
+    query = args[0];
     EvalQuery(query, planner);
     return;
 }
