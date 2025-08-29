@@ -2,7 +2,7 @@ namespace Database.Core.Catalog;
 
 public static class TestDatasets
 {
-    public static void AddTestDatasetsToCatalog(Catalog catalog)
+    public static List<(string, string)> InputFiles()
     {
         var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var dataPath = Path.Combine(homeDir, "src/database/tpch/1");
@@ -19,11 +19,17 @@ public static class TestDatasets
             "supplier",
         };
 
-        foreach (var tableName in tpchTables)
+        return tpchTables.Select(t => (t, Path.Combine(dataPath, $"{t}2.parquet"))).ToList();
+    }
+
+    public static void AddTestDatasetsToCatalog(Catalog catalog)
+    {
+        foreach (var (tableName, path) in InputFiles())
         {
-            catalog.LoadTable(tableName, Path.Combine(dataPath, $"{tableName}2.parquet"));
+            catalog.LoadTable(tableName, path);
         }
 
+        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         catalog.LoadTable("table", Path.Combine(homeDir, "src/database/data.parquet"));
     }
 }

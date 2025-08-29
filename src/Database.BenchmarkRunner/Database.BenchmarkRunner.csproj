@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <PublishReadyToRun>true</PublishReadyToRun>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Database.Core\Database.Core.csproj" />
+    </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Queries\*.sql"
+             CopyToOutputDirectory="Always"
+             CopyToPublishDirectory="Always"
+    />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DuckDB.NET.Data.Full" Version="1.3.2" />
+  </ItemGroup>
+  
+</Project>

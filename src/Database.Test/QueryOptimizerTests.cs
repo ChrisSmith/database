@@ -148,7 +148,7 @@ public class QueryOptimizerTests
     */
     public Task TPCH_Queries(string name)
     {
-        var query = File.ReadAllText(Path.Combine("TPCH", "Queries", name));
+        var query = File.ReadAllText(Path.Combine("Queries", name));
         var plan = OptimizeAndExplain(query);
         return Verify(plan, Settings);
     }

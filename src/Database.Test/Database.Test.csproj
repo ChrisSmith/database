@@ -13,6 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Database.BenchmarkRunner\Database.BenchmarkRunner.csproj" />
       <ProjectReference Include="..\Database.Core\Database.Core.csproj" />
     </ItemGroup>
 
@@ -20,13 +21,6 @@
       <None Update="ScannerTest.Test.verified.txt">
         <DependentUpon>ScannerTest.cs</DependentUpon>
       </None>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Content Include="TPCH\Queries\*.sql" 
-               CopyToOutputDirectory="Always"
-              CopyToPublishDirectory="Always"
-      />
     </ItemGroup>
 
 </Project>
