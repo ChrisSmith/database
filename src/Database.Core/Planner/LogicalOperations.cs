@@ -46,6 +46,15 @@ public abstract record LogicalPlan
 
         return anyChanged ? WithInputs(newChildren) : this;
     }
+
+    public void Walk(Action<LogicalPlan> fun)
+    {
+        fun(this);
+        foreach (var child in Inputs())
+        {
+            child.Walk(fun);
+        }
+    }
 }
 
 [DebuggerDisplay("plan({PlanId}) with subqueries(c={Correlated.Count}, u={Uncorrelated.Count})")]

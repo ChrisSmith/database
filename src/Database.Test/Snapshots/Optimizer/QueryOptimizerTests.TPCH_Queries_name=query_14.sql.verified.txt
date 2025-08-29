@@ -29,10 +29,10 @@ Project(100.00 * SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 
 Optimized
 Project(100.00 * SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)) / SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) -> .promo_revenue
  Agg(SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)), SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by () -> .SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)), .SUM(l_extendedprice * cast(1 as Decimal) - l_discount) 
-    Join(Inner on l_partkey = p_partkey) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .p_partkey, .p_type    
-       Filter(l_shipdate >= 09/01/1995 00:00:00) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment       
-          Filter(l_shipdate < 10/01/1995 00:00:00) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
-             Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
+    Join(Inner on l_partkey = p_partkey) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate, .p_partkey, .p_type    
+       Filter(l_shipdate < 10/01/1995 00:00:00) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate       
+          Filter(l_shipdate >= 09/01/1995 00:00:00) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate          
+             Scan(lineitem) with projection  -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate             
     
        Scan(part) with projection  -> .p_partkey, .p_type       
 

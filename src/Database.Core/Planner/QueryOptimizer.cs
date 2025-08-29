@@ -351,7 +351,8 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
         }
 
         // This is not correct, need to look higher up the tree
-        if (filter.Input is not Scan && TryPushDownFilter(filter.Input, filter.Predicate, [], out var updated))
+        if (!AllFiltersOrScan(filter.Input)
+            && TryPushDownFilter(filter.Input, filter.Predicate, [], out var updated))
         {
             return updated;
         }
@@ -360,6 +361,19 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
         {
             Input = Optimize(filter.Input, parents, context),
         };
+
+        bool AllFiltersOrScan(LogicalPlan root)
+        {
+            var allFilters = true;
+            root.Walk(p =>
+            {
+                if (p is not Filter && p is not Scan)
+                {
+                    allFilters = false;
+                }
+            });
+            return allFilters;
+        }
     }
 
     private bool TryCreateInnerJoin(

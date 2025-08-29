@@ -52,14 +52,14 @@ Optimized
 Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_comment) -> .c_custkey, .c_name, .revenue, .c_acctbal, .n_name, .c_address, .c_phone, .c_comment
  Sort(revenue DESC) -> .revenue, .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment 
     Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount), c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment) group by (c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment) -> .revenue, .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment    
-       Join(Inner on c_nationkey = n_nationkey) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .n_nationkey, .n_name       
-          Join(Inner on l_orderkey = o_orderkey) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag          
-             Join(Inner on c_custkey = o_custkey) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
+       Join(Inner on c_nationkey = n_nationkey) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .n_nationkey, .n_name       
+          Join(Inner on l_orderkey = o_orderkey) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag          
+             Join(Inner on c_custkey = o_custkey) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate             
                 Scan(customer) with projection  -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment                
              
-                Filter(o_orderdate < 01/01/1994 00:00:00) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                
-                   Filter(o_orderdate >= 10/01/1993 00:00:00) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                   
-                      Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                      
+                Filter(o_orderdate < 01/01/1994 00:00:00) -> .o_orderkey, .o_custkey, .o_orderdate                
+                   Filter(o_orderdate >= 10/01/1993 00:00:00) -> .o_orderkey, .o_custkey, .o_orderdate                   
+                      Scan(orders) with projection  -> .o_orderkey, .o_custkey, .o_orderdate                      
           
              Filter(l_returnflag = R) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag             
                 Scan(lineitem) with projection  -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag                

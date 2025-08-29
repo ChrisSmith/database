@@ -48,17 +48,17 @@ Optimized
 Project(n_name, revenue) -> .n_name, .revenue
  Sort(revenue DESC) -> .revenue, .n_name 
     Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), n_name) group by (n_name) -> .revenue, .n_name    
-       Filter(c_nationkey = s_nationkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name       
-          Join(Inner on n_regionkey = r_regionkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name          
-             Join(Inner on s_nationkey = n_nationkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey             
-                Join(Inner on l_suppkey = s_suppkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey                
-                   Join(Inner on l_orderkey = o_orderkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount                   
-                      Join(Inner on c_custkey = o_custkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                      
+       Filter(c_nationkey = s_nationkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name       
+          Join(Inner on n_regionkey = r_regionkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name          
+             Join(Inner on s_nationkey = n_nationkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey             
+                Join(Inner on l_suppkey = s_suppkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey                
+                   Join(Inner on l_orderkey = o_orderkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount                   
+                      Join(Inner on c_custkey = o_custkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate                      
                          Scan(customer) with projection  -> .c_custkey, .c_nationkey                         
                       
-                         Filter(o_orderdate < 01/01/1995 00:00:00) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                         
-                            Filter(o_orderdate >= 01/01/1994 00:00:00) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                            
-                               Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                               
+                         Filter(o_orderdate < 01/01/1995 00:00:00) -> .o_orderkey, .o_custkey, .o_orderdate                         
+                            Filter(o_orderdate >= 01/01/1994 00:00:00) -> .o_orderkey, .o_custkey, .o_orderdate                            
+                               Scan(orders) with projection  -> .o_orderkey, .o_custkey, .o_orderdate                               
                    
                       Scan(lineitem) with projection  -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount                      
                 

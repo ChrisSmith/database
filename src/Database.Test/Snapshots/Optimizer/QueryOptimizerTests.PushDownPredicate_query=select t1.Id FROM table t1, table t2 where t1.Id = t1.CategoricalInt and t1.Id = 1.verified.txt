@@ -11,10 +11,10 @@ Project(Id) -> t1.Id
 
 Optimized
 Project(Id) -> t1.Id
- Join(Cross) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.CategoricalInt 
-    Filter(Id = CategoricalInt) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString    
-       Filter(Id = 1) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString       
-          Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString          
+ Join(Cross) -> t1.Id, t1.CategoricalInt, t2.Id, t2.CategoricalInt 
+    Filter(Id = 1) -> t1.Id, t1.CategoricalInt    
+       Filter(Id = CategoricalInt) -> t1.Id, t1.CategoricalInt       
+          Scan(table) with projection  -> t1.Id, t1.CategoricalInt          
  
     Scan(table) with projection  -> t2.Id, t2.CategoricalInt    
 
