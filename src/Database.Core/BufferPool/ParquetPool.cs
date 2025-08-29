@@ -24,7 +24,8 @@ public class ParquetPool
     private ReaderWriterLockSlim _lock = new(LockRecursionPolicy.NoRecursion);
     private Dictionary<string, RefCounter<ParquetFileHandle>> _openFiles = new();
 
-    private Dictionary<ColumnRef, IColumn> _columnCache = new();
+    private List<(ColumnId, int)> _columnIndexes = new();
+    private List<IColumn> _columnCache = new();
 
     private Dictionary<TableId, MemoryBasedTable> _memoryTables = new();
 
@@ -88,9 +89,10 @@ public class ParquetPool
             return table.GetColumn(columnRef);
         }
 
-        if (_columnCache.TryGetValue(columnRef, out var column))
+        var columnIndex = FindIndex(columnRef);
+        if (columnIndex != -1)
         {
-            return column;
+            return _columnCache[columnIndex];
         }
         if (columnRef.Storage is not ParquetStorage parquet)
         {
@@ -107,7 +109,8 @@ public class ParquetPool
         var parquetCol = reader.ReadColumnAsync(field).GetAwaiter().GetResult();
         var (targetType, finalCopy) = TypeConversion.ThrowIfNullable(parquetCol, field);
         var columnObj = ColumnHelper.CreateColumn(targetType, field.Name, finalCopy);
-        _columnCache.Add(columnRef, columnObj);
+        _columnIndexes.Add((columnRef.ColumnId, columnRef.RowGroup));
+        _columnCache.Add(columnObj);
         return columnObj;
     }
 
@@ -138,5 +141,10 @@ public class ParquetPool
         var counter = new RefCounter<ParquetFileHandle>(handle);
         counter.Increment();
         return counter;
+    }
+
+    private int FindIndex(ColumnRef columnRef)
+    {
+        return _columnIndexes.IndexOf((columnRef.ColumnId, columnRef.RowGroup));
     }
 }
