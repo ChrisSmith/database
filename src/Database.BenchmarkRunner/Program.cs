@@ -9,6 +9,7 @@ var runners = new IQueryRunner[]
 {
     new DuckDbRunner(),
     new SparkRunner(),
+    new ClickHouseRunner(),
     new SqliteRunner(),
     new DatabaseRunner(),
 };
