@@ -8,10 +8,10 @@ Console.WriteLine("Running Benchmarks");
 var runners = new IQueryRunner[]
 {
     new DuckDbRunner(),
-    new SparkRunner(),
     new ClickHouseRunner(),
-    new SqliteRunner(),
     new DatabaseRunner(),
+    new SparkRunner(),
+    new SqliteRunner(),
 };
 
 var timeout = TimeSpan.FromSeconds(30);
