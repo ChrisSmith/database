@@ -139,9 +139,27 @@ foreach (var runnerName in runnerNames)
         string cellContent = result.status switch
         {
             "OK" => $"{roundedMs:N0}ms",
-            "TIMED OUT" => $"⏰ {roundedMs:N0}ms",
-            _ => $"❌ {roundedMs:N0}ms"
+            _ => "❌"
         };
+
+        // Add ratio for non-baseline runners
+        if (runnerName != baselineRunner && result.status == "OK")
+        {
+            var baselineResult = results[i][baselineRunner];
+            if (baselineResult.status == "OK" && baselineResult.elapsedMs > 0)
+            {
+                var multiplier = (double)result.elapsedMs / baselineResult.elapsedMs;
+                if (multiplier > 1)
+                {
+                    cellContent += $" ({multiplier:F1}x)";
+                }
+                else if (multiplier < 1)
+                {
+                    cellContent += $" ({(1 / multiplier):F1}x)";
+                }
+                // Don't show anything for "same" performance to keep it clean
+            }
+        }
 
         row.Append($" {cellContent} |");
 
@@ -162,52 +180,6 @@ foreach (var runnerName in runnerNames)
     }
 
     markdown.AppendLine(row.ToString());
-
-    // Add ratio row for non-baseline runners
-    if (runnerName != baselineRunner)
-    {
-        var ratioRow = new StringBuilder($"| *vs {baselineRunner}* |");
-
-        for (int i = 0; i < queries.Count; i++)
-        {
-            var currentResult = results[i][runnerName];
-            var baselineResult = results[i][baselineRunner];
-
-            string ratioContent = "";
-            if (currentResult.status == "OK" && baselineResult.status == "OK" && baselineResult.elapsedMs > 0)
-            {
-                var multiplier = (double)currentResult.elapsedMs / baselineResult.elapsedMs;
-                if (multiplier > 1)
-                {
-                    ratioContent = $"{multiplier:F1}x slower";
-                }
-                else if (multiplier < 1)
-                {
-                    ratioContent = $"{(1 / multiplier):F1}x faster";
-                }
-                else
-                {
-                    ratioContent = "same";
-                }
-            }
-            else if (currentResult.status != "OK" && baselineResult.status == "OK")
-            {
-                ratioContent = currentResult.status == "TIMED OUT" ? "⏰ TIMEOUT" : "❌ FAILED";
-            }
-            else if (currentResult.status == "OK" && baselineResult.status != "OK")
-            {
-                ratioContent = "WIN";
-            }
-            else
-            {
-                ratioContent = "-";
-            }
-
-            ratioRow.Append($" {ratioContent} |");
-        }
-
-        markdown.AppendLine(ratioRow.ToString());
-    }
 }
 
 // Add summary
