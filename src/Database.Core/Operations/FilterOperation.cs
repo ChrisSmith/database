@@ -122,7 +122,7 @@ public record FilterOperation(
     {
         var sourceCost = Source.EstimateCost();
         return sourceCost.Add(new Cost(
-            OutputRows: sourceCost.OutputRows * new BigInteger(.1), // TODO need to estimate the selectivity of predicates
+            OutputRows: sourceCost.OutputRows / 10, // TODO need to estimate the selectivity of predicates
             CpuOperations: sourceCost.OutputRows * Columns.Count,
             DiskOperations: 0
             ));

@@ -57,9 +57,6 @@ public record Cost(
 
     public BigInteger TotalCost()
     {
-        var CpuCost = new BigInteger(.001);
-        var DiskCost = new BigInteger(.1);
-
-        return TotalCpuOperations * CpuCost + TotalDiskOperations * DiskCost;
+        return TotalCpuOperations / 1000 + TotalDiskOperations / 10;
     }
 }
