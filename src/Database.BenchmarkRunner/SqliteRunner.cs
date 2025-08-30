@@ -21,12 +21,17 @@ public class SqliteRunner : IQueryRunner
     public string Transform(string query)
     {
         // 1. DATE literal +/- INTERVAL (must come first!)
+        // (A1) Function form DATE(...) +/- INTERVAL
+        query = Regex.Replace(query,
+            @"(date|datetime)\s*\(([^)]+)\)\s*([\+\-])\s*interval\s*'(\d+)'\s*(year|month|day)s?",
+            "$1($2, '$3$4 $5')", RegexOptions.IgnoreCase);
+
+        // (A2) DATE '...' +/- INTERVAL
         query = Regex.Replace(query,
             @"date\s*'([^']+)'\s*([\+\-])\s*interval\s*'(\d+)'\s*(year|month|day)s?",
-            "date('$1', '$2$3 $4')",
-            RegexOptions.IgnoreCase);
+            "date('$1', '$2$3 $4')", RegexOptions.IgnoreCase);
 
-        // 2. Plain DATE literal
+        // (A3) Standalone DATE 'YYYY-MM-DD'
         query = Regex.Replace(query,
             @"date\s*'([^']+)'",
             "date('$1')",
@@ -59,6 +64,19 @@ public class SqliteRunner : IQueryRunner
         // 5. Force float math for discount/tax
         query = query.Replace("1 - l_discount", "1.0 - l_discount")
             .Replace("1 + l_tax", "1.0 + l_tax");
+
+        // AS c_orders (c_custkey, c_count)
+        if (query.Contains("AS c_orders (c_custkey, c_count)"))
+        {
+            query = query.Replace("AS c_orders (c_custkey, c_count)", "AS c_orders");
+            query = query.Replace("COUNT(o_orderkey)", "COUNT(o_orderkey) AS c_count");
+        }
+
+        // SUBSTRING(expr FROM start FOR length) → substr(expr, start, length)
+        query = Regex.Replace(query,
+            @"substring\s*\(\s*([^\s]+)\s+from\s+(\d+)\s+for\s+(\d+)\s*\)",
+            "substr($1, $2, $3)",
+            RegexOptions.IgnoreCase);
 
         return query;
     }

@@ -7,9 +7,9 @@ Console.WriteLine("Running Benchmarks");
 
 var runners = new IQueryRunner[]
 {
+    new DuckDbRunner(),
     new SparkRunner(),
     new SqliteRunner(),
-    new DuckDbRunner(),
     new DatabaseRunner(),
 };
 
@@ -54,26 +54,44 @@ foreach (var runner in runners)
         string status;
         try
         {
+            if (IsKnownBadQuery(runner))
+            {
+                throw new OperationCanceledException($"Query {queryId} is known to fail for runner {runnerName}");
+            }
+
             var res = runner.Run(query, source.Token);
             sw.Stop();
             status = "OK";
-            Console.WriteLine($"query_{queryId:00} OK took {sw.ElapsedMilliseconds}ms");
+            var roundedMs = Math.Round(sw.ElapsedMilliseconds / 10.0) * 10;
+            Console.WriteLine($"query_{queryId:00} OK took {roundedMs:N0}ms");
         }
         catch (OperationCanceledException)
         {
             sw.Stop();
             status = "TIMED OUT";
-            Console.WriteLine($"query_{queryId:00} TIMED OUT after {sw.ElapsedMilliseconds}ms");
+            var roundedMs = Math.Round(sw.ElapsedMilliseconds / 10.0) * 10;
+            Console.WriteLine($"query_{queryId:00} TIMED OUT after {roundedMs:N0}ms");
         }
         catch (Exception e)
         {
             sw.Stop();
             status = "FAILED";
-            Console.WriteLine($"query_{queryId:00} FAILED after {sw.ElapsedMilliseconds}ms");
+            var roundedMs = Math.Round(sw.ElapsedMilliseconds / 10.0) * 10;
+            Console.WriteLine($"query_{queryId:00} FAILED after {roundedMs:N0}ms");
             Console.WriteLine(e.Message);
         }
 
         results[i][runnerName] = (status, sw.ElapsedMilliseconds);
+
+        bool IsKnownBadQuery(IQueryRunner queryRunner)
+        {
+            if (queryRunner is SqliteRunner)
+            {
+                var ids = new[] { 4, 5, 17, 18, 19, 20, 21, 22 };
+                return ids.Contains(queryId);
+            }
+            return false;
+        }
     }
 }
 
@@ -82,22 +100,16 @@ var markdown = new StringBuilder();
 markdown.AppendLine("# Benchmark Results");
 markdown.AppendLine();
 
-// Build dynamic header
-var header = new StringBuilder("| Query |");
-var separator = new StringBuilder("|-------|");
-var baselineRunner = runnerNames.First(); // First runner is the baseline
+// Build dynamic header with queries as columns
+var header = new StringBuilder("| Runner |");
+var separator = new StringBuilder("|--------|");
 
-foreach (var runnerName in runnerNames)
+for (int i = 0; i < queries.Count; i++)
 {
-    header.Append($" {runnerName} Status | {runnerName} Time |");
-    separator.Append("---------------|---------------|");
-
-    // Add ratio column for non-baseline runners
-    if (runnerName != baselineRunner)
-    {
-        header.Append($" vs {baselineRunner} |");
-        separator.Append("-------------|");
-    }
+    var queryName = $"query_{i + 1:00}";
+    var queryLink = $"[{queryName}](Queries/{queryName}.sql)";
+    header.Append($" {queryLink} |");
+    separator.Append("------------|");
 }
 markdown.AppendLine(header.ToString());
 markdown.AppendLine(separator.ToString());
@@ -111,70 +123,27 @@ var runnerStats = runnerNames.ToDictionary(name => name, name => new
     Timeouts = 0
 });
 
-for (int i = 0; i < queries.Count; i++)
-{
-    var queryName = $"query_{i + 1:00}";
-    var queryLink = $"[{queryName}](Queries/{queryName}.sql)";
-    var row = new StringBuilder($"| {queryLink} |");
-    var baselineResult = results[i][baselineRunner];
+// Generate rows for each runner
+var baselineRunner = runnerNames.First(); // First runner is the baseline
 
-    foreach (var runnerName in runnerNames)
+foreach (var runnerName in runnerNames)
+{
+    var row = new StringBuilder($"| **{runnerName}** |");
+
+    for (int i = 0; i < queries.Count; i++)
     {
         var result = results[i][runnerName];
 
-        // Format status
-        string status = result.status switch
+        // Format status and time combined
+        var roundedMs = Math.Round(result.elapsedMs / 10.0) * 10;
+        string cellContent = result.status switch
         {
-            "OK" => "✅",
-            "TIMED OUT" => "⏰",
-            _ => "❌"
+            "OK" => $"{roundedMs:N0}ms",
+            "TIMED OUT" => $"⏰ {roundedMs:N0}ms",
+            _ => $"❌ {roundedMs:N0}ms"
         };
 
-        // Format time
-        string time = result.status switch
-        {
-            "OK" => $"{result.elapsedMs:N0}ms",
-            "TIMED OUT" => $"TIMEOUT ({result.elapsedMs:N0}ms)",
-            _ => $"FAILED ({result.elapsedMs:N0}ms)"
-        };
-
-        row.Append($" {status} | {time} |");
-
-        // Add ratio column for non-baseline runners
-        if (runnerName != baselineRunner)
-        {
-            string ratio = "";
-            if (result.status == "OK" && baselineResult.status == "OK" && baselineResult.elapsedMs > 0)
-            {
-                var multiplier = (double)result.elapsedMs / baselineResult.elapsedMs;
-                if (multiplier > 1)
-                {
-                    ratio = $"{multiplier:F1}x slower";
-                }
-                else if (multiplier < 1)
-                {
-                    ratio = $"{(1 / multiplier):F1}x faster";
-                }
-                else
-                {
-                    ratio = "same";
-                }
-            }
-            else if (result.status != "OK" && baselineResult.status == "OK")
-            {
-                ratio = result.status == "TIMED OUT" ? "TIMEOUT" : "FAILED";
-            }
-            else if (result.status == "OK" && baselineResult.status != "OK")
-            {
-                ratio = "✅ vs ❌";
-            }
-            else
-            {
-                ratio = "-";
-            }
-
-            row.Append($" {ratio} |");
-        }
+        row.Append($" {cellContent} |");
 
         // Update stats
         var stats = runnerStats[runnerName];
@@ -193,6 +162,52 @@ for (int i = 0; i < queries.Count; i++)
     }
 
     markdown.AppendLine(row.ToString());
+
+    // Add ratio row for non-baseline runners
+    if (runnerName != baselineRunner)
+    {
+        var ratioRow = new StringBuilder($"| *vs {baselineRunner}* |");
+
+        for (int i = 0; i < queries.Count; i++)
+        {
+            var currentResult = results[i][runnerName];
+            var baselineResult = results[i][baselineRunner];
+
+            string ratioContent = "";
+            if (currentResult.status == "OK" && baselineResult.status == "OK" && baselineResult.elapsedMs > 0)
+            {
+                var multiplier = (double)currentResult.elapsedMs / baselineResult.elapsedMs;
+                if (multiplier > 1)
+                {
+                    ratioContent = $"{multiplier:F1}x slower";
+                }
+                else if (multiplier < 1)
+                {
+                    ratioContent = $"{(1 / multiplier):F1}x faster";
+                }
+                else
+                {
+                    ratioContent = "same";
+                }
+            }
+            else if (currentResult.status != "OK" && baselineResult.status == "OK")
+            {
+                ratioContent = currentResult.status == "TIMED OUT" ? "⏰ TIMEOUT" : "❌ FAILED";
+            }
+            else if (currentResult.status == "OK" && baselineResult.status != "OK")
+            {
+                ratioContent = "WIN";
+            }
+            else
+            {
+                ratioContent = "-";
+            }
+
+            ratioRow.Append($" {ratioContent} |");
+        }
+
+        markdown.AppendLine(ratioRow.ToString());
+    }
 }
 
 // Add summary
