@@ -49,7 +49,9 @@ Project(supp_nation, cust_nation, l_year, revenue) -> .supp_nation, .cust_nation
           BinaryEdge { Expression = c_custkey = o_custkey, One = orders, Two = customer }
           BinaryEdge { Expression = s_nationkey = n_nationkey, One = supplier, Two = n1 }
           BinaryEdge { Expression = c_nationkey = n_nationkey, One = customer, Two = n2 }
-          BinaryEdge { Expression = n_name = FRANCE and n_name = GERMANY or n_name = GERMANY and n_name = FRANCE, One = n1, Two = n2 }
+          BinaryEdge { Expression = n_name != n_name, One = n1, Two = n2 }
+          UnaryEdge { Expression = n_name = FRANCE or n_name = GERMANY, Relation = n1 }
+          UnaryEdge { Expression = n_name = GERMANY or n_name = FRANCE, Relation = n2 }
           UnaryEdge { Expression = l_shipdate between 01/01/1995 00:00:00 and 12/31/1996 00:00:00, Relation = lineitem }
              Scan(supplier) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment             
              Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
@@ -64,7 +66,7 @@ Project(supp_nation, cust_nation, l_year, revenue) -> .supp_nation, .cust_nation
  Sort(supp_nation ASC, cust_nation ASC, l_year ASC) -> .revenue, .supp_nation, .cust_nation, .l_year 
     Agg(sum(volume), supp_nation, cust_nation, l_year) group by (supp_nation, cust_nation, l_year) -> .revenue, .supp_nation, .cust_nation, .l_year    
        Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * cast(1 as Decimal) - l_discount) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
-          Filter(n_name = FRANCE and n_name = GERMANY or n_name = GERMANY and n_name = FRANCE) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n2.n_nationkey, n2.n_name          
+          Filter(n_name != n_name) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n2.n_nationkey, n2.n_name          
              Join(Inner on c_nationkey = n_nationkey) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n2.n_nationkey, n2.n_name             
                 Join(Inner on s_nationkey = n_nationkey) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name                
                    Join(Inner on c_custkey = o_custkey) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey                   
@@ -79,8 +81,10 @@ Project(supp_nation, cust_nation, l_year, revenue) -> .supp_nation, .cust_nation
                    
                       Scan(customer) with projection  -> .c_custkey, .c_nationkey                      
                 
-                   Scan(nation) with projection  -> n1.n_nationkey, n1.n_name                   
+                   Filter(n_name = FRANCE or n_name = GERMANY) -> n1.n_nationkey, n1.n_name                   
+                      Scan(nation) with projection  -> n1.n_nationkey, n1.n_name                      
              
-                Scan(nation) with projection  -> n2.n_nationkey, n2.n_name                
+                Filter(n_name = GERMANY or n_name = FRANCE) -> n2.n_nationkey, n2.n_name                
+                   Scan(nation) with projection  -> n2.n_nationkey, n2.n_name                   
 
 

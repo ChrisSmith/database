@@ -19,4 +19,19 @@ public record ColumnExpression(string Column, string? Table = null) : BaseExpres
     {
         throw new NotSupportedException($"{GetType().Name} does not support replacing children.");
     }
+
+    public static ColumnExpression FromString(string str)
+    {
+        if (str.Contains('.'))
+        {
+            var parts = str.Split('.');
+            if (parts.Length != 2)
+            {
+                throw new ArgumentException($"Invalid column expression: {str}");
+            }
+            return new ColumnExpression(parts[1], parts[0]);
+        }
+
+        return new ColumnExpression(str);
+    }
 }

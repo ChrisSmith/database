@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 
@@ -153,6 +154,153 @@ public static class QueryRewriter
         });
 
         return (updatedExpression, subQueryPlans);
+    }
+
+    // TODO this needs test cases
+    // Right now its going to make transformations that aren't valid
+    public static BaseExpression RewriteDisjunction(BaseExpression expression)
+    {
+        // Example from query_07
+        // (n1.n_name = 'FRANCE' and n2.n_name = 'GERMANY') or (n1.n_name = 'GERMANY' and n2.n_name = 'FRANCE')
+
+        // Distribute the OR into two ANDs
+        // (n1.name = 'FRANCE' or n1.name = 'GERMANY') and (n2.name = 'GERMANY' or n2.name = 'FRANCE') and n1.name <> n2.name
+
+        // to
+        // n1.n_name in ('FRANCE', 'GERMANY') and n2.n_name in ('GERMANY', 'FRANCE') and n1.n_name <> n2.n_name
+        if (expression is not BinaryExpression { Operator: TokenType.OR } b)
+        {
+            return expression;
+        }
+
+        var leftConjuncts = SplitConjunctions(b.Left);
+        var rightConjuncts = SplitConjunctions(b.Right);
+
+        // TODO would be better to resolve symbols first
+
+        var columnToLiteral = new Dictionary<string, List<LiteralExpression>>();
+
+        foreach (var conjunct in leftConjuncts.Concat(rightConjuncts))
+        {
+            if (!IsEqualityOnLiteral(conjunct, out var column, out var literal))
+            {
+                return expression;
+            }
+
+            var columnName = column.Table != null ? $"{column.Table}.{column.Column}" : column.Column;
+            if (!columnToLiteral.TryGetValue(columnName, out var literals))
+            {
+                literals = new List<LiteralExpression>();
+                columnToLiteral.Add(columnName, literals);
+            }
+            literals.Add(literal);
+        }
+
+        var columns = columnToLiteral.Keys.ToList();
+        if (columns.Count != 2)
+        {
+            return expression;
+        }
+
+        var inequality = new BinaryExpression(TokenType.BANG_EQUAL, "!=",
+            ColumnExpression.FromString(columns[0]),
+            ColumnExpression.FromString(columns[1])
+            );
+
+        var expressions = new List<BaseExpression>();
+        foreach (var (column, literals) in columnToLiteral)
+        {
+            var columnExpr = ColumnExpression.FromString(column);
+            BaseExpression? left = null;
+            foreach (var literal in literals)
+            {
+                var comp = new BinaryExpression(TokenType.EQUAL, "=", columnExpr, literal);
+                if (left != null)
+                {
+                    left = new BinaryExpression(TokenType.OR, "or", left, comp);
+                }
+                else
+                {
+                    left = comp;
+                }
+            }
+
+            expressions.Add(left);
+        }
+
+        var newConj = new BinaryExpression(TokenType.AND, "and", expressions[0], expressions[1]);
+        newConj = new BinaryExpression(TokenType.AND, "and", newConj, inequality);
+
+        return newConj;
+
+
+        bool IsEqualityOnLiteral(
+            BaseExpression e,
+            [NotNullWhen(true)] out ColumnExpression? column,
+            [NotNullWhen(true)] out LiteralExpression? lit)
+        {
+            column = null;
+            lit = null;
+
+            if (e is BinaryExpression { Operator: TokenType.EQUAL } b)
+            {
+                if (b is { Left: ColumnExpression c1, Right: LiteralExpression l1 })
+                {
+                    column = c1;
+                    lit = l1;
+                    return true;
+                }
+
+                if (b is { Left: LiteralExpression l2, Right: ColumnExpression c2 })
+                {
+                    column = c2;
+                    lit = l2;
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    public static List<BaseExpression> SplitConjunctions(BaseExpression? expr)
+    {
+        if (expr == null)
+        {
+            return [];
+        }
+
+        var result = new List<BaseExpression>();
+        var queue = new Queue<BaseExpression>();
+        queue.Enqueue(expr);
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (current is BinaryExpression { Operator: TokenType.AND } binExpr)
+            {
+                queue.Enqueue(binExpr.Left);
+                queue.Enqueue(binExpr.Right);
+            }
+            else
+            {
+                result.Add(current);
+            }
+        }
+        return result;
+    }
+
+    public static List<BaseExpression> SplitRewriteSplitConjunctions(BaseExpression? expression)
+    {
+        if (expression == null)
+        {
+            return [];
+        }
+        var results = new List<BaseExpression>();
+        foreach (var expr in SplitConjunctions(expression))
+        {
+            var opt = RewriteDisjunction(expr);
+            results.AddRange(SplitConjunctions(opt));
+        }
+        return results;
     }
 }
 

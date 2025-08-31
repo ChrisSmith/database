@@ -468,7 +468,7 @@ public class QueryPlanner
 
     private LogicalPlan BindRelations(BindContext context, SelectStatement select)
     {
-        List<BaseExpression> conjunctions = SplitConjunctions(select.Where);
+        List<BaseExpression> conjunctions = QueryRewriter.SplitRewriteSplitConjunctions(select.Where);
 
         var relations = new List<JoinedRelation>();
         foreach (var table in select.From.TableStatements)
@@ -515,7 +515,7 @@ public class QueryPlanner
                 // TODO I don't think this is right
                 // It would be better to split here and directly create edges based
                 // on the tables seen in the predicates?
-                conjunctions.AddRange(SplitConjunctions(join.JoinConstraint));
+                conjunctions.AddRange(QueryRewriter.SplitRewriteSplitConjunctions(join.JoinConstraint));
             }
         }
 
@@ -638,32 +638,6 @@ public class QueryPlanner
                 Projection: false,
                 Alias: tableStmt.Alias);
         }
-    }
-
-    private List<BaseExpression> SplitConjunctions(BaseExpression? expr)
-    {
-        if (expr == null)
-        {
-            return [];
-        }
-
-        var result = new List<BaseExpression>();
-        var queue = new Queue<BaseExpression>();
-        queue.Enqueue(expr);
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-            if (current is BinaryExpression { Operator: TokenType.AND } binExpr)
-            {
-                queue.Enqueue(binExpr.Left);
-                queue.Enqueue(binExpr.Right);
-            }
-            else
-            {
-                result.Add(current);
-            }
-        }
-        return result;
     }
 
     public QueryPlan CreatePlan(IStatement statement)
