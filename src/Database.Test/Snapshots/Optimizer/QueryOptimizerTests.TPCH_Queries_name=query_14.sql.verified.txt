@@ -16,8 +16,8 @@ WHERE
 
 
 Original
-Project(100.00 * SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)) / SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) -> .promo_revenue
- Agg(SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)), SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by () -> .SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)), .SUM(l_extendedprice * cast(1 as Decimal) - l_discount) 
+Project(100.00 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)) / SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) -> .promo_revenue
+ Agg(SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)), SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by () -> .SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)), .SUM(l_extendedprice * cast(1 as Decimal) - l_discount) 
     JoinSet(lineitem (Inner) x part (Inner)) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment    
     BinaryEdge { Expression = l_partkey = p_partkey, One = lineitem, Two = part }
     UnaryEdge { Expression = l_shipdate >= 09/01/1995 00:00:00, Relation = lineitem }
@@ -27,8 +27,8 @@ Project(100.00 * SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 
 
 
 Optimized
-Project(100.00 * SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)) / SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) -> .promo_revenue
- Agg(SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)), SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by () -> .SUM(CASE(WHEN p_type LIKE PROMO% THEN l_extendedprice * cast(1 as Decimal) - l_discount)), .SUM(l_extendedprice * cast(1 as Decimal) - l_discount) 
+Project(100.00 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)) / SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) -> .promo_revenue
+ Agg(SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)), SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by () -> .SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)), .SUM(l_extendedprice * cast(1 as Decimal) - l_discount) 
     Join(Inner on l_partkey = p_partkey) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate, .p_partkey, .p_type    
        Filter(l_shipdate < 10/01/1995 00:00:00) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate       
           Filter(l_shipdate >= 09/01/1995 00:00:00) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate          

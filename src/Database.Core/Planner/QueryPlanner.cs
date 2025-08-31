@@ -37,7 +37,7 @@ public class QueryPlanner
                 $"Unknown statement type '{statement.GetType().Name}'. Cannot create query plan.");
         }
 
-        select = ConstantFolding.Fold(select);
+        select = ConstantFolding.Simplify(select);
         select = QueryRewriter.ExpandStarStatements(select, _catalog);
         select = QueryRewriter.DuplicateSelectExpressions(select);
 

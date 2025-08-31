@@ -5,20 +5,20 @@ namespace Database.Core.Planner;
 
 public static class ConstantFolding
 {
-    public static SelectStatement Fold(SelectStatement select)
+    public static SelectStatement Simplify(SelectStatement select)
     {
         var newStatements = new List<BaseExpression>(select.SelectList.Expressions.Count);
 
         var expressions = select.SelectList.Expressions;
         foreach (var expr in expressions)
         {
-            newStatements.Add(Fold(expr));
+            newStatements.Add(Simplify(expr));
         }
 
         var where = select.Where;
         if (where != null)
         {
-            where = Fold(where);
+            where = Simplify(where);
         }
 
         return select with
@@ -28,70 +28,90 @@ public static class ConstantFolding
         };
     }
 
-    public static BaseExpression Fold(BaseExpression expr)
+    public static BaseExpression Simplify(BaseExpression expression)
     {
-        if (expr is BinaryExpression b)
+        List<Func<BaseExpression, BaseExpression>> rules = [Fold, SimplifyLikes];
+        foreach (var rule in rules)
         {
-            var left = Fold(b.Left);
-            var right = Fold(b.Right);
-
-            if (left is IntegerLiteral li && right is IntegerLiteral ri)
-            {
-                var result = b.Operator switch
-                {
-                    PLUS => li.Literal + ri.Literal,
-                    MINUS => li.Literal - ri.Literal,
-                    STAR => li.Literal * ri.Literal,
-                    SLASH => li.Literal / ri.Literal,
-                    PERCENT => li.Literal % ri.Literal,
-                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
-                };
-                return new IntegerLiteral(result);
-            }
-            if (left is DecimalLiteral ld && right is DecimalLiteral rd)
-            {
-                var result = b.Operator switch
-                {
-                    PLUS => ld.Literal + rd.Literal,
-                    MINUS => ld.Literal - rd.Literal,
-                    STAR => ld.Literal * rd.Literal,
-                    SLASH => ld.Literal / rd.Literal,
-                    PERCENT => ld.Literal % ld.Literal,
-                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
-                };
-                return new DecimalLiteral(result);
-            }
-            if (left is DateTimeLiteral ldt && right is IntervalLiteral ril)
-            {
-                var result = b.Operator switch
-                {
-                    PLUS => ril.Literal.Add(ldt.Literal),
-                    MINUS => ril.Literal.Subtract(ldt.Literal),
-                    _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
-                };
-                return new DateTimeLiteral(result);
-            }
-
-            return b with
-            {
-                Left = left,
-                Right = right,
-            };
+            expression = rule(expression);
         }
+        return expression;
+    }
 
-        if (expr is FunctionExpression f)
+    private static BaseExpression Fold(BaseExpression expression)
+    {
+        return expression.Rewrite(expr =>
         {
-            var args = new List<BaseExpression>(f.Args.Length);
-            foreach (var arg in f.Args)
+            if (expr is BinaryExpression b)
             {
-                args.Add(Fold(arg));
-            }
-            return f with
-            {
-                Args = args.ToArray(),
-            };
-        }
+                var left = b.Left;
+                var right = b.Right;
 
-        return expr;
+                if (left is IntegerLiteral li && right is IntegerLiteral ri)
+                {
+                    var result = b.Operator switch
+                    {
+                        PLUS => li.Literal + ri.Literal,
+                        MINUS => li.Literal - ri.Literal,
+                        STAR => li.Literal * ri.Literal,
+                        SLASH => li.Literal / ri.Literal,
+                        PERCENT => li.Literal % ri.Literal,
+                        _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
+                    };
+                    return new IntegerLiteral(result);
+                }
+                if (left is DecimalLiteral ld && right is DecimalLiteral rd)
+                {
+                    var result = b.Operator switch
+                    {
+                        PLUS => ld.Literal + rd.Literal,
+                        MINUS => ld.Literal - rd.Literal,
+                        STAR => ld.Literal * rd.Literal,
+                        SLASH => ld.Literal / rd.Literal,
+                        PERCENT => ld.Literal % ld.Literal,
+                        _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
+                    };
+                    return new DecimalLiteral(result);
+                }
+                if (left is DateTimeLiteral ldt && right is IntervalLiteral ril)
+                {
+                    var result = b.Operator switch
+                    {
+                        PLUS => ril.Literal.Add(ldt.Literal),
+                        MINUS => ril.Literal.Subtract(ldt.Literal),
+                        _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
+                    };
+                    return new DateTimeLiteral(result);
+                }
+            }
+            return expr;
+        });
+    }
+
+    private static BaseExpression SimplifyLikes(BaseExpression expr)
+    {
+        return expr.Rewrite(e =>
+        {
+            if (e is BinaryExpression { Operator: LIKE, Left: { } col, Right: StringLiteral lit })
+            {
+                var firstWildcard = lit.Literal.IndexOf('%');
+                var lastWildcard = lit.Literal.LastIndexOf('%');
+                if (firstWildcard == 0 && firstWildcard == lastWildcard)
+                {
+                    return new FunctionExpression("ends_with",
+                        col,
+                        new StringLiteral(lit.Literal[1..^0]));
+                }
+
+                if (firstWildcard == lit.Literal.Length - 1 && firstWildcard == lastWildcard)
+                {
+                    return new FunctionExpression("starts_with",
+                        col,
+                        new StringLiteral(lit.Literal[0..^1]));
+                }
+            }
+
+            return e;
+        });
     }
 }

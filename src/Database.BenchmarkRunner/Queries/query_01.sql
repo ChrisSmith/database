@@ -8,7 +8,7 @@ select
     avg(l_quantity) as avg_qty,
     avg(l_extendedprice) as avg_price,
     avg(l_discount) as avg_disc,
-    -- should be 1, but need automatic casts
+    
     sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
     sum(l_extendedprice*(1-l_discount)) as sum_disc_price
 from lineitem

@@ -24,7 +24,17 @@ public record CaseExpression(List<BaseExpression> Conditions, List<BaseExpressio
 
     protected override BaseExpression WithChildren(IReadOnlyList<BaseExpression> newChildren)
     {
-        throw new NotImplementedException();
+        var condCount = Conditions.Count;
+        if (newChildren.Count != condCount + Results.Count + (Default != null ? 1 : 0))
+        {
+            throw new ArgumentException($"CaseExpression expects {condCount + Results.Count + (Default != null ? 1 : 0)} children but received {newChildren.Count}.");
+        }
+        return this with
+        {
+            Conditions = [.. newChildren.Take(condCount)],
+            Results = [.. newChildren.Skip(condCount).Take(Results.Count)],
+            Default = newChildren.Count > condCount + Results.Count ? newChildren[^1] : null
+        };
     }
 
     public override string ToString()

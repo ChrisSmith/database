@@ -61,7 +61,7 @@ PlanWithSubQueries(c=1, u=0) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfg
           BinaryEdge { Expression = p_partkey = ps_partkey, One = part, Two = partsupp }
           BinaryEdge { Expression = s_suppkey = ps_suppkey, One = supplier, Two = partsupp }
           UnaryEdge { Expression = p_size = 15, Relation = part }
-          UnaryEdge { Expression = p_type like %BRASS, Relation = part }
+          UnaryEdge { Expression = ends_with(p_type, BRASS), Relation = part }
           BinaryEdge { Expression = s_nationkey = n_nationkey, One = supplier, Two = nation }
           BinaryEdge { Expression = n_regionkey = r_regionkey, One = nation, Two = region }
           UnaryEdge { Expression = r_name = EUROPE, Relation = region }
@@ -97,7 +97,7 @@ PlanWithSubQueries(c=1, u=0) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfg
                 Join(Inner on s_nationkey = n_nationkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey                
                    Join(Inner on s_suppkey = ps_suppkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment                   
                       Join(Inner on p_partkey = ps_partkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost                      
-                         Filter(p_type like %BRASS) -> .p_partkey, .p_mfgr, .p_type, .p_size                         
+                         Filter(ends_with(p_type, BRASS)) -> .p_partkey, .p_mfgr, .p_type, .p_size                         
                             Filter(p_size = 15) -> .p_partkey, .p_mfgr, .p_type, .p_size                            
                                Scan(part) with projection  -> .p_partkey, .p_mfgr, .p_type, .p_size                               
                       

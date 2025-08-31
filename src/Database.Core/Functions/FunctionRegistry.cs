@@ -235,6 +235,14 @@ public class FunctionRegistry
         {
             { DataType.String, typeof(DynamicLike) },
         }));
+        _funcs.Add("starts_with", new("starts_with", 2, new()
+        {
+            { DataType.String, typeof(StartsWithTwo) },
+        }));
+        _funcs.Add("ends_with", new("ends_with", 2, new()
+        {
+            { DataType.String, typeof(EndsWithTwo) },
+        }));
         _funcs.Add("extract", new("extract", 2, new()
         {
             { DataType.String, typeof(ExtractPart) },

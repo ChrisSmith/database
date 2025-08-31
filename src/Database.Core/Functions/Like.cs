@@ -55,6 +55,19 @@ public record StartsWith(string Prefix) : BoolFunction(), IFilterFunctionOne<str
     }
 }
 
+public record StartsWithTwo() : BoolFunction(), IFilterFunctionTwo<string>
+{
+    public bool[] Ok(string[] values, string[] searchString)
+    {
+        var result = new bool[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i].StartsWith(searchString[i], StringComparison.OrdinalIgnoreCase);
+        }
+        return result;
+    }
+}
+
 public record EndsWith(string Suffix) : BoolFunction(), IFilterFunctionOne<string>
 {
     public bool[] Ok(string[] values)
@@ -63,6 +76,19 @@ public record EndsWith(string Suffix) : BoolFunction(), IFilterFunctionOne<strin
         for (var i = 0; i < values.Length; i++)
         {
             result[i] = values[i].EndsWith(Suffix, StringComparison.OrdinalIgnoreCase);
+        }
+        return result;
+    }
+}
+
+public record EndsWithTwo() : BoolFunction(), IFilterFunctionTwo<string>
+{
+    public bool[] Ok(string[] values, string[] searchString)
+    {
+        var result = new bool[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = values[i].EndsWith(searchString[i], StringComparison.OrdinalIgnoreCase);
         }
         return result;
     }
