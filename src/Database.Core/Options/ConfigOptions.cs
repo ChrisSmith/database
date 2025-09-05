@@ -12,4 +12,6 @@ public class ConfigOptions
     public bool OptJoin { get; set; } = true;
     public bool OptSplitPredicates { get; set; } = true;
     public bool OptPushDownFilter { get; set; } = true;
+
+    public bool OptTopNSort { get; set; } = true;
 }

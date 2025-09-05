@@ -92,6 +92,15 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
             return;
         }
 
+        if (plan is TopNSort top)
+        {
+            Write($"TopSort(n={top.Count}, {Expressions(top.OrderBy)})", writer, ident);
+            WriteOutputColumns(top.OutputSchema, writer);
+            WriteLine("", writer, ident);
+            Explain(top.Input, writer, ident + 1);
+            return;
+        }
+
         if (plan is JoinSet joinSet)
         {
             var tables = string.Join(" x ", joinSet.Relations.Select(r => $"{r.Name} ({r.JoinType})"));
@@ -276,6 +285,15 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
             WriteOutputColumns(limit.OutputColumns, writer);
             WriteLine("", writer, ident);
             Explain(limit.Source, writer, ident + 1);
+            return;
+        }
+
+        if (physicalPlan is TopNSortOperator top)
+        {
+            Write($"TopSort(n={top.Limit}, {Expressions(top.OrderExpressions)})", writer, ident);
+            WriteOutputColumns(top.OutputColumns, writer);
+            WriteLine("", writer, ident);
+            Explain(top.Source, writer, ident + 1);
             return;
         }
 

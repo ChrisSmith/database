@@ -6,8 +6,28 @@ test:
 	dotnet test
 
 # depends on publish_cli.sh first
+# Usage: make speedscope QUERY=18 (or just make speedscope 18)
 speedscope:
-	dotnet-trace collect --format SpeedScope --duration "00:00:00:45" -- ./bin/cli/Cli -f "src/Database.BenchmarkRunner/Queries/query_02.sql"
+	@if [ -z "$(QUERY)" ]; then \
+		if [ -n "$(word 2,$(MAKECMDGOALS))" ]; then \
+			QUERY_NUM=$(word 2,$(MAKECMDGOALS)); \
+		else \
+			QUERY_NUM=02; \
+		fi; \
+	else \
+		QUERY_NUM=$(QUERY); \
+	fi; \
+	QUERY_FILE="src/Database.BenchmarkRunner/Queries/query_$${QUERY_NUM}.sql"; \
+	if [ ! -f "$$QUERY_FILE" ]; then \
+		echo "Error: Query file $$QUERY_FILE does not exist"; \
+		exit 1; \
+	fi; \
+	echo "Running speedscope with $$QUERY_FILE"; \
+	dotnet-trace collect --format SpeedScope --duration "00:00:00:45" -- ./bin/cli/Cli -f "$$QUERY_FILE"
+
+# Prevent make from interpreting the query number as a target
+%:
+	@:
 
 speedscope2:
 	dotnet-trace collect --format SpeedScope --duration "00:00:00:45" -- ./bin/cli/Cli -f "src/Database.BenchmarkRunner/Queries/query_07.sql"

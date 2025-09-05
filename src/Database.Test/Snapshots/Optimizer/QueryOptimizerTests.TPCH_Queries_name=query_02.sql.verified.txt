@@ -89,25 +89,24 @@ PlanWithSubQueries(c=1, u=0) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfg
           
              Filter(r_name = EUROPE) -> .r_regionkey, .r_name             
                 Scan(region) with projection  -> .r_regionkey, .r_name                
- Limit(n=100) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfgr, .s_address, .s_phone, .s_comment 
-    Project(s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfgr, .s_address, .s_phone, .s_comment    
-       Sort(s_acctbal DESC, n_name ASC, s_name ASC, p_partkey ASC) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name       
-          Filter(ps_supplycost = correlated-subquery(1)) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name          
-             Join(Inner on n_regionkey = r_regionkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name             
-                Join(Inner on s_nationkey = n_nationkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey                
-                   Join(Inner on s_suppkey = ps_suppkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment                   
-                      Join(Inner on p_partkey = ps_partkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost                      
-                         Filter(ends_with(p_type, BRASS)) -> .p_partkey, .p_mfgr, .p_type, .p_size                         
-                            Filter(p_size = 15) -> .p_partkey, .p_mfgr, .p_type, .p_size                            
-                               Scan(part) with projection  -> .p_partkey, .p_mfgr, .p_type, .p_size                               
-                      
-                         Scan(partsupp) with projection  -> .ps_partkey, .ps_suppkey, .ps_supplycost                         
+ Project(s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfgr, .s_address, .s_phone, .s_comment 
+    TopSort(n=100, s_acctbal DESC, n_name ASC, s_name ASC, p_partkey ASC) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name    
+       Filter(ps_supplycost = correlated-subquery(1)) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name       
+          Join(Inner on n_regionkey = r_regionkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name          
+             Join(Inner on s_nationkey = n_nationkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey             
+                Join(Inner on s_suppkey = ps_suppkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment                
+                   Join(Inner on p_partkey = ps_partkey) -> .p_partkey, .p_mfgr, .p_type, .p_size, .ps_partkey, .ps_suppkey, .ps_supplycost                   
+                      Filter(ends_with(p_type, BRASS)) -> .p_partkey, .p_mfgr, .p_type, .p_size                      
+                         Filter(p_size = 15) -> .p_partkey, .p_mfgr, .p_type, .p_size                         
+                            Scan(part) with projection  -> .p_partkey, .p_mfgr, .p_type, .p_size                            
                    
-                      Scan(supplier) with projection  -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment                      
+                      Scan(partsupp) with projection  -> .ps_partkey, .ps_suppkey, .ps_supplycost                      
                 
-                   Scan(nation) with projection  -> .n_nationkey, .n_name, .n_regionkey                   
+                   Scan(supplier) with projection  -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment                   
              
-                Filter(r_name = EUROPE) -> .r_regionkey, .r_name                
-                   Scan(region) with projection  -> .r_regionkey, .r_name                   
+                Scan(nation) with projection  -> .n_nationkey, .n_name, .n_regionkey                
+          
+             Filter(r_name = EUROPE) -> .r_regionkey, .r_name             
+                Scan(region) with projection  -> .r_regionkey, .r_name                
 
 

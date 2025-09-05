@@ -302,3 +302,26 @@ public record Limit(
         return this with { Input = newInputs[0] };
     }
 }
+
+public record TopNSort(
+    LogicalPlan Input,
+    int Count,
+    IReadOnlyList<OrderingExpression> OrderBy
+) : LogicalPlan
+{
+    public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
+
+    public override IEnumerable<LogicalPlan> Inputs()
+    {
+        yield return Input;
+    }
+
+    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    {
+        if (newInputs.Count != 1)
+        {
+            throw new ArgumentException($"Top-N expects 1 child but received {newInputs.Count}.");
+        }
+        return this with { Input = newInputs[0] };
+    }
+}

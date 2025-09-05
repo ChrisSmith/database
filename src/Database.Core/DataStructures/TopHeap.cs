@@ -2,16 +2,30 @@ using System.Collections;
 
 namespace Database.Core.Functions;
 
+public enum SortOrder { Ascending, Descending }
+
 public class TopHeap<T> : IEnumerable<T>
 {
     private readonly IReadOnlyList<Type> _keyTypes;
     private readonly int _limit;
     private readonly List<Array> _keys;
     private readonly T[] _objects;
+    private readonly IReadOnlyList<SortOrder> _sortOrder;
+    private readonly IReadOnlyList<IComparer> _comparers;
 
-    public TopHeap(IReadOnlyList<Type> keyTypes, int limit)
+    public TopHeap(IReadOnlyList<Type> keyTypes, IReadOnlyList<SortOrder> sortOrder, int limit)
     {
+        if (keyTypes.Count != sortOrder.Count)
+        {
+            throw new ArgumentException($"keyTypes and sortOrder must have the same number of elements. " +
+                                        $"Got {keyTypes.Count} and {sortOrder.Count} respectively.");
+        }
+
+        var inverted = new InvertedComparer();
+        _comparers = sortOrder.Select(s => s == SortOrder.Ascending ? (IComparer)Comparer.Default : inverted).ToArray();
+
         _keyTypes = keyTypes;
+        _sortOrder = sortOrder;
         _limit = limit;
         _keys = InitializeKeysArray(limit);
         _objects = new T[limit];
@@ -34,8 +48,8 @@ public class TopHeap<T> : IEnumerable<T>
             }
 
             var value = values[i];
+            // Console.WriteLine($"Inserting {value} at position {position} with keys: {string.Join(", ", keys.Select(k => k.GetValue(i)))}");
 
-            // shift array right, and insert
             var len = Size - position;
             if (len > 0)
             {
@@ -76,7 +90,7 @@ public class TopHeap<T> : IEnumerable<T>
             {
                 var key = (IComparable)keys[k].GetValue(i)!;
                 var last = (IComparable)_keys[k].GetValue(Size - 1)!;
-                var comp = key.CompareTo(last);
+                var comp = _comparers[k].Compare(key, last);
                 if (comp > 0)
                 {
                     // Larger than the last element, just skip it
@@ -98,12 +112,20 @@ public class TopHeap<T> : IEnumerable<T>
         for (var k = 0; k < keys.Count; k++)
         {
             var key = (IComparable)keys[k].GetValue(i)!;
-            position = Array.BinarySearch(_keys[k], leftFence, fenceLen, key);
+            position = Array.BinarySearch(_keys[k], leftFence, fenceLen, key, _comparers[k]);
+            // We need to know the sort order to determine if we need to push left or right
+
             if (position < 0)
             {
                 // Doesn't exist, so no need to continue looking at additional index levels
                 position = ~position;
                 return true;
+            }
+
+            // Might not be the first matching element, move left
+            while (position > 0 && _keys[k].GetValue(position - 1)!.Equals(key))
+            {
+                position -= 1;
             }
 
             fenceLen = 1;
@@ -149,5 +171,13 @@ public class TopHeap<T> : IEnumerable<T>
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
+    }
+}
+
+public class InvertedComparer : IComparer
+{
+    public int Compare(object? x, object? y)
+    {
+        return Comparer.Default.Compare(y, x);
     }
 }

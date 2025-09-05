@@ -63,6 +63,12 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             return CreateLimit(limit, input, context);
         }
 
+        if (plan is TopNSort top)
+        {
+            var input = CreatePhysicalPlan(top.Input, context);
+            return CreateTopNSort(top, input, context);
+        }
+
         if (plan is PlanWithSubQueries planWithSub)
         {
             var correlatedPlans = new List<IOperation>();
@@ -90,6 +96,41 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
         }
 
         throw new NotImplementedException($"Type {plan.GetType()} is not supported in physical plan");
+    }
+
+    private IOperation CreateTopNSort(TopNSort top, IOperation input, BindContext context)
+    {
+        var inputColumns = input.Columns;
+
+        var memRef = catalog.OpenMemoryTable();
+        var memTable = bufferPool.GetMemoryTable(memRef.TableId);
+
+        var outputColumns = new List<ColumnSchema>(inputColumns.Count);
+        var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
+        for (var i = 0; i < inputColumns.Count; i++)
+        {
+            var existingColumn = inputColumns[i];
+            var newColumn = memTable.AddColumnToSchema(
+                existingColumn.Name,
+                existingColumn.DataType,
+                existingColumn.SourceTableName,
+                existingColumn.SourceTableAlias
+            );
+            outputColumns.Add(newColumn);
+            outputColumnsRefs.Add(newColumn.ColumnRef);
+        }
+
+        var expressions = _binder.Bind(context, top.OrderBy, inputColumns);
+
+        return new TopNSortOperator(
+            top.Count,
+            bufferPool,
+            memTable,
+            input,
+            expressions,
+            outputColumns,
+            outputColumnsRefs
+            );
     }
 
     private IOperation CreatePlanWithSubqueries(

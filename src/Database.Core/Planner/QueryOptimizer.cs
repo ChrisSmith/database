@@ -147,6 +147,11 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
             return ExpandJoinSet(joinSet, context);
         }
 
+        if (plan is TopNSort top)
+        {
+            return OptimizeTopSort(top, parents, context);
+        }
+
         throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer");
     }
 
@@ -263,8 +268,36 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
         }
     }
 
+    private LogicalPlan OptimizeTopSort(TopNSort top, IReadOnlyList<LogicalPlan> parents, BindContext context)
+    {
+        return top with
+        {
+            Input = Optimize(top.Input, parents, context),
+        };
+    }
+
     private LogicalPlan OptimizeLimit(Limit limit, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
+        if (config.LogicalOptimization && config.OptTopNSort)
+        {
+            if (limit.Input is Sort sort)
+            {
+                return new TopNSort(sort.Input, limit.Count, sort.OrderBy);
+            }
+
+            if (limit.Input is Projection { Input: Sort s } projection)
+            {
+                // Keep the projection on the outside so column drops don't matter
+                var top = new TopNSort(s.Input, limit.Count, s.OrderBy);
+                return projection with
+                {
+                    Input = top,
+                };
+            }
+
+            return limit;
+        }
+
         return limit with
         {
             Input = Optimize(limit.Input, parents, context),
