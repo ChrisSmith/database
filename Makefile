@@ -38,3 +38,6 @@ speedscope3:
 
 benchmark:
 	cd src/Database.BenchmarkRunner && DYLD_LIBRARY_PATH=/opt/homebrew/lib dotnet run -c Release
+
+benchmark-3p:
+	cd src/Database.BenchmarkRunner && DYLD_LIBRARY_PATH=/opt/homebrew/lib dotnet run -c Release -- --run-third-party

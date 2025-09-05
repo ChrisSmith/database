@@ -1,11 +1,25 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using Database.BenchmarkRunner;
 
-Console.WriteLine("Running Benchmarks");
+// Parse command line arguments
+bool runThirdParty = args.Contains("--run-third-party") || args.Contains("-t");
+string resultsFile = "benchmark_results.json";
 
-var runners = new IQueryRunner[]
+Console.WriteLine("Running Benchmarks");
+if (runThirdParty)
+{
+    Console.WriteLine("Third-party databases will be executed and results cached");
+}
+else
+{
+    Console.WriteLine("Using cached third-party results, only running Database implementation");
+}
+
+// Always include DatabaseRunner, conditionally include third-party runners
+var allRunners = new IQueryRunner[]
 {
     new DuckDbRunner(),
     new ClickHouseRunner(),
@@ -13,6 +27,11 @@ var runners = new IQueryRunner[]
     new SparkRunner(),
     new SqliteRunner(),
 };
+
+var thirdPartyRunners = allRunners.Where(r => !(r is DatabaseRunner)).ToArray();
+var databaseRunner = allRunners.First(r => r is DatabaseRunner);
+
+var runners = runThirdParty ? allRunners : new[] { databaseRunner };
 
 var timeout = TimeSpan.FromSeconds(30);
 foreach (var runner in runners)
@@ -22,14 +41,42 @@ foreach (var runner in runners)
 
 var queries = Enumerable.Range(1, 22).Select(i => TPCHHelpers.ReadQuery($"query_{i:00}.sql")).ToList();
 
+// Load cached results if available and not running third-party
+CachedResults? cachedResults = null;
+if (!runThirdParty && File.Exists(resultsFile))
+{
+    try
+    {
+        var json = await File.ReadAllTextAsync(resultsFile);
+        cachedResults = JsonSerializer.Deserialize<CachedResults>(json);
+        Console.WriteLine("Loaded cached third-party results");
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Warning: Failed to load cached results: {e.Message}");
+    }
+}
 
-
+var allRunnerNames = allRunners.Select(r => r.GetType().Name.Replace("Runner", "")).ToList();
 var runnerNames = runners.Select(r => r.GetType().Name.Replace("Runner", "")).ToList();
 
 var results = new Dictionary<string, (string status, long elapsedMs)>[queries.Count];
 for (var i = 0; i < queries.Count; i++)
 {
     results[i] = new Dictionary<string, (string status, long elapsedMs)>();
+
+    // Pre-populate with cached results for third-party runners if available
+    if (cachedResults != null)
+    {
+        foreach (var runnerName in allRunnerNames.Where(name => !runnerNames.Contains(name)))
+        {
+            if (cachedResults.RunnerResults.TryGetValue(runnerName, out var runnerResults) &&
+                runnerResults.TryGetValue(i, out var result))
+            {
+                results[i][runnerName] = (result.Status, result.ElapsedMs);
+            }
+        }
+    }
 }
 
 foreach (var runner in runners)
@@ -96,6 +143,33 @@ foreach (var runner in runners)
     }
 }
 
+// Save results to cache if we ran third-party databases
+if (runThirdParty)
+{
+    try
+    {
+        var cacheData = new CachedResults(
+            allRunnerNames.ToDictionary(
+                runnerName => runnerName,
+                runnerName => Enumerable.Range(0, queries.Count)
+                    .Where(i => results[i].ContainsKey(runnerName))
+                    .ToDictionary(
+                        i => i,
+                        i => new BenchmarkResult(results[i][runnerName].status, results[i][runnerName].elapsedMs)
+                    )
+            )
+        );
+
+        var json = JsonSerializer.Serialize(cacheData, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(resultsFile, json);
+        Console.WriteLine($"Results cached to {resultsFile}");
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Warning: Failed to save results cache: {e.Message}");
+    }
+}
+
 // Generate markdown report
 var markdown = new StringBuilder();
 markdown.AppendLine("# Benchmark Results");
@@ -115,8 +189,9 @@ for (int i = 0; i < queries.Count; i++)
 markdown.AppendLine(header.ToString());
 markdown.AppendLine(separator.ToString());
 
-// Initialize stats tracking for each runner
-var runnerStats = runnerNames.ToDictionary(name => name, name => new
+// Initialize stats tracking for each runner (including cached ones)
+var reportRunnerNames = allRunnerNames;
+var runnerStats = reportRunnerNames.ToDictionary(name => name, name => new
 {
     Successful = 0,
     TotalTime = 0L,
@@ -125,15 +200,20 @@ var runnerStats = runnerNames.ToDictionary(name => name, name => new
 });
 
 // Generate rows for each runner
-var baselineRunner = runnerNames.First(); // First runner is the baseline
+var baselineRunner = reportRunnerNames.First(); // First runner is the baseline
 
-foreach (var runnerName in runnerNames)
+foreach (var runnerName in reportRunnerNames)
 {
     var row = new StringBuilder($"| **{runnerName}** |");
 
     for (int i = 0; i < queries.Count; i++)
     {
-        var result = results[i][runnerName];
+        if (!results[i].TryGetValue(runnerName, out var result))
+        {
+            // No result available for this runner/query combination
+            row.Append(" N/A |");
+            continue;
+        }
 
         // Format status and time combined
         var roundedMs = Math.Round(result.elapsedMs / 10.0) * 10;
@@ -146,8 +226,8 @@ foreach (var runnerName in runnerNames)
         // Add ratio for non-baseline runners
         if (runnerName != baselineRunner && result.status == "OK")
         {
-            var baselineResult = results[i][baselineRunner];
-            if (baselineResult.status == "OK" && baselineResult.elapsedMs > 0)
+            if (results[i].TryGetValue(baselineRunner, out var baselineResult) &&
+                baselineResult.status == "OK" && baselineResult.elapsedMs > 0)
             {
                 var multiplier = (double)result.elapsedMs / baselineResult.elapsedMs;
                 if (multiplier > 1)
@@ -188,7 +268,7 @@ markdown.AppendLine();
 markdown.AppendLine("## Summary");
 markdown.AppendLine();
 
-foreach (var runnerName in runnerNames)
+foreach (var runnerName in reportRunnerNames)
 {
     var stats = runnerStats[runnerName];
     var successRate = (stats.Successful / 22.0 * 100);
@@ -233,3 +313,7 @@ if (successfulRunners.Count > 1)
 await File.WriteAllTextAsync("RESULTS.md", markdown.ToString());
 Console.WriteLine();
 Console.WriteLine("Results written to RESULTS.md");
+
+// Define serializable result structure
+public record BenchmarkResult(string Status, long ElapsedMs);
+public record CachedResults(Dictionary<string, Dictionary<int, BenchmarkResult>> RunnerResults);
