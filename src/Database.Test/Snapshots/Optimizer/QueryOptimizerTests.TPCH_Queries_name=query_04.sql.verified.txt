@@ -48,3 +48,12 @@ PlanWithSubQueries(c=1, u=0) -> .o_orderpriority, .order_count
                    Scan(orders) with projection  -> .o_orderkey, .o_orderdate, .o_orderpriority                   
 
 
+Cost Optimized
+PlanWithSubQueries(u=0) -> .o_orderpriority, .order_count
+ Project(o_orderpriority, order_count) cost (output_rows=10, cpu=20, disk=0, total=6505) -> .o_orderpriority, .order_count 
+    Sort(o_orderpriority ASC) cost (output_rows=10, cpu=30, disk=0, total=6505) -> .o_orderpriority, .order_count    
+       HashAggregate(o_orderpriority, count(*)) cost (output_rows=10, cpu=9000, disk=0, total=6505) -> .o_orderpriority, .order_count       
+          Filter(correlated-subquery(1)) cost (output_rows=1500, cpu=45000, disk=0, total=6496) -> .o_orderkey, .o_orderdate, .o_orderpriority          
+             Filter(o_orderdate < 10/01/1993 00:00:00) cost (output_rows=15000, cpu=450000, disk=0, total=6451) -> .o_orderkey, .o_orderdate, .o_orderpriority             
+                Filter(o_orderdate >= 07/01/1993 00:00:00) cost (output_rows=150000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_orderdate, .o_orderpriority                
+                   FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderdate, .o_orderpriority

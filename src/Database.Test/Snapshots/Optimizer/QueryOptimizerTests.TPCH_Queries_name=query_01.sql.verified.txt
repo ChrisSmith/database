@@ -33,3 +33,9 @@ Project(l_returnflag, l_linestatus, count_order, sum_qty, sum_base_price, avg_qt
           Scan(lineitem) with projection  -> .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate          
 
 
+Cost Optimized
+Project(l_returnflag, l_linestatus, count_order, sum_qty, sum_base_price, avg_qty, avg_price, avg_disc, sum_charge, sum_disc_price) cost (output_rows=10, cpu=100, disk=0, total=69618) -> .l_returnflag, .l_linestatus, .count_order, .sum_qty, .sum_base_price, .avg_qty, .avg_price, .avg_disc, .sum_charge, .sum_disc_price
+ Sort(l_returnflag ASC, l_linestatus ASC) cost (output_rows=10, cpu=60, disk=0, total=69618) -> .l_returnflag, .l_linestatus, .count_order, .sum_qty, .sum_base_price, .avg_qty, .avg_price, .avg_disc, .sum_charge, .sum_disc_price 
+    HashAggregate(l_returnflag, l_linestatus, count(*), sum(l_quantity), sum(l_extendedprice), avg(l_quantity), avg(l_extendedprice), avg(l_discount), sum(l_extendedprice * cast(1 as Decimal) - l_discount * cast(1 as Decimal) + l_tax), sum(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=10, cpu=21604356, disk=0, total=69618) -> .l_returnflag, .l_linestatus, .count_order, .sum_qty, .sum_base_price, .avg_qty, .avg_price, .avg_disc, .sum_charge, .sum_disc_price    
+       Filter(l_shipdate <= 11/01/1998 00:00:00) cost (output_rows=600121, cpu=42008505, disk=0, total=48013) -> .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate       
+          FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate

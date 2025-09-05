@@ -10,3 +10,6 @@ Project(Id, Unordered, Name, CategoricalInt, CategoricalString) -> table.Id, tab
  Scan(table) with projection  -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString 
 
 
+Cost Optimized
+Project(Id, Unordered, Name, CategoricalInt, CategoricalString) cost (output_rows=100000, cpu=500000, disk=0, total=601) -> .Id, .Unordered, .Name, .CategoricalInt, .CategoricalString
+ FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString

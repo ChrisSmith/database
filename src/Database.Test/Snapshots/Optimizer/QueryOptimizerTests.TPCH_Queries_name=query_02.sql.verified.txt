@@ -110,3 +110,20 @@ PlanWithSubQueries(c=1, u=0) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfg
                 Scan(region) with projection  -> .r_regionkey, .r_name                
 
 
+Cost Optimized
+PlanWithSubQueries(u=0) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfgr, .s_address, .s_phone, .s_comment
+ Project(s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment) cost (output_rows=100, cpu=800, disk=0, total=25525) -> .s_acctbal, .s_name, .n_name, .p_partkey, .p_mfgr, .s_address, .s_phone, .s_comment 
+    TopSort(n=100, s_acctbal DESC, n_name ASC, s_name ASC, p_partkey ASC) -> .ps_partkey, .ps_suppkey, .ps_supplycost, .p_partkey, .p_mfgr, .p_type, .p_size, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name    
+       Filter(ps_supplycost = correlated-subquery(1)) cost (output_rows=80000, cpu=15200000, disk=0, total=20405) -> .ps_partkey, .ps_suppkey, .ps_supplycost, .p_partkey, .p_mfgr, .p_type, .p_size, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name       
+          HashJoin(Inner r_regionkey, n_regionkey) cost (output_rows=800000, cpu=800010, disk=0, total=5205) -> .ps_partkey, .ps_suppkey, .ps_supplycost, .p_partkey, .p_mfgr, .p_type, .p_size, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name          
+             HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=800000, cpu=800075, disk=1, total=4405) -> .ps_partkey, .ps_suppkey, .ps_supplycost, .p_partkey, .p_mfgr, .p_type, .p_size, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey             
+                HashJoin(Inner s_suppkey, ps_suppkey) cost (output_rows=800000, cpu=830000, disk=1, total=3605) -> .ps_partkey, .ps_suppkey, .ps_supplycost, .p_partkey, .p_mfgr, .p_type, .p_size, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment                
+                   HashJoin(Inner p_partkey, ps_partkey) cost (output_rows=800000, cpu=884000, disk=0, total=2764) -> .ps_partkey, .ps_suppkey, .ps_supplycost, .p_partkey, .p_mfgr, .p_type, .p_size                   
+                      FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_partkey, .ps_suppkey, .ps_supplycost                   
+                      Filter(ends_with(p_type, BRASS)) cost (output_rows=2000, cpu=80000, disk=0, total=1080) -> .p_partkey, .p_mfgr, .p_type, .p_size                      
+                         Filter(p_size = 15) cost (output_rows=20000, cpu=800000, disk=0, total=1000) -> .p_partkey, .p_mfgr, .p_type, .p_size                         
+                            FileScan({SolutionDirectory}tpch/1/part2.parquet) cost (output_rows=200000, cpu=200000, disk=2, total=200) -> .p_partkey, .p_mfgr, .p_type, .p_size                
+                   FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment             
+                FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name, .n_regionkey          
+             Filter(r_name = EUROPE) cost (output_rows=0, cpu=10, disk=0, total=0) -> .r_regionkey, .r_name             
+                FileScan({SolutionDirectory}tpch/1/region2.parquet) cost (output_rows=5, cpu=5, disk=1, total=0) -> .r_regionkey, .r_name

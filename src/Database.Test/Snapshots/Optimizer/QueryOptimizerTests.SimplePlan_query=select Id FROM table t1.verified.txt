@@ -10,3 +10,6 @@ Project(Id) -> .Id
  Scan(table) with projection  -> t1.Id 
 
 
+Cost Optimized
+Project(Id) cost (output_rows=100000, cpu=100000, disk=0, total=201) -> .Id
+ FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> t1.Id

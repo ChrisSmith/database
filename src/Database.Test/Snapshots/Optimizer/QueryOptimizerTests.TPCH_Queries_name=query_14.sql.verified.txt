@@ -37,3 +37,11 @@ Project(100.00 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice *
        Scan(part) with projection  -> .p_partkey, .p_type       
 
 
+Cost Optimized
+Project(100.00 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)) / SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=200000, cpu=400000, disk=0, total=34071) -> .promo_revenue
+ UngroupedAggregate(SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)), SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=200000, cpu=400000, disk=0, total=33671) -> .SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * cast(1 as Decimal) - l_discount)), .SUM(l_extendedprice * cast(1 as Decimal) - l_discount) 
+    HashJoin(Inner p_partkey, l_partkey) cost (output_rows=200000, cpu=660012, disk=2, total=33271) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate, .p_partkey, .p_type    
+       Filter(l_shipdate < 10/01/1995 00:00:00) cost (output_rows=60012, cpu=2400484, disk=0, total=32410) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate       
+          Filter(l_shipdate >= 09/01/1995 00:00:00) cost (output_rows=600121, cpu=24004860, disk=0, total=30010) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate          
+             FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate    
+       FileScan({SolutionDirectory}tpch/1/part2.parquet) cost (output_rows=200000, cpu=200000, disk=2, total=200) -> .p_partkey, .p_type

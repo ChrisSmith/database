@@ -32,3 +32,12 @@ PlanWithSubQueries(c=0, u=1) -> .count
           Scan(table) with projection  -> t.CategoricalInt          
 
 
+Cost Optimized
+PlanWithSubQueries(u=1) -> .count
+ Project(max(CategoricalInt)) cost (output_rows=10000, cpu=10000, disk=0, total=321) -> .max(CategoricalInt) 
+    UngroupedAggregate(max(CategoricalInt)) cost (output_rows=10000, cpu=10000, disk=0, total=311) -> .max(CategoricalInt)    
+       Filter(CategoricalString = cat) cost (output_rows=10000, cpu=200000, disk=0, total=301) -> q.CategoricalInt, q.CategoricalString       
+          FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> q.CategoricalInt, q.CategoricalString Project(count) cost (output_rows=10000, cpu=10000, disk=0, total=221) -> .count 
+    UngroupedAggregate(count(*)) cost (output_rows=10000, cpu=10000, disk=0, total=211) -> .count    
+       Filter(CategoricalInt = subquery(1)) cost (output_rows=10000, cpu=100000, disk=0, total=201) -> t.CategoricalInt       
+          FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> t.CategoricalInt

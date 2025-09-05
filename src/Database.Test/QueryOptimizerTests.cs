@@ -18,6 +18,7 @@ public class QueryOptimizerTests
     private ExplainQuery _explain;
     private BindContext _context;
     private ConfigOptions _options;
+    private CostBasedOptimizer _cbo;
 
     [OneTimeSetUp]
     public void Setup()
@@ -26,6 +27,7 @@ public class QueryOptimizerTests
         _bufferPool = new ParquetPool();
         _catalog = new Catalog(_bufferPool);
         _optimizer = new QueryOptimizer(_options, new ExpressionBinder(_bufferPool, new FunctionRegistry()), _bufferPool);
+        _cbo = new CostBasedOptimizer(_options, new PhysicalPlanner(_options, _catalog, _bufferPool));
         _explain = new ExplainQuery(_options);
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
@@ -57,8 +59,12 @@ public class QueryOptimizerTests
     {
         var plan = Plan(query);
         var optimized = _optimizer.OptimizePlan(plan, _context);
+        var physical = _cbo.OptimizeAndLower(optimized, _context);
 
-        var diff = $"{query}\n\nOriginal\n{_explain.Explain(plan)}\n\nOptimized\n{_explain.Explain(optimized)}\n\n";
+        var diff = $"{query}\n\n" +
+                   $"Original\n{_explain.Explain(plan)}\n\n" +
+                   $"Optimized\n{_explain.Explain(optimized)}\n\n" +
+                   $"Cost Optimized\n{_explain.Explain(physical)}";
         return diff;
     }
 

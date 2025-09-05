@@ -70,3 +70,22 @@ Project(n_name, revenue) -> .n_name, .revenue
                 Scan(region) with projection  -> .r_regionkey, .r_name                
 
 
+Cost Optimized
+Project(n_name, revenue) cost (output_rows=10, cpu=20, disk=0, total=137503) -> .n_name, .revenue
+ Sort(revenue DESC) cost (output_rows=10, cpu=30, disk=0, total=137503) -> .n_name, .revenue 
+    HashAggregate(n_name, sum(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=10, cpu=3600726, disk=0, total=137503) -> .n_name, .revenue    
+       Filter(c_nationkey = s_nationkey) cost (output_rows=600121, cpu=96019440, disk=0, total=133902) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name       
+          HashJoin(Inner r_regionkey, n_regionkey) cost (output_rows=6001215, cpu=6001225, disk=0, total=37883) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name          
+             HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=6001215, cpu=6001290, disk=1, total=31881) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey             
+                HashJoin(Inner s_suppkey, l_suppkey) cost (output_rows=6001215, cpu=6031215, disk=1, total=25880) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, .s_suppkey, .s_nationkey                
+                   HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=6001215, cpu=6766215, disk=2, total=19838) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey                   
+                      FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount                   
+                      HashJoin(Inner c_custkey, o_custkey) cost (output_rows=150000, cpu=465000, disk=2, total=7066) -> .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey                      
+                         Filter(o_orderdate < 01/01/1995 00:00:00) cost (output_rows=15000, cpu=450000, disk=0, total=6451) -> .o_orderkey, .o_custkey, .o_orderdate                         
+                            Filter(o_orderdate >= 01/01/1994 00:00:00) cost (output_rows=150000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_custkey, .o_orderdate                            
+                               FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_orderdate                      
+                         FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_nationkey                
+                   FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_nationkey             
+                FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name, .n_regionkey          
+             Filter(r_name = ASIA) cost (output_rows=0, cpu=10, disk=0, total=0) -> .r_regionkey, .r_name             
+                FileScan({SolutionDirectory}tpch/1/region2.parquet) cost (output_rows=5, cpu=5, disk=1, total=0) -> .r_regionkey, .r_name

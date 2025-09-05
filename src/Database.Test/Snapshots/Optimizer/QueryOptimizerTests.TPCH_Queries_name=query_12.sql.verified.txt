@@ -60,3 +60,16 @@ Project(l_shipmode, high_line_count, low_line_count) -> .l_shipmode, .high_line_
           Scan($subquery_1$) -> $subquery_1$.$subquery_1$          
 
 
+Cost Optimized
+Project(l_shipmode, high_line_count, low_line_count) cost (output_rows=10, cpu=30, disk=0, total=58875) -> .l_shipmode, .high_line_count, .low_line_count
+ Sort(l_shipmode ASC) cost (output_rows=10, cpu=30, disk=0, total=58875) -> .l_shipmode, .high_line_count, .low_line_count 
+    HashAggregate(l_shipmode, SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1))) cost (output_rows=10, cpu=15000000, disk=0, total=58875) -> .l_shipmode, .high_line_count, .low_line_count    
+       HashJoin(Semi $subquery_1$, l_shipmode) cost (output_rows=1500000, cpu=1500000, disk=0, total=43875) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode       
+          HashJoin(Inner l_orderkey, o_orderkey) cost (output_rows=1500000, cpu=1531205, disk=0, total=42375) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode          
+             FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderpriority          
+             Filter(l_receiptdate < 01/01/1995 00:00:00) cost (output_rows=600, cpu=30005, disk=0, total=39341) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode             
+                Filter(l_receiptdate >= 01/01/1994 00:00:00) cost (output_rows=6001, cpu=300060, disk=0, total=39311) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                
+                   Filter(l_shipdate < l_commitdate) cost (output_rows=60012, cpu=3000605, disk=0, total=39011) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                   
+                      Filter(l_commitdate < l_receiptdate) cost (output_rows=600121, cpu=30006075, disk=0, total=36011) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                      
+                         FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode       
+          ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=0, cpu=0, disk=0, total=0) -> $subquery_1$.$subquery_1$
