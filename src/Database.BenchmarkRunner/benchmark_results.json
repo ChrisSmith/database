@@ -1,0 +1,454 @@
+{
+  "RunnerResults": {
+    "DuckDb": {
+      "0": {
+        "Status": "OK",
+        "ElapsedMs": 254
+      },
+      "1": {
+        "Status": "OK",
+        "ElapsedMs": 40
+      },
+      "2": {
+        "Status": "OK",
+        "ElapsedMs": 110
+      },
+      "3": {
+        "Status": "OK",
+        "ElapsedMs": 183
+      },
+      "4": {
+        "Status": "OK",
+        "ElapsedMs": 208
+      },
+      "5": {
+        "Status": "OK",
+        "ElapsedMs": 20
+      },
+      "6": {
+        "Status": "OK",
+        "ElapsedMs": 84
+      },
+      "7": {
+        "Status": "OK",
+        "ElapsedMs": 276
+      },
+      "8": {
+        "Status": "OK",
+        "ElapsedMs": 330
+      },
+      "9": {
+        "Status": "OK",
+        "ElapsedMs": 153
+      },
+      "10": {
+        "Status": "OK",
+        "ElapsedMs": 38
+      },
+      "11": {
+        "Status": "OK",
+        "ElapsedMs": 57
+      },
+      "12": {
+        "Status": "OK",
+        "ElapsedMs": 177
+      },
+      "13": {
+        "Status": "OK",
+        "ElapsedMs": 13
+      },
+      "14": {
+        "Status": "OK",
+        "ElapsedMs": 17
+      },
+      "15": {
+        "Status": "OK",
+        "ElapsedMs": 27
+      },
+      "16": {
+        "Status": "OK",
+        "ElapsedMs": 235
+      },
+      "17": {
+        "Status": "OK",
+        "ElapsedMs": 340
+      },
+      "18": {
+        "Status": "OK",
+        "ElapsedMs": 235
+      },
+      "19": {
+        "Status": "OK",
+        "ElapsedMs": 48
+      },
+      "20": {
+        "Status": "OK",
+        "ElapsedMs": 564
+      },
+      "21": {
+        "Status": "OK",
+        "ElapsedMs": 31
+      }
+    },
+    "ClickHouse": {
+      "0": {
+        "Status": "OK",
+        "ElapsedMs": 351
+      },
+      "1": {
+        "Status": "FAILED",
+        "ElapsedMs": 460
+      },
+      "2": {
+        "Status": "OK",
+        "ElapsedMs": 165
+      },
+      "3": {
+        "Status": "FAILED",
+        "ElapsedMs": 319
+      },
+      "4": {
+        "Status": "OK",
+        "ElapsedMs": 311
+      },
+      "5": {
+        "Status": "OK",
+        "ElapsedMs": 35
+      },
+      "6": {
+        "Status": "OK",
+        "ElapsedMs": 115
+      },
+      "7": {
+        "Status": "OK",
+        "ElapsedMs": 351
+      },
+      "8": {
+        "Status": "OK",
+        "ElapsedMs": 438
+      },
+      "9": {
+        "Status": "OK",
+        "ElapsedMs": 269
+      },
+      "10": {
+        "Status": "OK",
+        "ElapsedMs": 54
+      },
+      "11": {
+        "Status": "OK",
+        "ElapsedMs": 99
+      },
+      "12": {
+        "Status": "OK",
+        "ElapsedMs": 154
+      },
+      "13": {
+        "Status": "OK",
+        "ElapsedMs": 20
+      },
+      "14": {
+        "Status": "FAILED",
+        "ElapsedMs": 2
+      },
+      "15": {
+        "Status": "OK",
+        "ElapsedMs": 33
+      },
+      "16": {
+        "Status": "OK",
+        "ElapsedMs": 320
+      },
+      "17": {
+        "Status": "OK",
+        "ElapsedMs": 307
+      },
+      "18": {
+        "Status": "OK",
+        "ElapsedMs": 521
+      },
+      "19": {
+        "Status": "OK",
+        "ElapsedMs": 58
+      },
+      "20": {
+        "Status": "FAILED",
+        "ElapsedMs": 1
+      },
+      "21": {
+        "Status": "FAILED",
+        "ElapsedMs": 387
+      }
+    },
+    "Database": {
+      "0": {
+        "Status": "OK",
+        "ElapsedMs": 1538
+      },
+      "1": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 30016
+      },
+      "2": {
+        "Status": "OK",
+        "ElapsedMs": 399
+      },
+      "3": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 30004
+      },
+      "4": {
+        "Status": "OK",
+        "ElapsedMs": 1340
+      },
+      "5": {
+        "Status": "OK",
+        "ElapsedMs": 114
+      },
+      "6": {
+        "Status": "OK",
+        "ElapsedMs": 3381
+      },
+      "7": {
+        "Status": "OK",
+        "ElapsedMs": 244
+      },
+      "8": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 49911
+      },
+      "9": {
+        "Status": "OK",
+        "ElapsedMs": 954
+      },
+      "10": {
+        "Status": "OK",
+        "ElapsedMs": 571
+      },
+      "11": {
+        "Status": "OK",
+        "ElapsedMs": 440
+      },
+      "12": {
+        "Status": "OK",
+        "ElapsedMs": 4419
+      },
+      "13": {
+        "Status": "OK",
+        "ElapsedMs": 119
+      },
+      "14": {
+        "Status": "FAILED",
+        "ElapsedMs": 0
+      },
+      "15": {
+        "Status": "FAILED",
+        "ElapsedMs": 0
+      },
+      "16": {
+        "Status": "OK",
+        "ElapsedMs": 6558
+      },
+      "17": {
+        "Status": "OK",
+        "ElapsedMs": 5536
+      },
+      "18": {
+        "Status": "FAILED",
+        "ElapsedMs": 1
+      },
+      "19": {
+        "Status": "FAILED",
+        "ElapsedMs": 0
+      },
+      "20": {
+        "Status": "FAILED",
+        "ElapsedMs": 0
+      },
+      "21": {
+        "Status": "FAILED",
+        "ElapsedMs": 0
+      }
+    },
+    "Spark": {
+      "0": {
+        "Status": "OK",
+        "ElapsedMs": 4302
+      },
+      "1": {
+        "Status": "OK",
+        "ElapsedMs": 1097
+      },
+      "2": {
+        "Status": "OK",
+        "ElapsedMs": 1210
+      },
+      "3": {
+        "Status": "OK",
+        "ElapsedMs": 1359
+      },
+      "4": {
+        "Status": "OK",
+        "ElapsedMs": 2128
+      },
+      "5": {
+        "Status": "OK",
+        "ElapsedMs": 145
+      },
+      "6": {
+        "Status": "OK",
+        "ElapsedMs": 1587
+      },
+      "7": {
+        "Status": "OK",
+        "ElapsedMs": 877
+      },
+      "8": {
+        "Status": "OK",
+        "ElapsedMs": 1743
+      },
+      "9": {
+        "Status": "OK",
+        "ElapsedMs": 1489
+      },
+      "10": {
+        "Status": "OK",
+        "ElapsedMs": 403
+      },
+      "11": {
+        "Status": "OK",
+        "ElapsedMs": 578
+      },
+      "12": {
+        "Status": "OK",
+        "ElapsedMs": 1472
+      },
+      "13": {
+        "Status": "OK",
+        "ElapsedMs": 214
+      },
+      "14": {
+        "Status": "FAILED",
+        "ElapsedMs": 16
+      },
+      "15": {
+        "Status": "OK",
+        "ElapsedMs": 514
+      },
+      "16": {
+        "Status": "OK",
+        "ElapsedMs": 1721
+      },
+      "17": {
+        "Status": "OK",
+        "ElapsedMs": 4086
+      },
+      "18": {
+        "Status": "OK",
+        "ElapsedMs": 551
+      },
+      "19": {
+        "Status": "OK",
+        "ElapsedMs": 469
+      },
+      "20": {
+        "Status": "OK",
+        "ElapsedMs": 4905
+      },
+      "21": {
+        "Status": "OK",
+        "ElapsedMs": 367
+      }
+    },
+    "Sqlite": {
+      "0": {
+        "Status": "OK",
+        "ElapsedMs": 5310
+      },
+      "1": {
+        "Status": "OK",
+        "ElapsedMs": 1410
+      },
+      "2": {
+        "Status": "OK",
+        "ElapsedMs": 7134
+      },
+      "3": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 0
+      },
+      "4": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 0
+      },
+      "5": {
+        "Status": "OK",
+        "ElapsedMs": 737
+      },
+      "6": {
+        "Status": "OK",
+        "ElapsedMs": 2994
+      },
+      "7": {
+        "Status": "OK",
+        "ElapsedMs": 13629
+      },
+      "8": {
+        "Status": "OK",
+        "ElapsedMs": 17955
+      },
+      "9": {
+        "Status": "OK",
+        "ElapsedMs": 969
+      },
+      "10": {
+        "Status": "OK",
+        "ElapsedMs": 1156
+      },
+      "11": {
+        "Status": "OK",
+        "ElapsedMs": 764
+      },
+      "12": {
+        "Status": "OK",
+        "ElapsedMs": 4272
+      },
+      "13": {
+        "Status": "OK",
+        "ElapsedMs": 405
+      },
+      "14": {
+        "Status": "OK",
+        "ElapsedMs": 1129
+      },
+      "15": {
+        "Status": "OK",
+        "ElapsedMs": 240
+      },
+      "16": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 0
+      },
+      "17": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 0
+      },
+      "18": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 0
+      },
+      "19": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 0
+      },
+      "20": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 0
+      },
+      "21": {
+        "Status": "TIMED OUT",
+        "ElapsedMs": 0
+      }
+    }
+  }
+}
