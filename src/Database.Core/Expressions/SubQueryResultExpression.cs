@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Database.Core.Execution;
-using Database.Core.Planner;
 
 namespace Database.Core.Expressions;
 
@@ -16,8 +15,6 @@ public record SubQueryResultExpression(int SubQueryId, bool Correlated) : BaseEx
     /// Input memory table
     /// </summary>
     public MemoryStorage BoundInputMemoryTable { get; set; }
-
-    public LogicalPlan? BoundLogicalPlan { get; set; }
 
     public override IEnumerable<BaseExpression> Children()
     {

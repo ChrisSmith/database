@@ -87,7 +87,6 @@ public class QueryPlanner
         {
             // At this point all the table symbols are available, identify and rewrite the nested subqueries to use the intermediate result table
             correlatedPlans = LateBindSymbolsAndAllocateInputTable(context, correlatedPlans);
-            (plan, expressions) = BindCorrelatedSubPlan(context, plan, expressions, correlatedPlans);
         }
 
         if (select.Group?.Expressions != null || expressions.Any(ExpressionContainsAggregate))
@@ -173,77 +172,6 @@ public class QueryPlanner
         {
             BindContext = context,
         };
-    }
-
-    private (LogicalPlan, IReadOnlyList<BaseExpression>) BindCorrelatedSubPlan(
-        BindContext context,
-        LogicalPlan rootPlan,
-        IReadOnlyList<BaseExpression> expressions,
-        List<LogicalPlan> correlatedPlans)
-    {
-        var subPlan = correlatedPlans.Single();
-
-        BaseExpression? RewriteSubQueryInput(BaseExpression expr)
-        {
-            if (expr is SubQueryResultExpression { Correlated: true } re && re.BoundInputMemoryTable == default)
-            {
-                var (subQueryId, inputMemTable) = context.CorrelatedSubQueryInputs.Single();
-                return re with
-                {
-                    // TODO this doesn't look right, The SubQueryResultExpression should have an output table bound?
-                    // or actually it doesn't matter since its evaled as a column
-                    BoundInputMemoryTable = inputMemTable,
-                };
-            }
-            return expr;
-        }
-
-        rootPlan = rootPlan.Rewrite(p =>
-        {
-            if (p is Filter filter)
-            {
-                var updated = filter.Predicate.Rewrite(RewriteSubQueryInput);
-                if (updated != filter.Predicate)
-                {
-                    return filter with
-                    {
-                        Predicate = updated,
-                    };
-                }
-            }
-            else if (p is JoinSet joinSet)
-            {
-                var updated = BaseExpression.RewriteList(joinSet.Filters, RewriteSubQueryInput);
-                if (!ReferenceEquals(updated, joinSet.Filters))
-                {
-                    return joinSet with
-                    {
-                        Filters = updated,
-                    };
-                }
-            }
-            return p;
-        });
-
-
-        var outputExpressions = new List<BaseExpression>(expressions.Count);
-        foreach (var expr in expressions)
-        {
-            outputExpressions.Add(expr.Rewrite(e =>
-            {
-                if (e is SubQueryResultExpression { Correlated: true } re)
-                {
-                    return re with
-                    {
-                        BoundLogicalPlan = subPlan,
-                    };
-                }
-
-                return e;
-            }));
-        }
-
-        return (rootPlan, outputExpressions);
     }
 
     private List<LogicalPlan> LateBindSymbolsAndAllocateInputTable(
