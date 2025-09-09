@@ -95,7 +95,7 @@ public record Scan(
     bool Projection = false,
     string? Alias = null) : LogicalPlan
 {
-    public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
+    public override IReadOnlyList<ColumnSchema> OutputSchema => QueryPlanner.AddTableAlias(OutputColumns, Alias ?? "");
 
     public override IEnumerable<LogicalPlan> Inputs()
     {

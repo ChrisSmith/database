@@ -49,7 +49,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
         if (plan is Projection project)
         {
             Write($"Project({Expressions(project.Expressions)})", writer, ident);
-            WriteOutputColumns(project.OutputColumns, writer);
+            WriteOutputColumns(project.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(project.Input, writer, ident + 1);
             return;
@@ -78,7 +78,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
             var filterCon = scan.Filter != null ? " where " + scan.Filter : "";
             var withProjection = scan.Projection ? " with projection " : "";
             Write($"Scan({scan.Table}){filterCon}{withProjection}", writer, ident);
-            WriteOutputColumns(scan.OutputColumns, writer);
+            WriteOutputColumns(scan.OutputSchema, writer);
             WriteLine("", writer, ident);
             return;
         }

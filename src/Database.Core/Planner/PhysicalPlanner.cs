@@ -190,7 +190,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
     private IOperation CreateScan(Scan scan, BindContext context)
     {
-        var outputColumns = scan.OutputColumns;
+        var outputColumns = scan.OutputSchema;
         var columnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
 
         var table = catalog.Tables.SingleOrDefault(t => t.Id == scan.TableId);

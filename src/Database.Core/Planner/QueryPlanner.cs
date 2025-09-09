@@ -549,23 +549,25 @@ public class QueryPlanner
         Scan CreateScanForTable(TableStatement tableStmt)
         {
             var table = _catalog.GetTable(tableStmt.Table);
-            var tableAlias = tableStmt.Alias ?? "";
-            var tableColumns = table.Columns.Select(c => c with
-            {
-                // Add the table alias here so the select from a join can disambiguate
-                SourceTableAlias = tableAlias,
-            }).ToList();
-
             context.AddSymbols(table, tableStmt.Alias);
 
             return new Scan(
                 table.Name,
                 table.Id,
                 null,
-                tableColumns,
+                table.Columns,
                 Projection: false,
+                // Add the table alias here so the select from a join can disambiguate
                 Alias: tableStmt.Alias);
         }
+    }
+
+    public static List<ColumnSchema> AddTableAlias(IReadOnlyList<ColumnSchema> columns, string tableAlias)
+    {
+        return columns.Select(c => c with
+        {
+            SourceTableAlias = tableAlias,
+        }).ToList();
     }
 
     public QueryPlan CreatePlan(IStatement statement)

@@ -369,11 +369,8 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                     e.Alias,
                     e.BoundMemoryTable.TableId,
                     null,
-                    table.Schema.Select(c => c with
-                    {
-                        SourceTableAlias = e.Alias,
-                        SourceTableName = e.Alias,
-                    }).ToList()
+                    table.Schema,
+                    Alias: e.Alias
                     );
                 var joinCond = new BinaryExpression(
                     TokenType.EQUAL, "=",
@@ -487,7 +484,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                 return false;
             }
 
-            if (TryBind(predicate, scan.OutputColumns, out var boundPredicate))
+            if (TryBind(predicate, scan.OutputSchema, out var boundPredicate))
             {
                 updated = new Filter(scan, boundPredicate);
                 return true;
