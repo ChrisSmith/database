@@ -47,11 +47,17 @@ public class CostBasedOptimizer(ConfigOptions config, PhysicalPlanner physicalPl
             Sort sort => OptimizeSort(sort, context),
             Limit limit => OptimizeLimit(limit, context),
             TopNSort top => OptimizeTopSort(top, context),
+            Apply apply => OptimizeApply(apply, context),
             Scan scan => scan,
             _ => throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer")
         };
 
         return bestPlan;
+    }
+
+    private LogicalPlan OptimizeApply(Apply apply, BindContext context)
+    {
+        return apply with { Input = SearchForBestPlan(apply.Input, context) };
     }
 
     private LogicalPlan OptimizeTopSort(TopNSort top, BindContext context)

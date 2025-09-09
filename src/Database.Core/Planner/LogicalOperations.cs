@@ -57,10 +57,9 @@ public abstract record LogicalPlan
     }
 }
 
-[DebuggerDisplay("plan({PlanId}) with subqueries(c={Correlated.Count}, u={Uncorrelated.Count})")]
+[DebuggerDisplay("plan({PlanId}) with subqueries(u={Uncorrelated.Count})")]
 public record PlanWithSubQueries(
     LogicalPlan Plan,
-    List<LogicalPlan> Correlated,
     List<LogicalPlan> Uncorrelated
     ) : LogicalPlan
 {
@@ -323,5 +322,30 @@ public record TopNSort(
             throw new ArgumentException($"Top-N expects 1 child but received {newInputs.Count}.");
         }
         return this with { Input = newInputs[0] };
+    }
+}
+
+public record Apply(
+    LogicalPlan Input,
+    List<LogicalPlan> Correlated
+) : LogicalPlan
+{
+    public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
+    public override IEnumerable<LogicalPlan> Inputs()
+    {
+        yield return Input;
+        foreach (var sub in Correlated)
+        {
+            yield return sub;
+        }
+    }
+
+    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    {
+        if (newInputs.Count != Correlated.Count + 1)
+        {
+            throw new ArgumentException($"Apply expects {Correlated.Count + 1} children but received {newInputs.Count}.");
+        }
+        return this with { Input = newInputs[0], Correlated = [.. newInputs.Skip(1)] };
     }
 }

@@ -14,4 +14,6 @@ public class ConfigOptions
     public bool OptPushDownFilter { get; set; } = true;
 
     public bool OptTopNSort { get; set; } = true;
+
+    public bool OptDecorrelateSubqueries { get; set; } = false;
 }

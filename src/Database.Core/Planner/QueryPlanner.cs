@@ -87,6 +87,8 @@ public class QueryPlanner
         {
             // At this point all the table symbols are available, identify and rewrite the nested subqueries to use the intermediate result table
             correlatedPlans = LateBindSymbolsAndAllocateInputTable(context, correlatedPlans);
+            // TODO move this around to support subqueries in the having clause
+            plan = new Apply(plan, correlatedPlans);
         }
 
         if (select.Group?.Expressions != null || expressions.Any(ExpressionContainsAggregate))
@@ -164,9 +166,9 @@ public class QueryPlanner
             plan = new Limit(plan, select.Limit.Count);
         }
 
-        if (correlatedPlans.Count > 0 || uncorrelatedPlans.Count > 0)
+        if (uncorrelatedPlans.Count > 0)
         {
-            return new PlanWithSubQueries(plan, correlatedPlans, uncorrelatedPlans);
+            return new PlanWithSubQueries(plan, uncorrelatedPlans);
         }
         return plan with
         {

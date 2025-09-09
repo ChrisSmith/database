@@ -69,18 +69,25 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             return CreateTopNSort(top, input, context);
         }
 
-        if (plan is PlanWithSubQueries planWithSub)
+        if (plan is Apply apply)
         {
             var correlatedPlans = new List<IOperation>();
-            for (var i = 0; i < planWithSub.Correlated.Count; i++)
+            for (var i = 0; i < apply.Correlated.Count; i++)
             {
-                var subquery = planWithSub.Correlated[i];
+                var subquery = apply.Correlated[i];
                 var subContext = subquery.BindContext ?? throw new QueryPlanException("Subquery has no bind context");
                 subContext.SupportsLateBinding = false;
                 var subPlan = CreatePhysicalPlan(subquery, subContext);
                 correlatedPlans.Add(subPlan);
             }
+            context.CorrelatedSubQueryOps.AddRange(correlatedPlans);
 
+            var input = CreatePhysicalPlan(apply.Input, context);
+            return input;
+        }
+
+        if (plan is PlanWithSubQueries planWithSub)
+        {
             var unCorrelatedPlans = new List<IOperation>();
             for (var i = 0; i < planWithSub.Uncorrelated.Count; i++)
             {
@@ -90,9 +97,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 unCorrelatedPlans.Add(subPlan);
             }
 
-            context.CorrelatedSubQueryOps.AddRange(correlatedPlans);
             var main = CreatePhysicalPlan(planWithSub.Plan, context);
-            return CreatePlanWithSubqueries(planWithSub, main, correlatedPlans, unCorrelatedPlans);
+            return CreatePlanWithSubqueries(planWithSub, main, unCorrelatedPlans);
         }
 
         throw new NotImplementedException($"Type {plan.GetType()} is not supported in physical plan");
@@ -136,7 +142,6 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
     private IOperation CreatePlanWithSubqueries(
         PlanWithSubQueries planWithSub,
         IOperation main,
-        List<IOperation> correlatedPlans,
         List<IOperation> uncorrelatedPlans
         )
     {

@@ -35,7 +35,7 @@ limit 100;
 
 
 Original
-PlanWithSubQueries(c=0, u=1) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)
+PlanWithSubQueries(u=1) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)
  Project(l_orderkey) -> .l_orderkey 
     Filter(SUM(l_quantity) > cast(300 as Decimal)) -> .l_orderkey, .SUM(l_quantity)    
        Agg(l_orderkey, SUM(l_quantity)) group by (l_orderkey) -> .l_orderkey, .SUM(l_quantity)       
@@ -54,7 +54,7 @@ PlanWithSubQueries(c=0, u=1) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, 
 
 
 Optimized
-PlanWithSubQueries(c=0, u=1) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)
+PlanWithSubQueries(u=1) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)
  Project(l_orderkey) -> .l_orderkey 
     Filter(SUM(l_quantity) > cast(300 as Decimal)) -> .l_orderkey, .SUM(l_quantity)    
        Agg(l_orderkey, SUM(l_quantity)) group by (l_orderkey) -> .l_orderkey, .SUM(l_quantity)       

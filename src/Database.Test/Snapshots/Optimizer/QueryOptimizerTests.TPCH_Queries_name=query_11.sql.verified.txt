@@ -29,7 +29,7 @@ ORDER BY
 
 
 Original
-PlanWithSubQueries(c=0, u=1) -> .ps_partkey, .value
+PlanWithSubQueries(u=1) -> .ps_partkey, .value
  Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
     Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by () -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
        JoinSet(partsupp (Inner) x supplier (Inner) x nation (Inner)) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .n_comment       
@@ -53,7 +53,7 @@ PlanWithSubQueries(c=0, u=1) -> .ps_partkey, .value
 
 
 Optimized
-PlanWithSubQueries(c=0, u=1) -> .ps_partkey, .value
+PlanWithSubQueries(u=1) -> .ps_partkey, .value
  Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
     Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by () -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
        Join(Inner on s_nationkey = n_nationkey) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name       

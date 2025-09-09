@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks.Dataflow;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
 using Database.Core.Options;
+using Database.Core.Planner.LogicalRules;
 using Database.Core.Planner.QueryGraph;
 using BinaryExpression = Database.Core.Expressions.BinaryExpression;
 
@@ -13,17 +13,18 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
 {
     public LogicalPlan OptimizePlan(LogicalPlan plan, BindContext context)
     {
+        var rule = new CorrelatedSubQueryRule(config, _binder);
+        plan = plan.Rewrite(p =>
+        {
+            if (rule.CanRewrite(p))
+            {
+                return rule.Rewrite(context, p);
+            }
+            return p;
+        });
+
         if (plan is PlanWithSubQueries planWithSub)
         {
-            var optCorrelated = new List<LogicalPlan>();
-            for (var i = 0; i < planWithSub.Correlated.Count; i++)
-            {
-                var subquery = planWithSub.Correlated[i];
-                var subContext = subquery.BindContext ?? throw new QueryPlanException("Subquery has no bind context");
-                subContext.SupportsLateBinding = false;
-                optCorrelated.Add(PerformOptimizationSteps(subquery, subContext));
-            }
-
             var optUncorrelated = new List<LogicalPlan>();
             for (var i = 0; i < planWithSub.Uncorrelated.Count; i++)
             {
@@ -34,11 +35,34 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
 
             return planWithSub with
             {
-                Correlated = optCorrelated,
                 Uncorrelated = optUncorrelated,
                 Plan = PerformOptimizationSteps(planWithSub.Plan, context),
             };
         }
+
+        // If there are subqueries we were unable to decorrelate, optimize them individually
+        plan = plan.Rewrite(p =>
+        {
+            if (p is Apply apply)
+            {
+                var children = apply.Correlated.ToList();
+                var anyChanges = false;
+                for (var i = 0; i < children.Count; i++)
+                {
+                    var subquery = children[i];
+                    var subContext = subquery.BindContext ?? throw new QueryPlanException("Subquery has no bind context");
+                    children[i] = PerformOptimizationSteps(subquery, subContext);
+                    anyChanges = anyChanges || !ReferenceEquals(children[i], subquery);
+                }
+
+                if (!anyChanges)
+                {
+                    return apply;
+                }
+                return apply with { Correlated = children, };
+            }
+            return p;
+        });
 
         return PerformOptimizationSteps(plan, context);
     }
@@ -152,7 +176,20 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
             return OptimizeTopSort(top, parents, context);
         }
 
+        if (plan is Apply apply)
+        {
+            return OptimizeApply(apply, parents, context);
+        }
+
         throw new NotImplementedException($"Type of {plan.GetType().Name} not implemented in QueryOptimizer");
+    }
+
+    private LogicalPlan OptimizeApply(Apply apply, IReadOnlyList<LogicalPlan> parents, BindContext context)
+    {
+        return apply with
+        {
+            Input = Optimize(apply.Input, parents, context),
+        };
     }
 
     private LogicalPlan ExpandJoinSet(JoinSet joinSet, BindContext context)

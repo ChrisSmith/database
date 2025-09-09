@@ -9,7 +9,7 @@
         
 
 Original
-PlanWithSubQueries(c=0, u=1) -> .count
+PlanWithSubQueries(u=1) -> .count
  Project(max(CategoricalInt)) -> .max(CategoricalInt) 
     Agg(max(CategoricalInt)) group by () -> .max(CategoricalInt)    
        Filter(CategoricalString = cat) -> q.Id, q.Unordered, q.Name, q.CategoricalInt, q.CategoricalString       
@@ -21,7 +21,7 @@ PlanWithSubQueries(c=0, u=1) -> .count
 
 
 Optimized
-PlanWithSubQueries(c=0, u=1) -> .count
+PlanWithSubQueries(u=1) -> .count
  Project(max(CategoricalInt)) -> .max(CategoricalInt) 
     Agg(max(CategoricalInt)) group by () -> .max(CategoricalInt)    
        Filter(CategoricalString = cat) -> q.CategoricalInt, q.CategoricalString       

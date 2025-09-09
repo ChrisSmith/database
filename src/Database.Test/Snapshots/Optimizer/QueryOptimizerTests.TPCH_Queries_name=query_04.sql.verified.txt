@@ -19,29 +19,29 @@ order by
 
 
 Original
-PlanWithSubQueries(c=1, u=0) -> .o_orderpriority, .order_count
- Limit(n=1) -> .True 
-    Project(True) -> .True    
-       Project(l_orderkey, l_partkey, l_suppkey, l_linenumber, l_quantity, l_extendedprice, l_discount, l_tax, l_returnflag, l_linestatus, l_shipdate, l_commitdate, l_receiptdate, l_shipinstruct, l_shipmode, l_comment) -> lineitem.l_orderkey, lineitem.l_partkey, lineitem.l_suppkey, lineitem.l_linenumber, lineitem.l_quantity, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_tax, lineitem.l_returnflag, lineitem.l_linestatus, lineitem.l_shipdate, lineitem.l_commitdate, lineitem.l_receiptdate, lineitem.l_shipinstruct, lineitem.l_shipmode, lineitem.l_comment       
-          Filter(l_orderkey = o_orderkey and l_commitdate < l_receiptdate) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
-             Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
- Project(o_orderpriority, order_count) -> .o_orderpriority, .order_count 
-    Sort(o_orderpriority ASC) -> .order_count, .o_orderpriority    
-       Agg(count(*), o_orderpriority) group by (o_orderpriority) -> .order_count, .o_orderpriority       
+Project(o_orderpriority, order_count) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC) -> .order_count, .o_orderpriority 
+    Agg(count(*), o_orderpriority) group by (o_orderpriority) -> .order_count, .o_orderpriority    
+       Apply(c=1) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment       
+          Limit(n=1) -> .True          
+             Project(True) -> .True             
+                Project(l_orderkey, l_partkey, l_suppkey, l_linenumber, l_quantity, l_extendedprice, l_discount, l_tax, l_returnflag, l_linestatus, l_shipdate, l_commitdate, l_receiptdate, l_shipinstruct, l_shipmode, l_comment) -> lineitem.l_orderkey, lineitem.l_partkey, lineitem.l_suppkey, lineitem.l_linenumber, lineitem.l_quantity, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_tax, lineitem.l_returnflag, lineitem.l_linestatus, lineitem.l_shipdate, lineitem.l_commitdate, lineitem.l_receiptdate, lineitem.l_shipinstruct, lineitem.l_shipmode, lineitem.l_comment                
+                   Filter(l_orderkey = o_orderkey and l_commitdate < l_receiptdate) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                   
+                      Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                      
           Filter(o_orderdate >= 07/01/1993 00:00:00 and o_orderdate < 10/01/1993 00:00:00 and correlated-subquery(1)) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment          
              Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
 
 
 Optimized
-PlanWithSubQueries(c=1, u=0) -> .o_orderpriority, .order_count
- Limit(n=1) -> .True 
-    Project(True) -> .True    
-       Project(l_orderkey, l_partkey, l_suppkey, l_linenumber, l_quantity, l_extendedprice, l_discount, l_tax, l_returnflag, l_linestatus, l_shipdate, l_commitdate, l_receiptdate, l_shipinstruct, l_shipmode, l_comment) -> lineitem.l_orderkey, lineitem.l_partkey, lineitem.l_suppkey, lineitem.l_linenumber, lineitem.l_quantity, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_tax, lineitem.l_returnflag, lineitem.l_linestatus, lineitem.l_shipdate, lineitem.l_commitdate, lineitem.l_receiptdate, lineitem.l_shipinstruct, lineitem.l_shipmode, lineitem.l_comment       
-          Filter(l_orderkey = o_orderkey and l_commitdate < l_receiptdate) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
-             Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
- Project(o_orderpriority, order_count) -> .o_orderpriority, .order_count 
-    Sort(o_orderpriority ASC) -> .order_count, .o_orderpriority    
-       Agg(count(*), o_orderpriority) group by (o_orderpriority) -> .order_count, .o_orderpriority       
+Project(o_orderpriority, order_count) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC) -> .order_count, .o_orderpriority 
+    Agg(count(*), o_orderpriority) group by (o_orderpriority) -> .order_count, .o_orderpriority    
+       Apply(c=1) -> .o_orderkey, .o_orderdate, .o_orderpriority       
+          Limit(n=1) -> .True          
+             Project(True) -> .True             
+                Project(l_orderkey, l_partkey, l_suppkey, l_linenumber, l_quantity, l_extendedprice, l_discount, l_tax, l_returnflag, l_linestatus, l_shipdate, l_commitdate, l_receiptdate, l_shipinstruct, l_shipmode, l_comment) -> lineitem.l_orderkey, lineitem.l_partkey, lineitem.l_suppkey, lineitem.l_linenumber, lineitem.l_quantity, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_tax, lineitem.l_returnflag, lineitem.l_linestatus, lineitem.l_shipdate, lineitem.l_commitdate, lineitem.l_receiptdate, lineitem.l_shipinstruct, lineitem.l_shipmode, lineitem.l_comment                
+                   Filter(l_orderkey = o_orderkey and l_commitdate < l_receiptdate) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                   
+                      Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                      
           Filter(correlated-subquery(1)) -> .o_orderkey, .o_orderdate, .o_orderpriority          
              Filter(o_orderdate < 10/01/1993 00:00:00) -> .o_orderkey, .o_orderdate, .o_orderpriority             
                 Filter(o_orderdate >= 07/01/1993 00:00:00) -> .o_orderkey, .o_orderdate, .o_orderpriority                
@@ -49,11 +49,10 @@ PlanWithSubQueries(c=1, u=0) -> .o_orderpriority, .order_count
 
 
 Cost Optimized
-PlanWithSubQueries(u=0) -> .o_orderpriority, .order_count
- Project(o_orderpriority, order_count) cost (output_rows=10, cpu=20, disk=0, total=6505) -> .o_orderpriority, .order_count 
-    Sort(o_orderpriority ASC) cost (output_rows=10, cpu=30, disk=0, total=6505) -> .o_orderpriority, .order_count    
-       HashAggregate(o_orderpriority, count(*)) cost (output_rows=10, cpu=9000, disk=0, total=6505) -> .o_orderpriority, .order_count       
-          Filter(correlated-subquery(1)) cost (output_rows=1500, cpu=45000, disk=0, total=6496) -> .o_orderkey, .o_orderdate, .o_orderpriority          
-             Filter(o_orderdate < 10/01/1993 00:00:00) cost (output_rows=15000, cpu=450000, disk=0, total=6451) -> .o_orderkey, .o_orderdate, .o_orderpriority             
-                Filter(o_orderdate >= 07/01/1993 00:00:00) cost (output_rows=150000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_orderdate, .o_orderpriority                
-                   FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderdate, .o_orderpriority
+Project(o_orderpriority, order_count) cost (output_rows=10, cpu=20, disk=0, total=6505) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC) cost (output_rows=10, cpu=30, disk=0, total=6505) -> .o_orderpriority, .order_count 
+    HashAggregate(o_orderpriority, count(*)) cost (output_rows=10, cpu=9000, disk=0, total=6505) -> .o_orderpriority, .order_count    
+       Filter(correlated-subquery(1)) cost (output_rows=1500, cpu=45000, disk=0, total=6496) -> .o_orderkey, .o_orderdate, .o_orderpriority       
+          Filter(o_orderdate < 10/01/1993 00:00:00) cost (output_rows=15000, cpu=450000, disk=0, total=6451) -> .o_orderkey, .o_orderdate, .o_orderpriority          
+             Filter(o_orderdate >= 07/01/1993 00:00:00) cost (output_rows=150000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_orderdate, .o_orderpriority             
+                FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderdate, .o_orderpriority

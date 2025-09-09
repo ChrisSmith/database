@@ -101,6 +101,19 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
             return;
         }
 
+        if (plan is Apply apply)
+        {
+            Write($"Apply(c={apply.Correlated.Count})", writer, ident);
+            WriteOutputColumns(apply.OutputSchema, writer);
+            WriteLine("", writer, ident);
+            foreach (var subquery in apply.Correlated)
+            {
+                Explain(subquery, writer, ident + 1);
+            }
+            Explain(apply.Input, writer, ident + 1);
+            return;
+        }
+
         if (plan is JoinSet joinSet)
         {
             var tables = string.Join(" x ", joinSet.Relations.Select(r => $"{r.Name} ({r.JoinType})"));
@@ -125,13 +138,9 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (plan is PlanWithSubQueries planWithSub)
         {
-            Write($"PlanWithSubQueries(c={planWithSub.Correlated.Count}, u={planWithSub.Uncorrelated.Count})", writer, ident);
+            Write($"PlanWithSubQueries(u={planWithSub.Uncorrelated.Count})", writer, ident);
             WriteOutputColumns(planWithSub.OutputSchema, writer);
             WriteLine("", writer, ident);
-            foreach (var subquery in planWithSub.Correlated)
-            {
-                Explain(subquery, writer, ident + 1);
-            }
             foreach (var subquery in planWithSub.Uncorrelated)
             {
                 Explain(subquery, writer, ident + 1);
