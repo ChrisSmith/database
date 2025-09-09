@@ -163,12 +163,6 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
         if (projectionExpr != null)
         {
             rightExpr = projectionExpr;
-            // projectionExpr = _binder.Bind(context, projectionExpr, rootPlan.OutputSchema);
-            // rootPlan = new Projection(rootPlan,
-            //     [projectionExpr],
-            //     QueryPlanner.SchemaFromExpressions([projectionExpr], null),
-            //     null
-            //     );
         }
         else
         {

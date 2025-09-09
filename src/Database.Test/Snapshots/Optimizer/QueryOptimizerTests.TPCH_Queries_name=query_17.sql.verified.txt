@@ -37,26 +37,28 @@ Project(sum(l_extendedprice) / 7.0) -> .avg_yearly
 Optimized
 Project(sum(l_extendedprice) / 7.0) -> .avg_yearly
  Agg(sum(l_extendedprice)) group by () -> .sum(l_extendedprice) 
-    Apply(c=1) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container    
-       Project(cast(0.2 as Double) * avg(l_quantity)) -> .cast(0.2 as Double) * avg(l_quantity)       
-          Agg(avg(l_quantity)) group by () -> .avg(l_quantity)          
-             Filter(l_partkey = p_partkey) -> .l_partkey, .l_quantity             
-                Scan(lineitem) with projection  -> .l_partkey, .l_quantity                
-       Filter(l_quantity < correlated-subquery(1)) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container       
+    Filter(l_quantity < cast(cast(0.2 as Double) * avg(l_quantity) as Decimal)) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container, correlated0.l_partkey, correlated0.avg(l_quantity)    
+       Join(Inner on p_partkey = l_partkey) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container, correlated0.l_partkey, correlated0.avg(l_quantity)       
           Join(Inner on p_partkey = l_partkey) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container          
              Scan(lineitem) with projection  -> .l_partkey, .l_quantity, .l_extendedprice             
           
              Filter(p_container = MED BOX) -> .p_partkey, .p_brand, .p_container             
                 Filter(p_brand = Brand#23) -> .p_partkey, .p_brand, .p_container                
                    Scan(part) with projection  -> .p_partkey, .p_brand, .p_container                   
+       
+          Agg(l_partkey, avg(l_quantity)) group by (l_partkey) -> correlated0.l_partkey, correlated0.avg(l_quantity)          
+             Scan(lineitem) with projection  -> .l_partkey, .l_quantity, .l_extendedprice             
 
 
 Cost Optimized
-Project(sum(l_extendedprice) / 7.0) cost (output_rows=600121, cpu=1200242, disk=0, total=50679) -> .avg_yearly
- UngroupedAggregate(sum(l_extendedprice)) cost (output_rows=600121, cpu=600121, disk=0, total=49478) -> .sum(l_extendedprice) 
-    Filter(l_quantity < cast(correlated-subquery(1) as Decimal)) cost (output_rows=600121, cpu=36007290, disk=0, total=48878) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container    
-       HashJoin(Inner p_partkey, l_partkey) cost (output_rows=6001215, cpu=6005215, disk=0, total=12871) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container       
-          FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_partkey, .l_quantity, .l_extendedprice       
-          Filter(p_container = MED BOX) cost (output_rows=2000, cpu=60000, disk=0, total=860) -> .p_partkey, .p_brand, .p_container          
-             Filter(p_brand = Brand#23) cost (output_rows=20000, cpu=600000, disk=0, total=800) -> .p_partkey, .p_brand, .p_container             
-                FileScan({SolutionDirectory}tpch/1/part2.parquet) cost (output_rows=200000, cpu=200000, disk=2, total=200) -> .p_partkey, .p_brand, .p_container
+Project(sum(l_extendedprice) / 7.0) cost (output_rows=600121, cpu=1200242, disk=0, total=110696) -> .avg_yearly
+ UngroupedAggregate(sum(l_extendedprice)) cost (output_rows=600121, cpu=600121, disk=0, total=109496) -> .sum(l_extendedprice) 
+    Filter(l_quantity < cast(cast(0.2 as Double) * avg(l_quantity) as Decimal)) cost (output_rows=600121, cpu=48009720, disk=0, total=108895) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container, correlated0.l_partkey, correlated0.avg(l_quantity)    
+       HashJoin(Inner l_partkey, p_partkey) cost (output_rows=6001215, cpu=6001235, disk=0, total=60886) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container, correlated0.l_partkey, correlated0.avg(l_quantity)       
+          HashJoin(Inner p_partkey, l_partkey) cost (output_rows=6001215, cpu=6005215, disk=0, total=12871) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container          
+             FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_partkey, .l_quantity, .l_extendedprice          
+             Filter(p_container = MED BOX) cost (output_rows=2000, cpu=60000, disk=0, total=860) -> .p_partkey, .p_brand, .p_container             
+                Filter(p_brand = Brand#23) cost (output_rows=20000, cpu=600000, disk=0, total=800) -> .p_partkey, .p_brand, .p_container                
+                   FileScan({SolutionDirectory}tpch/1/part2.parquet) cost (output_rows=200000, cpu=200000, disk=2, total=200) -> .p_partkey, .p_brand, .p_container       
+          HashAggregate(l_partkey, avg(l_quantity)) cost (output_rows=10, cpu=36007290, disk=0, total=42012) -> correlated0.l_partkey, correlated0.avg(l_quantity)          
+             FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_partkey, .l_quantity, .l_extendedprice

@@ -15,5 +15,5 @@ public class ConfigOptions
 
     public bool OptTopNSort { get; set; } = true;
 
-    public bool OptDecorrelateSubqueries { get; set; } = false;
+    public bool OptDecorrelateSubqueries { get; set; } = true;
 }
