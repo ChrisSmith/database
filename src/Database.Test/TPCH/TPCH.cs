@@ -53,7 +53,29 @@ public class TPCHTests
         var query = ReadQuery("query_02.sql");
 
         var result = _runner.Run(query, token);
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result[..20].Should().BeEquivalentTo(new List<Row>
+        {
+            new([9938.53m, "Supplier#000005359", "UNITED KINGDOM", 185358, "Manufacturer#4", "bgxj2K0w1kJvxYl5mhCfou,W", "33-429-790-6131", "l, ironic instructions cajole"]),
+            new([9937.84m, "Supplier#000005969", "ROMANIA", 108438, "Manufacturer#1", "rdnmd9c8EG1EIAYY3LPVa4yUNx6OwyVaQ", "29-520-692-3537", "es. furiously silent deposits among the deposits haggle furiously a"]),
+            new([9936.22m, "Supplier#000005250", "UNITED KINGDOM", 249, "Manufacturer#4", "qX AB0vP8mJEWeBuY9jri", "33-320-228-2957", "ar, regular requests nag blithely special accounts. final deposits impress carefully. ironic,"]),
+            new([9923.77m, "Supplier#000002324", "GERMANY", 29821, "Manufacturer#4", "uXcnR7tv87dG", "17-779-299-1839", "s sleep according to the quick requests. carefully "]),
+            new([9871.22m, "Supplier#000006373", "GERMANY", 43868, "Manufacturer#5", "iSLO35z7Ae", "17-813-485-8637", "against the slyly daring requests. unusual accounts wake atop the blithely spe"]),
+            new([9870.78m, "Supplier#000001286", "GERMANY", 81285, "Manufacturer#2", "3gq0mZLHI5OTM6 tBYmLTHZaulCYnlECzQ7nj", "17-516-924-4574", "into beans haggle at the quickly final asymptotes. unusu"]),
+            new([9870.78m, "Supplier#000001286", "GERMANY", 181285, "Manufacturer#4", "3gq0mZLHI5OTM6 tBYmLTHZaulCYnlECzQ7nj", "17-516-924-4574", "into beans haggle at the quickly final asymptotes. unusu"]),
+            new([9852.52m, "Supplier#000008973", "RUSSIA", 18972, "Manufacturer#2", "zVfUT3Np22kUC05tYWHBotaR", "32-188-594-7038", "ly daring excuses unwind carefully above the fu"]),
+            new([9847.83m, "Supplier#000008097", "RUSSIA", 130557, "Manufacturer#2", "veMRTQBmUResNvfD3", "32-375-640-3593", " slyly ironic, special requests. final instructions above the qu"]),
+            new([9847.57m, "Supplier#000006345", "FRANCE", 86344, "Manufacturer#1", "68yX tGXAkVRSxUGNSjJdptw 8O878xaFnaoQK", "16-886-766-7945", "odolites. blithely special requests above the regular foxes sleep unusual sauternes. care"]),
+            new([9847.57m, "Supplier#000006345", "FRANCE", 173827, "Manufacturer#2", "68yX tGXAkVRSxUGNSjJdptw 8O878xaFnaoQK", "16-886-766-7945", "odolites. blithely special requests above the regular foxes sleep unusual sauternes. care"]),
+            new([9836.93m, "Supplier#000007342", "RUSSIA", 4841, "Manufacturer#4", "icFgTpZ0TuAm188dv", "32-399-414-5385", " packages are blithely about the quickly"]),
+            new([9817.10m, "Supplier#000002352", "RUSSIA", 124815, "Manufacturer#2", "XfLCj71HKHnPqgvs7KNgPKcOWoWxo2w", "32-551-831-1437", "al packages doze always according to the quickly f"]),
+            new([9817.10m, "Supplier#000002352", "RUSSIA", 152351, "Manufacturer#3", "XfLCj71HKHnPqgvs7KNgPKcOWoWxo2w", "32-551-831-1437", "al packages doze always according to the quickly f"]),
+            new([9739.86m, "Supplier#000003384", "FRANCE", 138357, "Manufacturer#2", "D01XwXbcILNwmrGS6ZPrVhZxO40i", "16-494-913-5925", "es. carefully regular ideas cajole. quickly ironic requests haggle. pending sentiment"]),
+            new([9721.95m, "Supplier#000008757", "UNITED KINGDOM", 156241, "Manufacturer#3", "ryKUkEeWN7Z", "33-821-407-2995", " the instructions breach slyly "]),
+            new([9681.33m, "Supplier#000008406", "RUSSIA", 78405, "Manufacturer#1", "1A6x3PLy6F", "32-139-873-8571", "ons sleep express deposits. epitap"]),
+            new([9643.55m, "Supplier#000005148", "ROMANIA", 107617, "Manufacturer#1", "H7WOI6lzFuSsWzTSBrhzTYV", "29-252-617-4850", "carefully platelets. packages sleep special ideas. quick"]),
+            new([9624.82m, "Supplier#000001816", "FRANCE", 34306, "Manufacturer#3", "NTwQPSZwfhc4uu1EMvEDopBnEv2j P", "16-392-237-6726", " the express, regular accounts. regular decoys boost alongside of "]),
+            new([9624.78m, "Supplier#000009658", "ROMANIA", 189657, "Manufacturer#1", "DmRxpLmL88XCBiONB3tq3e0u", "29-748-876-2014", "inst the blithely brave frays. brav"])
+        });
     }
 
     [Test]
