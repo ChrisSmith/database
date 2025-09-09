@@ -80,19 +80,19 @@ PlanWithSubQueries(c=0, u=1) -> .ps_partkey, .value
 
 Cost Optimized
 PlanWithSubQueries(u=1) -> .ps_partkey, .value
- Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001) cost (output_rows=800000, cpu=1600000, disk=0, total=4841) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
-    UngroupedAggregate(SUM(ps_supplycost * cast(ps_availqty as Decimal))) cost (output_rows=800000, cpu=800000, disk=0, total=3241) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
-       HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=800000, cpu=800054, disk=0, total=2441) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name       
-          HashJoin(Inner s_suppkey, ps_suppkey) cost (output_rows=800000, cpu=830000, disk=1, total=1640) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey          
+ Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001) cost (output_rows=800000, cpu=1600000, disk=0, total=4830) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
+    UngroupedAggregate(SUM(ps_supplycost * cast(ps_availqty as Decimal))) cost (output_rows=800000, cpu=800000, disk=0, total=3230) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+       HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=800000, cpu=800004, disk=0, total=2430) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name       
+          HashJoin(Inner s_suppkey, ps_suppkey) cost (output_rows=800000, cpu=820000, disk=0, total=1630) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey          
              FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_suppkey, .ps_availqty, .ps_supplycost          
              FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_nationkey       
           Filter(n_name = GERMANY) cost (output_rows=2, cpu=50, disk=0, total=0) -> .n_nationkey, .n_name          
-             FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name Project(ps_partkey, value) cost (output_rows=1, cpu=2, disk=0, total=10441) -> .ps_partkey, .value 
-    Sort(value DESC) cost (output_rows=1, cpu=0, disk=0, total=10441) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
-       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal)) > subquery(1)) cost (output_rows=1, cpu=30, disk=0, total=10441) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))       
-          HashAggregate(ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal)), SUM(ps_supplycost * cast(ps_availqty as Decimal))) cost (output_rows=10, cpu=8000000, disk=0, total=10441) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))          
-             HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=800000, cpu=800054, disk=0, total=2441) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name             
-                HashJoin(Inner s_suppkey, ps_suppkey) cost (output_rows=800000, cpu=830000, disk=1, total=1640) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey                
+             FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name Project(ps_partkey, value) cost (output_rows=1, cpu=2, disk=0, total=10430) -> .ps_partkey, .value 
+    Sort(value DESC) cost (output_rows=1, cpu=0, disk=0, total=10430) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal)) > subquery(1)) cost (output_rows=1, cpu=30, disk=0, total=10430) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))       
+          HashAggregate(ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal)), SUM(ps_supplycost * cast(ps_availqty as Decimal))) cost (output_rows=10, cpu=8000000, disk=0, total=10430) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))          
+             HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=800000, cpu=800004, disk=0, total=2430) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name             
+                HashJoin(Inner s_suppkey, ps_suppkey) cost (output_rows=800000, cpu=820000, disk=0, total=1630) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey                
                    FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost                
                    FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_nationkey             
                 Filter(n_name = GERMANY) cost (output_rows=2, cpu=50, disk=0, total=0) -> .n_nationkey, .n_name                

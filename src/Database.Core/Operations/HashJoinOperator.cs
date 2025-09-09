@@ -244,14 +244,15 @@ public record HashJoinOperator(
         var probeCost = ProbeSource.EstimateCost();
         var outputRows = BigInteger.Max(scanCost.OutputRows, probeCost.OutputRows); // TODO selectivity estimation/multiple
         var hashCreation = probeCost.OutputRows * ProbeKeys.Count * 2;
+        var cpuOps = scanCost.OutputRows * ProbeKeys.Count + hashCreation;
 
-        return scanCost.Add(new Cost(
+        return new Cost(
             OutputRows: outputRows,
-            CpuOperations: scanCost.OutputRows * ProbeKeys.Count + hashCreation + probeCost.CpuOperations,
-            DiskOperations: probeCost.DiskOperations,
-            TotalCpuOperations: probeCost.TotalCpuOperations,
-            TotalDiskOperations: probeCost.TotalDiskOperations,
-            TotalRowsProcessed: probeCost.TotalRowsProcessed
-        ));
+            CpuOperations: cpuOps,
+            DiskOperations: 0,
+            TotalCpuOperations: scanCost.TotalCpuOperations + probeCost.TotalCpuOperations + cpuOps,
+            TotalDiskOperations: scanCost.TotalDiskOperations + probeCost.TotalDiskOperations,
+            TotalRowsProcessed: scanCost.TotalRowsProcessed + probeCost.TotalRowsProcessed
+        );
     }
 }

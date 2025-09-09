@@ -46,12 +46,12 @@ Project(c_count, custdist) -> .c_count, .custdist
 
 
 Cost Optimized
-Project(c_count, custdist) cost (output_rows=10, cpu=20, disk=0, total=7651) -> .c_count, .custdist
- Sort(custdist DESC, c_count DESC) cost (output_rows=10, cpu=60, disk=0, total=7651) -> .c_count, .custdist 
-    HashAggregate(c_count, COUNT(*)) cost (output_rows=10, cpu=60, disk=0, total=7651) -> .c_count, .custdist    
-       Project(c_custkey, c_count) cost (output_rows=10, cpu=20, disk=0, total=7651) -> c_orders.c_custkey, c_orders.c_count       
-          HashAggregate(c_custkey, COUNT(o_orderkey)) cost (output_rows=10, cpu=900000, disk=0, total=7651) -> c_orders.c_custkey, c_orders.c_count          
-             HashJoin(Inner c_custkey, o_custkey) cost (output_rows=150000, cpu=600000, disk=2, total=6751) -> .o_orderkey, .o_custkey, .o_comment, .c_custkey             
+Project(c_count, custdist) cost (output_rows=10, cpu=20, disk=0, total=7501) -> .c_count, .custdist
+ Sort(custdist DESC, c_count DESC) cost (output_rows=10, cpu=60, disk=0, total=7501) -> .c_count, .custdist 
+    HashAggregate(c_count, COUNT(*)) cost (output_rows=10, cpu=60, disk=0, total=7501) -> .c_count, .custdist    
+       Project(c_custkey, c_count) cost (output_rows=10, cpu=20, disk=0, total=7501) -> c_orders.c_custkey, c_orders.c_count       
+          HashAggregate(c_custkey, COUNT(o_orderkey)) cost (output_rows=10, cpu=900000, disk=0, total=7501) -> c_orders.c_custkey, c_orders.c_count          
+             HashJoin(Inner o_custkey, c_custkey) cost (output_rows=150000, cpu=450000, disk=0, total=6601) -> .c_custkey, .o_orderkey, .o_custkey, .o_comment             
+                FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey             
                 Filter(NOT o_comment LIKE %special%requests%) cost (output_rows=150000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_custkey, .o_comment                
-                   FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_comment             
-                FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey
+                   FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_comment

@@ -68,16 +68,16 @@ Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_com
 
 
 Cost Optimized
-Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_comment) cost (output_rows=10, cpu=80, disk=0, total=49845) -> .c_custkey, .c_name, .revenue, .c_acctbal, .n_name, .c_address, .c_phone, .c_comment
- Sort(revenue DESC) cost (output_rows=10, cpu=30, disk=0, total=49845) -> .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment, .revenue 
-    HashAggregate(c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment, SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=10, cpu=10802178, disk=0, total=49845) -> .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment, .revenue    
-       HashJoin(Inner n_nationkey, c_nationkey) cost (output_rows=600121, cpu=600196, disk=1, total=39043) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .n_nationkey, .n_name       
-          HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=600121, cpu=1365121, disk=2, total=38442) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment          
+Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_comment) cost (output_rows=10, cpu=80, disk=0, total=49094) -> .c_custkey, .c_name, .revenue, .c_acctbal, .n_name, .c_address, .c_phone, .c_comment
+ Sort(revenue DESC) cost (output_rows=10, cpu=30, disk=0, total=49094) -> .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment, .revenue 
+    HashAggregate(c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment, SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=10, cpu=10802178, disk=0, total=49094) -> .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment, .revenue    
+       HashJoin(Inner n_nationkey, c_nationkey) cost (output_rows=600121, cpu=600171, disk=0, total=38292) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate, .n_nationkey, .n_name       
+          HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=600121, cpu=900121, disk=0, total=37692) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate          
              Filter(l_returnflag = R) cost (output_rows=600121, cpu=24004860, disk=0, total=30010) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag             
                 FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag          
-             HashJoin(Inner c_custkey, o_custkey) cost (output_rows=150000, cpu=465000, disk=2, total=7066) -> .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment             
+             HashJoin(Inner o_custkey, c_custkey) cost (output_rows=150000, cpu=180000, disk=0, total=6781) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate             
+                FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment             
                 Filter(o_orderdate < 01/01/1994 00:00:00) cost (output_rows=15000, cpu=450000, disk=0, total=6451) -> .o_orderkey, .o_custkey, .o_orderdate                
                    Filter(o_orderdate >= 10/01/1993 00:00:00) cost (output_rows=150000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_custkey, .o_orderdate                   
-                      FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_orderdate             
-                FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment       
+                      FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_orderdate       
           FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name
