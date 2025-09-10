@@ -20,7 +20,7 @@ public abstract record LogicalPlan
 
     public abstract IEnumerable<LogicalPlan> Inputs();
 
-    protected abstract LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs);
+    public abstract LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs);
 
     public LogicalPlan Rewrite(Func<LogicalPlan, LogicalPlan?> rewriter)
     {
@@ -74,7 +74,7 @@ public record PlanWithSubQueries(
         }
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         var n = Uncorrelated.Count + 1;
         if (newInputs.Count != n)
@@ -101,7 +101,7 @@ public record Scan(
         yield break;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         throw new NotImplementedException();
     }
@@ -120,7 +120,7 @@ public record Filter(
         yield return Input;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != 1)
         {
@@ -146,7 +146,7 @@ public record Projection(
         yield return Input;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != 1)
         {
@@ -177,7 +177,7 @@ public record JoinSet(
         }
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != Relations.Count)
         {
@@ -202,7 +202,7 @@ public record Join(
         yield return Right;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != 2)
         {
@@ -226,7 +226,7 @@ public record Aggregate(
         yield return Input;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != 1)
         {
@@ -249,7 +249,7 @@ public record Sort(
         yield return Input;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != 1)
         {
@@ -270,7 +270,7 @@ public record Distinct(
         yield return Input;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != 1)
         {
@@ -292,7 +292,7 @@ public record Limit(
         yield return Input;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != 1)
         {
@@ -315,7 +315,7 @@ public record TopNSort(
         yield return Input;
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != 1)
         {
@@ -340,7 +340,7 @@ public record Apply(
         }
     }
 
-    protected override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
+    public override LogicalPlan WithInputs(IReadOnlyList<LogicalPlan> newInputs)
     {
         if (newInputs.Count != Correlated.Count + 1)
         {
