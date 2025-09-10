@@ -8,7 +8,7 @@ using Database.Core.Planner.QueryGraph;
 
 namespace Database.Core.Planner;
 
-public class QueryPlanner
+public partial class QueryPlanner
 {
     private ExpressionBinder _binder;
     private PhysicalPlanner _physicalPlanner;
@@ -251,11 +251,33 @@ public class QueryPlanner
                     {
                         throw new QueryPlanException("Subquery must return a single column.");
                     }
+                    // These don't affect the result, just pop them off
+                    if (subPlan is Distinct d)
+                    {
+                        subPlan = d.Input;
+                    }
+                    if (subPlan is Limit l)
+                    {
+                        subPlan = l.Input;
+                    }
+                    if (subPlan is Projection p)
+                    {
+                        subPlan = p.Input;
+                        bindContext.ResetRefCounts();
+                        bindContext.LateBoundSymbols.Clear();
+                    }
+                    else
+                    {
+                        throw new QueryPlanException($"Expected root of subplan to be a projection but got {subPlan.GetType().Name}");
+                    }
+
                     // Rewrite to literal 1 top 1
                     IReadOnlyList<BaseExpression> litOne = [new BoolLiteral(true)];
                     litOne = _binder.Bind(bindContext, litOne, subPlan.OutputSchema);
                     subPlan = new Projection(subPlan, litOne, SchemaFromExpressions(litOne, null), null);
                     subPlan = new Limit(subPlan, 1);
+
+                    subPlan = ReBindPlan(subPlan, bindContext);
                 }
 
                 var sourceCol = subPlan.OutputSchema[0];

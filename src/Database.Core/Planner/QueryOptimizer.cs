@@ -331,8 +331,6 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                     Input = top,
                 };
             }
-
-            return limit;
         }
 
         return limit with
@@ -647,6 +645,8 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                 result.Add(col);
             }
         }
+
+        // TODO why is Q04 not seeing the pushdown?
 
         usedColumns = result;
         return true;

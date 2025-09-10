@@ -571,31 +571,38 @@ public class BindContext
         BoundSymbols[alias] = new BindSymbol(alias, $"", expression.BoundDataType.Value, expression.BoundOutputColumn, 0);
     }
 
+    public void ResetRefCounts()
+    {
+        foreach (var symbol in BoundSymbols.Values)
+        {
+            symbol.RefCount = 0;
+        }
+    }
+
+    public bool GetSymbol(
+        string columnName,
+        string? tableOrAlias,
+        [NotNullWhen(true)] out BindSymbol? symbol)
+    {
+        if (tableOrAlias == null)
+        {
+            return BoundSymbols.TryGetValue(columnName, out symbol);
+        }
+
+        return BoundSymbols.TryGetValue($"{tableOrAlias}.{columnName}", out symbol);
+    }
+
     public bool ReferenceSymbol(
         string columnName,
         string? tableOrAlias,
         [NotNullWhen(true)] out BindSymbol? symbol)
     {
-
-        if (tableOrAlias == null)
-        {
-            if (BoundSymbols.TryGetValue(columnName, out symbol))
-            {
-                symbol.RefCount++;
-                return true;
-            }
-            return false;
-        }
-
-        if (BoundSymbols.TryGetValue($"{tableOrAlias}.{columnName}", out symbol))
+        if (GetSymbol(columnName, tableOrAlias, out symbol))
         {
             symbol.RefCount++;
             return true;
         }
-        else
-        {
-            // throw new QueryPlanException($"Column '{columnName}' was not found in the list of available columns");
-        }
+        // throw new QueryPlanException($"Column '{columnName}' was not found in the list of available columns");
         return false;
     }
 
