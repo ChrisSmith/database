@@ -405,7 +405,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             // TODO split join condition
             if (expressions is not BinaryExpression b || b.Operator != EQUAL)
             {
-                throw new QueryPlanException($"Join condition must be a binary expression with EQUAL operator");
+                throw new QueryPlanException($"Join condition must be a binary expression with EQUAL operator. got {expressions}");
             }
             if (b.Left is not ColumnExpression leftExpr || b.Right is not ColumnExpression rightExpr)
             {

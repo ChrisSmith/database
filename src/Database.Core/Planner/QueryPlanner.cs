@@ -427,10 +427,12 @@ public partial class QueryPlanner
         {
             if (table is TableStatement tableStmt)
             {
+                var scan = CreateScanForTable(tableStmt);
                 relations.Add(new JoinedRelation(
                     tableStmt.Alias ?? tableStmt.Table,
-                    CreateScanForTable(tableStmt),
-                    JoinType.Cross
+                    scan,
+                    JoinType.Cross,
+                    scan.NumRows
                     ));
             }
             else if (table is SelectStatement selectStmt)
@@ -439,10 +441,12 @@ public partial class QueryPlanner
                 // including nested queries have been placed into context
 
                 var name = selectStmt.Alias ?? throw new QueryPlanException($"expression '{selectStmt}' has no alias.");
+                var scan = CreateLogicalPlan(selectStmt, context);
                 relations.Add(new JoinedRelation(
                     name,
-                    CreateLogicalPlan(selectStmt, context),
-                    JoinType.Cross
+                    scan,
+                    JoinType.Cross,
+                    1000 // TODO need estimate for subquery
                 ));
             }
             else
@@ -461,12 +465,10 @@ public partial class QueryPlanner
                 relations.Add(new JoinedRelation(
                     tableStmt.Alias ?? tableStmt.Table,
                     scan,
-                    join.JoinType
+                    join.JoinType,
+                    scan.NumRows
                     ));
 
-                // TODO I don't think this is right
-                // It would be better to split here and directly create edges based
-                // on the tables seen in the predicates?
                 conjunctions.AddRange(QueryRewriter.SplitRewriteSplitConjunctions(join.JoinConstraint));
             }
         }
@@ -580,6 +582,7 @@ public partial class QueryPlanner
                 table.Id,
                 null,
                 table.Columns,
+                NumRows: table.NumRows,
                 Projection: false,
                 // Add the table alias here so the select from a join can disambiguate
                 Alias: tableStmt.Alias);

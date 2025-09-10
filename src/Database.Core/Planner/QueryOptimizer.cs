@@ -407,6 +407,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                     e.BoundMemoryTable.TableId,
                     null,
                     table.Schema,
+                    NumRows: 1000, // TODO
                     Alias: e.Alias
                     );
                 var joinCond = new BinaryExpression(

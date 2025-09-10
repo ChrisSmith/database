@@ -91,6 +91,7 @@ public record Scan(
     TableId TableId,
     BaseExpression? Filter,
     IReadOnlyList<ColumnSchema> OutputColumns,
+    long NumRows,
     bool Projection = false,
     string? Alias = null) : LogicalPlan
 {
@@ -156,7 +157,7 @@ public record Projection(
     }
 }
 
-public record JoinedRelation(string Name, LogicalPlan Plan, JoinType JoinType);
+public record JoinedRelation(string Name, LogicalPlan Plan, JoinType JoinType, long NumRows);
 
 public record JoinSet(
     IReadOnlyList<JoinedRelation> Relations,
