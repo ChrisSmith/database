@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using Database.Core.Catalog;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 using Database.Core.Options;
@@ -28,7 +30,7 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
             root = p.Input;
         }
 
-        return root is Aggregate { Input: Filter or JoinSet };
+        return root is Aggregate { Input: Filter or JoinSet } or Limit { Count: 1 };
     }
 
     public LogicalPlan Rewrite(BindContext context, LogicalPlan root)
@@ -39,11 +41,22 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
         var id = 0; // TODO handle multiple correlated subqueries
         var plan = apply.Correlated.Single();
 
+        // All used symbols need to be copied into the parent context so we don't lose ref counting
+        var innerContext = plan.BindContext ?? throw new QueryPlanException("Subquery has no bind context");
+        context.AddSymbols(innerContext);
+
         var input = plan.BindContext!.LateBoundSymbols.Single();
         var outerColumnName = input.Key.Item1;
         var outerTableAlias = input.Key.Item2;
 
-        // TODO apply Improving Unnesting of Complex Queries by Thomas Neumann
+        if (plan is Limit { Count: 1 } limit)
+        {
+            plan = limit.Input;
+        }
+
+        // TODO implement a true version of Improving Unnesting of Complex Queries by Thomas Neumann
+        // by making this multiple steps/rules
+        // instead of handling all the transformations in one rule
         BaseExpression? projectionExpr = null;
         if (plan is Projection proj)
         {
@@ -103,7 +116,24 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
         }
         else
         {
-            throw new QueryPlanException("Cannot rewrite correlated plan as group by on inputs");
+            (plan, var innerColumn) = ExtractCorrelatedEquiFilter(plan);
+
+            // TODO if I had a "first" function, I could use that instead of max
+            FunctionExpression aggFn;
+            if (projectionExpr != null)
+            {
+                aggFn = new FunctionExpression("max", projectionExpr) { Alias = projectionExpr.Alias };
+            }
+            else
+            {
+                var valueColumn = plan.OutputSchema.Single();
+                var valueColumnExpr = new ColumnExpression(valueColumn.Name, valueColumn.SourceTableAlias);
+                aggFn = new FunctionExpression("max", valueColumnExpr) { Alias = valueColumn.Name };
+            }
+
+            var boundInnerColumn = _binder.Bind(context, innerColumn, plan.OutputSchema);
+            var aggregates = _binder.Bind(context, [boundInnerColumn, aggFn], plan.OutputSchema);
+            plan = new Aggregate(plan, [boundInnerColumn], aggregates, $"correlated{id}");
         }
 
         var joinCol = plan.OutputSchema.First();
@@ -136,6 +166,16 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
             {
                 Edges = keep,
             };
+        }
+        else if (rootPlan is Filter { Predicate: SubQueryResultExpression { } p3 } filter2)
+        {
+            rootPlan = filter2.Input;
+            if (p3.BoundDataType != DataType.Bool)
+            {
+                throw new QueryPlanException("Expected correlated subquery to be of type boolean");
+            }
+            // The rhs will be replaced below with the correlated column from the inner table
+            correlatedExpr = new BinaryExpression(TokenType.EQUAL, "=", new BoolLiteral(true), new BoolLiteral(true));
         }
         else
         {
@@ -177,7 +217,65 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
         rootPlan = new Filter(rootPlan, correlatedFilter);
         // join cond rewrite should be t.CategoricalInt = max(CategoricalInt) and t.CategoricalString = q.CategoricalString
 
+
         return rootPlan;
+    }
+
+    private (LogicalPlan, ColumnExpression) ExtractCorrelatedEquiFilter(LogicalPlan plan)
+    {
+        ColumnExpression? innerColumn = null;
+
+        if (ExtractCorrelatedColumn(plan, out innerColumn))
+        {
+            return (((Filter)plan).Input, innerColumn);
+        }
+
+        plan = plan.Rewrite(p =>
+        {
+            var updatedAny = false;
+            var inputs = p.Inputs().ToList();
+            for (var i = 0; i < inputs.Count; i++)
+            {
+                var input = inputs[i];
+                if (ExtractCorrelatedColumn(input, out var innerColumn2))
+                {
+                    inputs[i] = ((Filter)input).Input;
+                    innerColumn = innerColumn2;
+                    updatedAny = true;
+                }
+            }
+
+            if (updatedAny)
+            {
+                return p.WithInputs(inputs);
+            }
+            return p;
+        });
+
+        if (innerColumn == null)
+        {
+            throw new QueryPlanException("Failed to find correlated expression");
+        }
+        return (plan, innerColumn);
+
+        bool ExtractCorrelatedColumn(LogicalPlan input, [NotNullWhen(true)] out ColumnExpression? innerColumn)
+        {
+            if (input is Filter { Predicate: BinaryExpression { Operator: TokenType.EQUAL } expr })
+            {
+                if (IsCorrelatedFunction(expr.Left.BoundFunction))
+                {
+                    innerColumn = (ColumnExpression)expr.Right;
+                    return true;
+                }
+                if (IsCorrelatedFunction(expr.Right.BoundFunction))
+                {
+                    innerColumn = (ColumnExpression)expr.Left;
+                    return true;
+                }
+            }
+            innerColumn = null;
+            return false;
+        }
     }
 
     private bool IsCorrelatedFunction(IFunction? function)

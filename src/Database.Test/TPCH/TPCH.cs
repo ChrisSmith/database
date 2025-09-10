@@ -105,8 +105,15 @@ public class TPCHTests
     {
         var query = ReadQuery("query_04.sql");
 
-        var result = _runner.Run(query, token); ;
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        var result = _runner.Run(query, token);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new(["1-URGENT", 10594]),
+            new(["2-HIGH", 10476]),
+            new(["3-MEDIUM", 10410]),
+            new(["4-NOT SPECIFIED", 10556]),
+            new(["5-LOW", 10487])
+        });
     }
 
     [Test]
