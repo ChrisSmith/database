@@ -49,14 +49,6 @@ public class HashTable<T>
                     break;
                 }
 
-                if (KeysMatch(keys, i, idx))
-                {
-                    if (ValuesMatch(_objects[idx], values[i]))
-                    {
-                        break;
-                    }
-                }
-
                 // linear probe
                 idx = (idx + 1) % _objects.Length;
                 if (idx == startPos)
@@ -78,11 +70,6 @@ public class HashTable<T>
             Size++;
             ResizeMaybe();
         }
-    }
-
-    private bool ValuesMatch(T one, T two)
-    {
-        return one!.Equals(two);
     }
 
     // Since the table allows duplicates by key,
