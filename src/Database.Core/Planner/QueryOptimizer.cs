@@ -13,6 +13,16 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
 {
     public LogicalPlan OptimizePlan(LogicalPlan plan, BindContext context)
     {
+        var rule0 = new SplitConjunctionPredicateRule(config);
+        plan = plan.Rewrite(p =>
+        {
+            if (rule0.CanRewrite(p))
+            {
+                return rule0.Rewrite(context, p);
+            }
+            return p;
+        });
+
         var rule = new CorrelatedSubQueryRule(config, _binder);
         plan = plan.Rewrite(p =>
         {
@@ -387,14 +397,6 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
 
     private LogicalPlan OptimizeFilter(Filter filter, IReadOnlyList<LogicalPlan> parents, BindContext context)
     {
-        if (TrySplitPredicate(filter.Predicate, out var left, out var right))
-        {
-            var orgInput = filter.Input;
-            var f1 = new Filter(orgInput, left);
-            var f2 = new Filter(f1, right);
-            return f2;
-        }
-
         if (filter.Predicate is BinaryExpression { Operator: TokenType.IN } inOp)
         {
             if (inOp.Right is SubQueryResultExpression e)
@@ -470,29 +472,6 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                 JoinType.Inner,
                 binExpr
             );
-            return true;
-        }
-
-        return false;
-    }
-
-    private bool TrySplitPredicate(
-        BaseExpression predicate,
-        [NotNullWhen(true)] out BaseExpression? left,
-        [NotNullWhen(true)] out BaseExpression? right)
-    {
-        left = null;
-        right = null;
-
-        if (!config.LogicalOptimization || !config.OptSplitPredicates)
-        {
-            return false;
-        }
-
-        if (predicate is BinaryExpression { Operator: TokenType.AND } b)
-        {
-            left = b.Left;
-            right = b.Right;
             return true;
         }
 
