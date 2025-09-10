@@ -39,6 +39,8 @@ public record SortOperator(
 
         while (next != null)
         {
+            token.ThrowIfCancellationRequested();
+
             var updatedColumnRefs = new List<ColumnRef>(next.Columns);
             for (var i = 0; i < OrderExpressions.Count; i++)
             {

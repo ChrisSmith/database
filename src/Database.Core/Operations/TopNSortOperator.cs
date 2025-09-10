@@ -46,6 +46,8 @@ public record TopNSortOperator(
         var currentKeys = new Array[OrderExpressions.Count];
         while (next != null)
         {
+            token.ThrowIfCancellationRequested();
+
             for (var i = 0; i < OrderExpressions.Count; i++)
             {
                 var expression = OrderExpressions[i];

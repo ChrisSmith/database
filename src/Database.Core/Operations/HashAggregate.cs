@@ -50,6 +50,8 @@ public record HashAggregate(
 
         while (rowGroup != null)
         {
+            token.ThrowIfCancellationRequested();
+
             // Build up the grouping keys, one per row
             var groupingKeys = GroupByKeys(rowGroup, groupingExpressions, token);
 

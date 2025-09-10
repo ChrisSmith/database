@@ -51,6 +51,7 @@ public record HashJoinOperator(
             _done = true;
             return null;
         }
+        token.ThrowIfCancellationRequested();
 
         var scanKeys = CalculateScanKeys(rowGroup, token);
 
@@ -218,6 +219,8 @@ public record HashJoinOperator(
         var propRg = ProbeSource.Next(token);
         while (propRg != null)
         {
+            token.ThrowIfCancellationRequested();
+
             var keys = new List<IColumn>(ProbeKeys.Count);
             foreach (var key in ProbeKeys)
             {
