@@ -91,6 +91,81 @@ public record StringCount : IAggregateFunction<string?, CountAggregateState, int
     }
 }
 
+public record StringMax : IAggregateFunction<string?, State<string>, string>
+{
+    public DataType ReturnType => DataType.String;
+
+    public string Value(State<string> state) => state.Value;
+
+    public object? GetValue(object state) => Value((State<string>)state);
+
+    public IAggregateState Initialize()
+    {
+        return new State<string>();
+    }
+
+    public IAggregateState[] InitializeArray(int size)
+    {
+        return new State<string>[size];
+    }
+
+    public void InvokeNext(object values, IAggregateState[] state)
+    {
+        Next((string?[])values, (State<string>[])state);
+    }
+
+    public void Next(string?[] value, State<string>[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            var item = value[i];
+            var current = state[i].Value;
+            if (current == null || item != null && current.CompareTo(item) < 0)
+            {
+                state[i].Value = item!;
+            }
+        }
+    }
+}
+
+public record BoolMax : IAggregateFunction<bool, State<bool>, bool>
+{
+    public DataType ReturnType => DataType.Bool;
+
+    public bool Value(State<bool> state) => state.Value;
+
+    public object? GetValue(object state) => Value((State<bool>)state);
+
+    public IAggregateState Initialize()
+    {
+        return new State<bool>();
+    }
+
+    public IAggregateState[] InitializeArray(int size)
+    {
+        return new State<bool>[size];
+    }
+
+    public void InvokeNext(object values, IAggregateState[] state)
+    {
+        Next((bool[])values, (State<bool>[])state);
+    }
+
+    public void Next(bool[] value, State<bool>[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            var item = value[i];
+            var current = state[i].Value;
+            if (!current && item)
+            {
+                state[i].Value = item;
+            }
+        }
+    }
+}
+
+
 public record Sum<T>(DataType ReturnType) : IAggregateFunction<T, SumAggregateState<T>, T>
     where T : INumber<T>
 {
@@ -139,6 +214,10 @@ public class ScalarState<T> : IAggregateState
     public T Value { get; set; } = default!;
 }
 
+public class State<T> : IAggregateState
+{
+    public T Value { get; set; } = default!;
+}
 public class CountAggregateState : IAggregateState
 {
     public int Count { get; set; } = 0;

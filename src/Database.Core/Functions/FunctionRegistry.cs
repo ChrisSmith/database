@@ -46,6 +46,8 @@ public class FunctionRegistry
             { DataType.Float, typeof(Max<float>)},
             { DataType.Double, typeof(Max<double>)},
             { DataType.Decimal, typeof(Max<decimal>)},
+            { DataType.String, typeof(StringMax)},
+            { DataType.Bool, typeof(BoolMax)},
         }));
         _funcs.Add("min", new("min", 1, new()
         {
@@ -66,6 +68,7 @@ public class FunctionRegistry
             { DataType.DateTime, typeof(EqualTwoDateTime) },
             { DataType.Decimal, typeof(EqualTwo<decimal>) },
             { DataType.String, typeof(EqualTwoString) },
+            { DataType.Bool, typeof(EqualTwoBool) },
         }));
         _funcs.Add("!=", new("!=", 2, new()
         {
