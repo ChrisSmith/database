@@ -66,45 +66,45 @@ Project(supp_nation, cust_nation, l_year, revenue, rows=4860983) -> .supp_nation
  Sort(supp_nation ASC, cust_nation ASC, l_year ASC), rows=4860983 -> .revenue, .supp_nation, .cust_nation, .l_year 
     Agg(sum(volume), supp_nation, cust_nation, l_year) group by (supp_nation, cust_nation, l_year, rows=4860983) -> .revenue, .supp_nation, .cust_nation, .l_year    
        Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * cast(1 as Decimal) - l_discount, rows=4860983) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
-          Filter(n_name != n_name, rows=4860983) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n2.n_nationkey, n2.n_name          
-             Join(Inner on c_nationkey = n_nationkey, rows=5401093) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n2.n_nationkey, n2.n_name             
-                Join(Inner on s_nationkey = n_nationkey, rows=5401093) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name                
-                   Join(Inner on c_custkey = o_custkey, rows=5401093) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey                   
-                      Join(Inner on o_orderkey = l_orderkey, rows=5401093) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey                      
-                         Join(Inner on s_suppkey = l_suppkey, rows=5401093) -> .s_suppkey, .s_nationkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                         
-                            Scan(supplier, rows=10000) with projection  -> .s_suppkey, .s_nationkey                            
-                         
+          Filter(n_name != n_name, rows=4860983) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n2.n_nationkey, n2.n_name          
+             Join(Inner on c_nationkey = n_nationkey, rows=5401093) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey, n2.n_nationkey, n2.n_name             
+                Join(Inner on c_custkey = o_custkey, rows=5401093) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .o_orderkey, .o_custkey, .c_custkey, .c_nationkey                
+                   Join(Inner on o_orderkey = l_orderkey, rows=5401093) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .o_orderkey, .o_custkey                   
+                      Join(Inner on s_nationkey = n_nationkey, rows=5401093) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name                      
+                         Join(Inner on s_suppkey = l_suppkey, rows=5401093) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey                         
                             Filter(l_shipdate between 01/01/1995 00:00:00 and 12/31/1996 00:00:00, rows=5401093) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                            
                                Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                               
+                         
+                            Scan(supplier, rows=10000) with projection  -> .s_suppkey, .s_nationkey                            
                       
-                         Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey                         
+                         Filter(n_name = FRANCE or n_name = GERMANY, rows=22) -> n1.n_nationkey, n1.n_name                         
+                            Scan(nation, rows=25) with projection  -> n1.n_nationkey, n1.n_name                            
                    
-                      Scan(customer, rows=150000) with projection  -> .c_custkey, .c_nationkey                      
+                      Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey                      
                 
-                   Filter(n_name = FRANCE or n_name = GERMANY, rows=22) -> n1.n_nationkey, n1.n_name                   
-                      Scan(nation, rows=25) with projection  -> n1.n_nationkey, n1.n_name                      
+                   Scan(customer, rows=150000) with projection  -> .c_custkey, .c_nationkey                   
              
                 Filter(n_name = GERMANY or n_name = FRANCE, rows=22) -> n2.n_nationkey, n2.n_name                
                    Scan(nation, rows=25) with projection  -> n2.n_nationkey, n2.n_name                   
 
 
 Cost Optimized
-Project(supp_nation, cust_nation, l_year, revenue) cost (output_rows=10, cpu=40, disk=0, total=70693) -> .supp_nation, .cust_nation, .l_year, .revenue
- Sort(supp_nation ASC, cust_nation ASC, l_year ASC) cost (output_rows=10, cpu=90, disk=0, total=70693) -> .supp_nation, .cust_nation, .l_year, .revenue 
-    HashAggregate(supp_nation, cust_nation, l_year, sum(volume)) cost (output_rows=10, cpu=1500000, disk=0, total=70693) -> .supp_nation, .cust_nation, .l_year, .revenue    
-       Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * cast(1 as Decimal) - l_discount) cost (output_rows=150000, cpu=900000, disk=0, total=69193) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
-          Filter(n_name != n_name) cost (output_rows=150000, cpu=22500000, disk=0, total=68293) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n2.n_nationkey, n2.n_name          
-             HashJoin(Inner n_nationkey, c_nationkey) cost (output_rows=1500000, cpu=1500004, disk=0, total=45793) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n2.n_nationkey, n2.n_name             
-                HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=1500000, cpu=1500004, disk=0, total=44293) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name                
-                   HashJoin(Inner c_custkey, o_custkey) cost (output_rows=1500000, cpu=1800000, disk=0, total=42793) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, .c_custkey, .c_nationkey                   
-                      HashJoin(Inner l_orderkey, o_orderkey) cost (output_rows=1500000, cpu=2700242, disk=0, total=40843) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey                      
-                         FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey                      
+Project(supp_nation, cust_nation, l_year, revenue) cost (output_rows=10, cpu=40, disk=0, total=69794) -> .supp_nation, .cust_nation, .l_year, .revenue
+ Sort(supp_nation ASC, cust_nation ASC, l_year ASC) cost (output_rows=10, cpu=90, disk=0, total=69794) -> .supp_nation, .cust_nation, .l_year, .revenue 
+    HashAggregate(supp_nation, cust_nation, l_year, sum(volume)) cost (output_rows=10, cpu=1500000, disk=0, total=69793) -> .supp_nation, .cust_nation, .l_year, .revenue    
+       Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * cast(1 as Decimal) - l_discount) cost (output_rows=150000, cpu=900000, disk=0, total=68293) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
+          Filter(n_name != n_name) cost (output_rows=150000, cpu=22500000, disk=0, total=67393) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .c_custkey, .c_nationkey, n2.n_nationkey, n2.n_name          
+             HashJoin(Inner n_nationkey, c_nationkey) cost (output_rows=1500000, cpu=1500004, disk=0, total=44893) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .c_custkey, .c_nationkey, n2.n_nationkey, n2.n_name             
+                HashJoin(Inner c_custkey, o_custkey) cost (output_rows=1500000, cpu=1800000, disk=0, total=43393) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .c_custkey, .c_nationkey                
+                   HashJoin(Inner l_orderkey, o_orderkey) cost (output_rows=1500000, cpu=2700242, disk=0, total=41443) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name                   
+                      FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey                   
+                      HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=600121, cpu=600125, disk=0, total=37242) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name                      
                          HashJoin(Inner s_suppkey, l_suppkey) cost (output_rows=600121, cpu=620121, disk=0, total=36642) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey                         
                             Filter(l_shipdate between 01/01/1995 00:00:00 and 12/31/1996 00:00:00) cost (output_rows=600121, cpu=30006075, disk=0, total=36011) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                            
                                FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                         
-                            FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_nationkey                   
-                      FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_nationkey                
-                   Filter(n_name = FRANCE or n_name = GERMANY) cost (output_rows=2, cpu=50, disk=0, total=0) -> n1.n_nationkey, n1.n_name                   
-                      FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> n1.n_nationkey, n1.n_name             
+                            FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_nationkey                      
+                         Filter(n_name = FRANCE or n_name = GERMANY) cost (output_rows=2, cpu=50, disk=0, total=0) -> n1.n_nationkey, n1.n_name                         
+                            FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> n1.n_nationkey, n1.n_name                
+                   FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_nationkey             
                 Filter(n_name = GERMANY or n_name = FRANCE) cost (output_rows=2, cpu=50, disk=0, total=0) -> n2.n_nationkey, n2.n_name                
                    FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> n2.n_nationkey, n2.n_name

@@ -47,29 +47,29 @@ Optimized
 Project(l_shipmode, high_line_count, low_line_count, rows=3937395) -> .l_shipmode, .high_line_count, .low_line_count
  Sort(l_shipmode ASC), rows=3937395 -> .high_line_count, .low_line_count, .l_shipmode 
     Agg(SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1)), l_shipmode) group by (l_shipmode, rows=3937395) -> .high_line_count, .low_line_count, .l_shipmode    
-       Join(Semi on l_shipmode = $subquery_1$, rows=3937395) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode, $subquery_1$.$subquery_1$       
-          Join(Inner on o_orderkey = l_orderkey, rows=3937395) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode          
-             Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderpriority             
-          
+       Join(Inner on o_orderkey = l_orderkey, rows=3937395) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode, $subquery_1$.$subquery_1$, .o_orderkey, .o_orderpriority       
+          Join(Semi on l_shipmode = $subquery_1$, rows=3937395) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode, $subquery_1$.$subquery_1$          
              Filter(l_receiptdate < 01/01/1995 00:00:00, rows=3937395) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode             
                 Filter(l_receiptdate >= 01/01/1994 00:00:00, rows=4374884) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                
                    Filter(l_shipdate < l_commitdate, rows=4860983) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                   
                       Filter(l_commitdate < l_receiptdate, rows=5401093) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                      
                          Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                         
+          
+             Scan($subquery_1$, rows=100) -> $subquery_1$.$subquery_1$             
        
-          Scan($subquery_1$, rows=1000) -> $subquery_1$.$subquery_1$          
+          Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderpriority          
 
 
 Cost Optimized
-Project(l_shipmode, high_line_count, low_line_count) cost (output_rows=10, cpu=30, disk=0, total=58845) -> .l_shipmode, .high_line_count, .low_line_count
- Sort(l_shipmode ASC) cost (output_rows=10, cpu=30, disk=0, total=58845) -> .l_shipmode, .high_line_count, .low_line_count 
-    HashAggregate(l_shipmode, SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1))) cost (output_rows=10, cpu=15000000, disk=0, total=58845) -> .l_shipmode, .high_line_count, .low_line_count    
-       HashJoin(Semi $subquery_1$, l_shipmode) cost (output_rows=1500000, cpu=1500000, disk=0, total=43845) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode       
-          HashJoin(Inner l_orderkey, o_orderkey) cost (output_rows=1500000, cpu=1501200, disk=0, total=42345) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode          
-             FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderpriority          
+Project(l_shipmode, high_line_count, low_line_count) cost (output_rows=10, cpu=30, disk=0, total=57345) -> .l_shipmode, .high_line_count, .low_line_count
+ Sort(l_shipmode ASC) cost (output_rows=10, cpu=30, disk=0, total=57345) -> .l_shipmode, .high_line_count, .low_line_count 
+    HashAggregate(l_shipmode, SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1))) cost (output_rows=10, cpu=15000000, disk=0, total=57345) -> .l_shipmode, .high_line_count, .low_line_count    
+       HashJoin(Inner l_orderkey, o_orderkey) cost (output_rows=1500000, cpu=1501200, disk=0, total=42345) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode       
+          FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderpriority       
+          HashJoin(Semi $subquery_1$, l_shipmode) cost (output_rows=600, cpu=600, disk=0, total=39342) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode          
              Filter(l_receiptdate < 01/01/1995 00:00:00) cost (output_rows=600, cpu=30005, disk=0, total=39341) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode             
                 Filter(l_receiptdate >= 01/01/1994 00:00:00) cost (output_rows=6001, cpu=300060, disk=0, total=39311) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                
                    Filter(l_shipdate < l_commitdate) cost (output_rows=60012, cpu=3000605, disk=0, total=39011) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                   
                       Filter(l_commitdate < l_receiptdate) cost (output_rows=600121, cpu=30006075, disk=0, total=36011) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                      
-                         FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode       
-          ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=0, cpu=0, disk=0, total=0) -> $subquery_1$.$subquery_1$
+                         FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode          
+             ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=0, cpu=0, disk=0, total=0) -> $subquery_1$.$subquery_1$
