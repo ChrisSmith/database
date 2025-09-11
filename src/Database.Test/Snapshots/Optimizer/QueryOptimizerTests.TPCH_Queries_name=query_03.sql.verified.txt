@@ -17,34 +17,34 @@ limit 10;
 
 Original
 Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
- Project(l_orderkey, revenue, o_orderdate, o_shippriority) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority 
-    Sort(revenue DESC, o_orderdate ASC) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
-       Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority       
-          JoinSet(customer (Inner) x orders (Inner) x lineitem (Inner)) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
+ Project(l_orderkey, revenue, o_orderdate, o_shippriority, rows=6001215) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority 
+    Sort(revenue DESC, o_orderdate ASC), rows=6001215 -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
+       Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=6001215) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority       
+          JoinSet(customer (Inner) x orders (Inner) x lineitem (Inner), rows=6001215) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
           UnaryEdge { Expression = c_mktsegment = BUILDING, Relation = customer }
           BinaryEdge { Expression = c_custkey = o_custkey, One = customer, Two = orders }
           BinaryEdge { Expression = l_orderkey = o_orderkey, One = orders, Two = lineitem }
           UnaryEdge { Expression = o_orderdate < 03/15/1995 00:00:00, Relation = orders }
           UnaryEdge { Expression = l_shipdate > 03/15/1995 00:00:00, Relation = lineitem }
-             Scan(customer) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment             
-             Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
-             Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
+             Scan(customer, rows=150000) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment             
+             Scan(orders, rows=1500000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
+             Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
 
 
 Optimized
-Project(l_orderkey, revenue, o_orderdate, o_shippriority) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
+Project(l_orderkey, revenue, o_orderdate, o_shippriority, rows=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
  TopSort(n=10, revenue DESC, o_orderdate ASC) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority 
-    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
-       Join(Inner on l_orderkey = o_orderkey) -> .c_custkey, .c_mktsegment, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate       
-          Join(Inner on c_custkey = o_custkey) -> .c_custkey, .c_mktsegment, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority          
-             Filter(c_mktsegment = BUILDING) -> .c_custkey, .c_mktsegment             
-                Scan(customer) with projection  -> .c_custkey, .c_mktsegment                
+    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=5401093) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
+       Join(Inner on l_orderkey = o_orderkey, rows=5401093) -> .c_custkey, .c_mktsegment, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate       
+          Join(Inner on c_custkey = o_custkey, rows=1350000) -> .c_custkey, .c_mktsegment, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority          
+             Filter(c_mktsegment = BUILDING, rows=30000) -> .c_custkey, .c_mktsegment             
+                Scan(customer, rows=150000) with projection  -> .c_custkey, .c_mktsegment                
           
-             Filter(o_orderdate < 03/15/1995 00:00:00) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
-                Scan(orders) with projection  -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority                
+             Filter(o_orderdate < 03/15/1995 00:00:00, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
+                Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority                
        
-          Filter(l_shipdate > 03/15/1995 00:00:00) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
-             Scan(lineitem) with projection  -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate             
+          Filter(l_shipdate > 03/15/1995 00:00:00, rows=5401093) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
+             Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate             
 
 
 Cost Optimized

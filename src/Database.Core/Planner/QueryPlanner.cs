@@ -582,7 +582,7 @@ public partial class QueryPlanner
                 table.Id,
                 null,
                 table.Columns,
-                NumRows: table.NumRows,
+                Cardinality: table.NumRows,
                 Projection: false,
                 // Add the table alias here so the select from a join can disambiguate
                 Alias: tableStmt.Alias);

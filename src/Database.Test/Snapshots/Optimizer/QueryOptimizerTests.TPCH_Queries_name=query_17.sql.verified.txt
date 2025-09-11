@@ -18,36 +18,36 @@ WHERE
 
 
 Original
-Project(sum(l_extendedprice) / 7.0) -> .avg_yearly
- Agg(sum(l_extendedprice)) group by () -> .sum(l_extendedprice) 
-    Apply(c=1) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment    
-       Project(cast(0.2 as Double) * avg(l_quantity)) -> .cast(0.2 as Double) * avg(l_quantity)       
-          Agg(avg(l_quantity)) group by () -> .avg(l_quantity)          
-             Filter(l_partkey = p_partkey) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
-                Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
-       JoinSet(lineitem (Inner) x part (Inner)) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment       
+Project(sum(l_extendedprice) / 7.0, rows=6001215) -> .avg_yearly
+ Agg(sum(l_extendedprice)) group by (, rows=6001215) -> .sum(l_extendedprice) 
+    Apply(c=1, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment    
+       Project(cast(0.2 as Double) * avg(l_quantity), rows=1200243) -> .cast(0.2 as Double) * avg(l_quantity)       
+          Agg(avg(l_quantity)) group by (, rows=1200243) -> .avg(l_quantity)          
+             Filter(l_partkey = p_partkey, rows=1200243) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
+                Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
+       JoinSet(lineitem (Inner) x part (Inner), rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment       
        BinaryEdge { Expression = p_partkey = l_partkey, One = lineitem, Two = part }
        UnaryEdge { Expression = p_brand = Brand#23, Relation = part }
        UnaryEdge { Expression = p_container = MED BOX, Relation = part }
        UnaryEdge { Expression = l_quantity < correlated-subquery(1), Relation = lineitem }
-          Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
-          Scan(part) -> .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment          
+          Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
+          Scan(part, rows=200000) -> .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment          
 
 
 Optimized
-Project(sum(l_extendedprice) / 7.0) -> .avg_yearly
- Agg(sum(l_extendedprice)) group by () -> .sum(l_extendedprice) 
-    Filter(l_quantity < cast(cast(0.2 as Double) * avg(l_quantity) as Decimal)) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container, correlated0.l_partkey, correlated0.avg(l_quantity)    
-       Join(Inner on p_partkey = l_partkey) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container, correlated0.l_partkey, correlated0.avg(l_quantity)       
-          Join(Inner on p_partkey = l_partkey) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container          
-             Scan(lineitem) with projection  -> .l_partkey, .l_quantity, .l_extendedprice             
+Project(sum(l_extendedprice) / 7.0, rows=5401093) -> .avg_yearly
+ Agg(sum(l_extendedprice)) group by (, rows=5401093) -> .sum(l_extendedprice) 
+    Filter(l_quantity < cast(cast(0.2 as Double) * avg(l_quantity) as Decimal), rows=5401093) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container, correlated0.l_partkey, correlated0.avg(l_quantity)    
+       Join(Inner on p_partkey = l_partkey, rows=6001215) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container, correlated0.l_partkey, correlated0.avg(l_quantity)       
+          Join(Inner on p_partkey = l_partkey, rows=6001215) -> .l_partkey, .l_quantity, .l_extendedprice, .p_partkey, .p_brand, .p_container          
+             Scan(lineitem, rows=6001215) with projection  -> .l_partkey, .l_quantity, .l_extendedprice             
           
-             Filter(p_container = MED BOX) -> .p_partkey, .p_brand, .p_container             
-                Filter(p_brand = Brand#23) -> .p_partkey, .p_brand, .p_container                
-                   Scan(part) with projection  -> .p_partkey, .p_brand, .p_container                   
+             Filter(p_container = MED BOX, rows=8000) -> .p_partkey, .p_brand, .p_container             
+                Filter(p_brand = Brand#23, rows=40000) -> .p_partkey, .p_brand, .p_container                
+                   Scan(part, rows=200000) with projection  -> .p_partkey, .p_brand, .p_container                   
        
-          Agg(l_partkey, avg(l_quantity)) group by (l_partkey) -> correlated0.l_partkey, correlated0.avg(l_quantity)          
-             Scan(lineitem) with projection  -> .l_partkey, .l_quantity, .l_extendedprice             
+          Agg(l_partkey, avg(l_quantity)) group by (l_partkey, rows=6001215) -> correlated0.l_partkey, correlated0.avg(l_quantity)          
+             Scan(lineitem, rows=6001215) with projection  -> .l_partkey, .l_quantity, .l_extendedprice             
 
 
 Cost Optimized

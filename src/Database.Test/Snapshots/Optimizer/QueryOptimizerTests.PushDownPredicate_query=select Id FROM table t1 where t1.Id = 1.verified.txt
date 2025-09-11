@@ -1,15 +1,15 @@
 ﻿select Id FROM table t1 where t1.Id = 1
 
 Original
-Project(Id) -> .Id
- Filter(Id = 1) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString 
-    Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString    
+Project(Id, rows=20000) -> .Id
+ Filter(Id = 1, rows=20000) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString 
+    Scan(table, rows=100000) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString    
 
 
 Optimized
-Project(Id) -> .Id
- Filter(Id = 1) -> t1.Id 
-    Scan(table) with projection  -> t1.Id    
+Project(Id, rows=20000) -> .Id
+ Filter(Id = 1, rows=20000) -> t1.Id 
+    Scan(table, rows=100000) with projection  -> t1.Id    
 
 
 Cost Optimized

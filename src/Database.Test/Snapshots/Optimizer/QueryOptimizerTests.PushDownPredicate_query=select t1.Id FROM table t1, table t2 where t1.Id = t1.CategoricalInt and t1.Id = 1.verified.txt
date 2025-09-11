@@ -1,22 +1,22 @@
 ﻿select t1.Id FROM table t1, table t2 where t1.Id = t1.CategoricalInt and t1.Id = 1
 
 Original
-Project(Id) -> t1.Id
- JoinSet(t1 (Cross) x t2 (Cross)) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString 
+Project(Id, rows=100000) -> t1.Id
+ JoinSet(t1 (Cross) x t2 (Cross), rows=100000) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString, t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString 
  UnaryEdge { Expression = Id = CategoricalInt, Relation = t1 }
  UnaryEdge { Expression = Id = 1, Relation = t1 }
-    Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString    
-    Scan(table) -> t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString    
+    Scan(table, rows=100000) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString    
+    Scan(table, rows=100000) -> t2.Id, t2.Unordered, t2.Name, t2.CategoricalInt, t2.CategoricalString    
 
 
 Optimized
-Project(Id) -> t1.Id
- Join(Cross) -> t1.Id, t1.CategoricalInt, t2.Id, t2.CategoricalInt 
-    Filter(Id = 1) -> t1.Id, t1.CategoricalInt    
-       Filter(Id = CategoricalInt) -> t1.Id, t1.CategoricalInt       
-          Scan(table) with projection  -> t1.Id, t1.CategoricalInt          
+Project(Id, rows=400000000) -> t1.Id
+ Join(Cross, rows=400000000) -> t1.Id, t1.CategoricalInt, t2.Id, t2.CategoricalInt 
+    Filter(Id = 1, rows=4000) -> t1.Id, t1.CategoricalInt    
+       Filter(Id = CategoricalInt, rows=20000) -> t1.Id, t1.CategoricalInt       
+          Scan(table, rows=100000) with projection  -> t1.Id, t1.CategoricalInt          
  
-    Scan(table) with projection  -> t2.Id, t2.CategoricalInt    
+    Scan(table, rows=100000) with projection  -> t2.Id, t2.CategoricalInt    
 
 
 Cost Optimized

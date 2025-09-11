@@ -37,11 +37,11 @@ ORDER BY
 
 
 Original
-Project(o_year, SUM(CASE(WHEN nation = BRAZIL THEN volume)) / SUM(volume)) -> .o_year, .mkt_share
- Sort(o_year ASC) -> .SUM(CASE(WHEN nation = BRAZIL THEN volume)), .SUM(volume), .o_year 
-    Agg(SUM(CASE(WHEN nation = BRAZIL THEN volume)), SUM(volume), o_year) group by (o_year) -> .SUM(CASE(WHEN nation = BRAZIL THEN volume)), .SUM(volume), .o_year    
-       Project(EXTRACT(year, o_orderdate), l_extendedprice * cast(1 as Decimal) - l_discount, n_name) -> all_nations.o_year, all_nations.volume, all_nations.nation       
-          JoinSet(part (Inner) x supplier (Inner) x lineitem (Inner) x orders (Inner) x customer (Inner) x n1 (Inner) x n2 (Inner) x region (Inner)) -> .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, n1.n_nationkey, n1.n_name, n1.n_regionkey, n1.n_comment, n2.n_nationkey, n2.n_name, n2.n_regionkey, n2.n_comment, .r_regionkey, .r_name, .r_comment          
+Project(o_year, SUM(CASE(WHEN nation = BRAZIL THEN volume)) / SUM(volume), rows=6001215) -> .o_year, .mkt_share
+ Sort(o_year ASC), rows=6001215 -> .SUM(CASE(WHEN nation = BRAZIL THEN volume)), .SUM(volume), .o_year 
+    Agg(SUM(CASE(WHEN nation = BRAZIL THEN volume)), SUM(volume), o_year) group by (o_year, rows=6001215) -> .SUM(CASE(WHEN nation = BRAZIL THEN volume)), .SUM(volume), .o_year    
+       Project(EXTRACT(year, o_orderdate), l_extendedprice * cast(1 as Decimal) - l_discount, n_name, rows=6001215) -> all_nations.o_year, all_nations.volume, all_nations.nation       
+          JoinSet(part (Inner) x supplier (Inner) x lineitem (Inner) x orders (Inner) x customer (Inner) x n1 (Inner) x n2 (Inner) x region (Inner), rows=6001215) -> .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, n1.n_nationkey, n1.n_name, n1.n_regionkey, n1.n_comment, n2.n_nationkey, n2.n_name, n2.n_regionkey, n2.n_comment, .r_regionkey, .r_name, .r_comment          
           BinaryEdge { Expression = p_partkey = l_partkey, One = part, Two = lineitem }
           BinaryEdge { Expression = s_suppkey = l_suppkey, One = supplier, Two = lineitem }
           BinaryEdge { Expression = l_orderkey = o_orderkey, One = lineitem, Two = orders }
@@ -52,46 +52,46 @@ Project(o_year, SUM(CASE(WHEN nation = BRAZIL THEN volume)) / SUM(volume)) -> .o
           BinaryEdge { Expression = s_nationkey = n_nationkey, One = supplier, Two = n2 }
           UnaryEdge { Expression = o_orderdate between 01/01/1995 00:00:00 and 12/31/1996 00:00:00, Relation = orders }
           UnaryEdge { Expression = p_type = ECONOMY ANODIZED STEEL, Relation = part }
-             Scan(part) -> .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment             
-             Scan(supplier) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment             
-             Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
-             Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
-             Scan(customer) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment             
-             Scan(nation) -> n1.n_nationkey, n1.n_name, n1.n_regionkey, n1.n_comment             
-             Scan(nation) -> n2.n_nationkey, n2.n_name, n2.n_regionkey, n2.n_comment             
-             Scan(region) -> .r_regionkey, .r_name, .r_comment             
+             Scan(part, rows=200000) -> .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment             
+             Scan(supplier, rows=10000) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment             
+             Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
+             Scan(orders, rows=1500000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
+             Scan(customer, rows=150000) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment             
+             Scan(nation, rows=25) -> n1.n_nationkey, n1.n_name, n1.n_regionkey, n1.n_comment             
+             Scan(nation, rows=25) -> n2.n_nationkey, n2.n_name, n2.n_regionkey, n2.n_comment             
+             Scan(region, rows=5) -> .r_regionkey, .r_name, .r_comment             
 
 
 Optimized
-Project(o_year, SUM(CASE(WHEN nation = BRAZIL THEN volume)) / SUM(volume)) -> .o_year, .mkt_share
- Sort(o_year ASC) -> .SUM(CASE(WHEN nation = BRAZIL THEN volume)), .SUM(volume), .o_year 
-    Agg(SUM(CASE(WHEN nation = BRAZIL THEN volume)), SUM(volume), o_year) group by (o_year) -> .SUM(CASE(WHEN nation = BRAZIL THEN volume)), .SUM(volume), .o_year    
-       Project(EXTRACT(year, o_orderdate), l_extendedprice * cast(1 as Decimal) - l_discount, n_name) -> all_nations.o_year, all_nations.volume, all_nations.nation       
-          Join(Inner on s_nationkey = n_nationkey) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n1.n_regionkey, .r_regionkey, .r_name, .s_suppkey, .s_nationkey, n2.n_nationkey, n2.n_name, n2.n_regionkey          
-             Join(Inner on s_suppkey = l_suppkey) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n1.n_regionkey, .r_regionkey, .r_name, .s_suppkey, .s_nationkey             
-                Join(Inner on n_regionkey = r_regionkey) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n1.n_regionkey, .r_regionkey, .r_name                
-                   Join(Inner on c_nationkey = n_nationkey) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n1.n_regionkey                   
-                      Join(Inner on o_custkey = c_custkey) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey                      
-                         Join(Inner on l_orderkey = o_orderkey) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate                         
-                            Join(Inner on p_partkey = l_partkey) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount                            
-                               Filter(p_type = ECONOMY ANODIZED STEEL) -> .p_partkey, .p_type                               
-                                  Scan(part) with projection  -> .p_partkey, .p_type                                  
+Project(o_year, SUM(CASE(WHEN nation = BRAZIL THEN volume)) / SUM(volume), rows=6001215) -> .o_year, .mkt_share
+ Sort(o_year ASC), rows=6001215 -> .SUM(CASE(WHEN nation = BRAZIL THEN volume)), .SUM(volume), .o_year 
+    Agg(SUM(CASE(WHEN nation = BRAZIL THEN volume)), SUM(volume), o_year) group by (o_year, rows=6001215) -> .SUM(CASE(WHEN nation = BRAZIL THEN volume)), .SUM(volume), .o_year    
+       Project(EXTRACT(year, o_orderdate), l_extendedprice * cast(1 as Decimal) - l_discount, n_name, rows=6001215) -> all_nations.o_year, all_nations.volume, all_nations.nation       
+          Join(Inner on s_nationkey = n_nationkey, rows=6001215) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n1.n_regionkey, .r_regionkey, .r_name, .s_suppkey, .s_nationkey, n2.n_nationkey, n2.n_name, n2.n_regionkey          
+             Join(Inner on s_suppkey = l_suppkey, rows=6001215) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n1.n_regionkey, .r_regionkey, .r_name, .s_suppkey, .s_nationkey             
+                Join(Inner on n_regionkey = r_regionkey, rows=6001215) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n1.n_regionkey, .r_regionkey, .r_name                
+                   Join(Inner on c_nationkey = n_nationkey, rows=6001215) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey, n1.n_nationkey, n1.n_name, n1.n_regionkey                   
+                      Join(Inner on o_custkey = c_custkey, rows=6001215) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_nationkey                      
+                         Join(Inner on l_orderkey = o_orderkey, rows=6001215) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount, .o_orderkey, .o_custkey, .o_orderdate                         
+                            Join(Inner on p_partkey = l_partkey, rows=6001215) -> .p_partkey, .p_type, .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount                            
+                               Filter(p_type = ECONOMY ANODIZED STEEL, rows=40000) -> .p_partkey, .p_type                               
+                                  Scan(part, rows=200000) with projection  -> .p_partkey, .p_type                                  
                             
-                               Scan(lineitem) with projection  -> .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount                               
+                               Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_partkey, .l_suppkey, .l_extendedprice, .l_discount                               
                          
-                            Filter(o_orderdate between 01/01/1995 00:00:00 and 12/31/1996 00:00:00) -> .o_orderkey, .o_custkey, .o_orderdate                            
-                               Scan(orders) with projection  -> .o_orderkey, .o_custkey, .o_orderdate                               
+                            Filter(o_orderdate between 01/01/1995 00:00:00 and 12/31/1996 00:00:00, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate                            
+                               Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_orderdate                               
                       
-                         Scan(customer) with projection  -> .c_custkey, .c_nationkey                         
+                         Scan(customer, rows=150000) with projection  -> .c_custkey, .c_nationkey                         
                    
-                      Scan(nation) with projection  -> n1.n_nationkey, n1.n_name, n1.n_regionkey                      
+                      Scan(nation, rows=25) with projection  -> n1.n_nationkey, n1.n_name, n1.n_regionkey                      
                 
-                   Filter(r_name = AMERICA) -> .r_regionkey, .r_name                   
-                      Scan(region) with projection  -> .r_regionkey, .r_name                      
+                   Filter(r_name = AMERICA, rows=1) -> .r_regionkey, .r_name                   
+                      Scan(region, rows=5) with projection  -> .r_regionkey, .r_name                      
              
-                Scan(supplier) with projection  -> .s_suppkey, .s_nationkey                
+                Scan(supplier, rows=10000) with projection  -> .s_suppkey, .s_nationkey                
           
-             Scan(nation) with projection  -> n2.n_nationkey, n2.n_name, n2.n_regionkey             
+             Scan(nation, rows=25) with projection  -> n2.n_nationkey, n2.n_name, n2.n_regionkey             
 
 
 Cost Optimized

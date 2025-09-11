@@ -19,31 +19,31 @@ order by
 
 
 Original
-Project(o_orderpriority, order_count) -> .o_orderpriority, .order_count
- Sort(o_orderpriority ASC) -> .order_count, .o_orderpriority 
-    Agg(count(*), o_orderpriority) group by (o_orderpriority) -> .order_count, .o_orderpriority    
-       Apply(c=1) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment       
+Project(o_orderpriority, order_count, rows=1350000) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC), rows=1350000 -> .order_count, .o_orderpriority 
+    Agg(count(*), o_orderpriority) group by (o_orderpriority, rows=1350000) -> .order_count, .o_orderpriority    
+       Apply(c=1, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment       
           Limit(n=1) -> .True          
-             Project(True) -> .True             
-                Filter(l_orderkey = o_orderkey and l_commitdate < l_receiptdate) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
-                   Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                   
-          Filter(o_orderdate >= 07/01/1993 00:00:00 and o_orderdate < 10/01/1993 00:00:00 and correlated-subquery(1)) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment          
-             Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
+             Project(True, rows=5401093) -> .True             
+                Filter(l_orderkey = o_orderkey and l_commitdate < l_receiptdate, rows=5401093) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
+                   Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                   
+          Filter(o_orderdate >= 07/01/1993 00:00:00 and o_orderdate < 10/01/1993 00:00:00 and correlated-subquery(1), rows=1350000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment          
+             Scan(orders, rows=1500000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
 
 
 Optimized
-Project(o_orderpriority, order_count) -> .o_orderpriority, .order_count
- Sort(o_orderpriority ASC) -> .order_count, .o_orderpriority 
-    Agg(count(*), o_orderpriority) group by (o_orderpriority) -> .order_count, .o_orderpriority    
-       Join(Inner on o_orderkey = l_orderkey) -> .o_orderkey, .o_orderdate, .o_orderpriority, correlated0.l_orderkey, correlated0.True       
-          Filter(o_orderdate < 10/01/1993 00:00:00) -> .o_orderkey, .o_orderdate, .o_orderpriority          
-             Filter(o_orderdate >= 07/01/1993 00:00:00) -> .o_orderkey, .o_orderdate, .o_orderpriority             
-                Filter(True = True) -> .o_orderkey, .o_orderdate, .o_orderpriority                
-                   Scan(orders) with projection  -> .o_orderkey, .o_orderdate, .o_orderpriority                   
+Project(o_orderpriority, order_count, rows=5401093) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC), rows=5401093 -> .order_count, .o_orderpriority 
+    Agg(count(*), o_orderpriority) group by (o_orderpriority, rows=5401093) -> .order_count, .o_orderpriority    
+       Join(Inner on o_orderkey = l_orderkey, rows=5401093) -> .o_orderkey, .o_orderdate, .o_orderpriority, correlated0.l_orderkey, correlated0.True       
+          Filter(o_orderdate < 10/01/1993 00:00:00, rows=243000) -> .o_orderkey, .o_orderdate, .o_orderpriority          
+             Filter(o_orderdate >= 07/01/1993 00:00:00, rows=270000) -> .o_orderkey, .o_orderdate, .o_orderpriority             
+                Filter(True = True, rows=300000) -> .o_orderkey, .o_orderdate, .o_orderpriority                
+                   Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderdate, .o_orderpriority                   
        
-          Agg(l_orderkey, max(True)) group by (l_orderkey) -> correlated0.l_orderkey, correlated0.True          
-             Filter(l_commitdate < l_receiptdate) -> .l_orderkey, .l_commitdate, .l_receiptdate             
-                Scan(lineitem) with projection  -> .l_orderkey, .l_commitdate, .l_receiptdate                
+          Agg(l_orderkey, max(True)) group by (l_orderkey, rows=5401093) -> correlated0.l_orderkey, correlated0.True          
+             Filter(l_commitdate < l_receiptdate, rows=5401093) -> .l_orderkey, .l_commitdate, .l_receiptdate             
+                Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_commitdate, .l_receiptdate                
 
 
 Cost Optimized

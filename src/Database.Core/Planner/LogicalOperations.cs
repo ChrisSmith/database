@@ -10,6 +10,8 @@ public abstract record LogicalPlan
 {
     public int PlanId { get; init; }
 
+    public abstract long NumRows { get; }
+
     // Only set on the roots?
     public BindContext? BindContext { get; init; }
 
@@ -63,6 +65,7 @@ public record PlanWithSubQueries(
     List<LogicalPlan> Uncorrelated
     ) : LogicalPlan
 {
+    public override long NumRows => Plan.NumRows + Uncorrelated.Sum(p => p.NumRows);
     public override IReadOnlyList<ColumnSchema> OutputSchema => Plan.OutputSchema;
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -91,10 +94,12 @@ public record Scan(
     TableId TableId,
     BaseExpression? Filter,
     IReadOnlyList<ColumnSchema> OutputColumns,
-    long NumRows,
+    long Cardinality,
     bool Projection = false,
     string? Alias = null) : LogicalPlan
 {
+    public override long NumRows => Cardinality;
+
     public override IReadOnlyList<ColumnSchema> OutputSchema => QueryPlanner.AddTableAlias(OutputColumns, Alias ?? "");
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -114,6 +119,15 @@ public record Filter(
     BaseExpression Predicate
     ) : LogicalPlan
 {
+    public override long NumRows
+    {
+        get
+        {
+            var selectivity = CostEstimation.EstimateSelectivity(Predicate);
+            return (long)(Input.NumRows * selectivity);
+        }
+    }
+
     public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -140,6 +154,7 @@ public record Projection(
     bool AppendExpressions = false
 ) : LogicalPlan
 {
+    public override long NumRows => Input.NumRows;
     public override IReadOnlyList<ColumnSchema> OutputSchema => OutputColumns;
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -157,7 +172,7 @@ public record Projection(
     }
 }
 
-public record JoinedRelation(string Name, LogicalPlan Plan, JoinType JoinType, long NumRows);
+public record JoinedRelation(string Name, LogicalPlan Plan, JoinType JoinType, long NumRows); // TODO remove NumRows
 
 public record JoinSet(
     IReadOnlyList<JoinedRelation> Relations,
@@ -165,6 +180,8 @@ public record JoinSet(
     IReadOnlyList<BaseExpression> Filters
 ) : LogicalPlan
 {
+    public override long NumRows => Relations.Max(r => r.NumRows);
+
     public override IReadOnlyList<ColumnSchema> OutputSchema
     {
         get { return QueryPlanner.GetCombinedOutputSchema(Relations.Select(r => r.Plan)); }
@@ -195,6 +212,22 @@ public record Join(
     BaseExpression? Condition
 ) : LogicalPlan
 {
+    public override long NumRows
+    {
+        get
+        {
+            if (JoinType == JoinType.Inner && Condition is BinaryExpression { Operator: TokenType.EQUAL })
+            {
+                return Math.Max(Left.NumRows, Right.NumRows);
+            }
+            if (JoinType == JoinType.Semi)
+            {
+                return Left.NumRows;
+            }
+            return checked(Left.NumRows * Right.NumRows);
+        }
+    }
+
     public override IReadOnlyList<ColumnSchema> OutputSchema => QueryPlanner.ExtendSchema(Left.OutputSchema, Right.OutputSchema);
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -220,6 +253,7 @@ public record Aggregate(
     string? Alias
     ) : LogicalPlan
 {
+    public override long NumRows => Input.NumRows;
     public override IReadOnlyList<ColumnSchema> OutputSchema => QueryPlanner.SchemaFromExpressions(Aggregates, Alias);
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -243,6 +277,7 @@ public record Sort(
     IReadOnlyList<OrderingExpression> OrderBy
 ) : LogicalPlan
 {
+    public override long NumRows => Input.NumRows;
     public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -264,6 +299,7 @@ public record Distinct(
     LogicalPlan Input
 ) : LogicalPlan
 {
+    public override long NumRows => Input.NumRows;
     public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -286,6 +322,7 @@ public record Limit(
     int Count
 ) : LogicalPlan
 {
+    public override long NumRows => Count;
     public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -309,6 +346,7 @@ public record TopNSort(
     IReadOnlyList<OrderingExpression> OrderBy
 ) : LogicalPlan
 {
+    public override long NumRows => Count;
     public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
 
     public override IEnumerable<LogicalPlan> Inputs()
@@ -331,6 +369,7 @@ public record Apply(
     List<LogicalPlan> Correlated
 ) : LogicalPlan
 {
+    public override long NumRows => Input.NumRows;
     public override IReadOnlyList<ColumnSchema> OutputSchema => Input.OutputSchema;
     public override IEnumerable<LogicalPlan> Inputs()
     {

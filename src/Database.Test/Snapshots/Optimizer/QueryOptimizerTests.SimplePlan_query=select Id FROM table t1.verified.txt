@@ -1,13 +1,13 @@
 ﻿select Id FROM table t1
 
 Original
-Project(Id) -> .Id
- Scan(table) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString 
+Project(Id, rows=100000) -> .Id
+ Scan(table, rows=100000) -> t1.Id, t1.Unordered, t1.Name, t1.CategoricalInt, t1.CategoricalString 
 
 
 Optimized
-Project(Id) -> .Id
- Scan(table) with projection  -> t1.Id 
+Project(Id, rows=100000) -> .Id
+ Scan(table, rows=100000) with projection  -> t1.Id 
 
 
 Cost Optimized

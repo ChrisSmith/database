@@ -31,7 +31,7 @@ public class CostCalculationTests
     public void Scan()
     {
         var table = _catalog.GetTable("lineitem");
-        var scan = new Scan(table.Name, table.Id, null, table.Columns, NumRows: 10);
+        var scan = new Scan(table.Name, table.Id, null, table.Columns, Cardinality: 10);
         var plan = _physicalPlanner.CreatePhysicalPlan(scan, new BindContext());
         var cost = plan.EstimateCost();
         cost.OutputRows.Should().Be(6_001_215);
@@ -44,7 +44,7 @@ public class CostCalculationTests
     public void Filter()
     {
         var table = _catalog.GetTable("lineitem");
-        var scan = new Scan(table.Name, table.Id, null, table.Columns, NumRows: 10);
+        var scan = new Scan(table.Name, table.Id, null, table.Columns, Cardinality: 10);
         var filter = new Filter(scan, new BinaryExpression(TokenType.EQUAL, "=", new IntegerLiteral(0), new IntegerLiteral(0)));
         var plan = _physicalPlanner.CreatePhysicalPlan(filter, new BindContext());
         var cost = plan.EstimateCost();
@@ -58,11 +58,11 @@ public class CostCalculationTests
     public void Join()
     {
         var table = _catalog.GetTable("lineitem");
-        LogicalPlan smaller = new Scan(table.Name, table.Id, null, table.Columns, NumRows: 10, Alias: "left");
+        LogicalPlan smaller = new Scan(table.Name, table.Id, null, table.Columns, Cardinality: 10, Alias: "left");
         var expr = new BinaryExpression(TokenType.EQUAL, "=", new IntegerLiteral(0), new IntegerLiteral(0));
         smaller = new Filter(smaller, expr);
 
-        var larger = new Scan(table.Name, table.Id, null, table.Columns, NumRows: 10, Alias: "right");
+        var larger = new Scan(table.Name, table.Id, null, table.Columns, Cardinality: 10, Alias: "right");
         var joinExpr = new BinaryExpression(TokenType.EQUAL, "=",
             new ColumnExpression("l_orderkey", "left"),
             new ColumnExpression("l_orderkey", "right"));

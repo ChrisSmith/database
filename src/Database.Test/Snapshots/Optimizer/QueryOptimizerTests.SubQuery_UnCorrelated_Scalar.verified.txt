@@ -9,27 +9,27 @@
         
 
 Original
-PlanWithSubQueries(u=1) -> .count
- Project(max(CategoricalInt)) -> .max(CategoricalInt) 
-    Agg(max(CategoricalInt)) group by () -> .max(CategoricalInt)    
-       Filter(CategoricalString = cat) -> q.Id, q.Unordered, q.Name, q.CategoricalInt, q.CategoricalString       
-          Scan(table) -> q.Id, q.Unordered, q.Name, q.CategoricalInt, q.CategoricalString          
- Project(count) -> .count 
-    Agg(count(*)) group by () -> .count    
-       Filter(CategoricalInt = subquery(1)) -> t.Id, t.Unordered, t.Name, t.CategoricalInt, t.CategoricalString       
-          Scan(table) -> t.Id, t.Unordered, t.Name, t.CategoricalInt, t.CategoricalString          
+PlanWithSubQueries(u=1, rows=40000) -> .count
+ Project(max(CategoricalInt), rows=20000) -> .max(CategoricalInt) 
+    Agg(max(CategoricalInt)) group by (, rows=20000) -> .max(CategoricalInt)    
+       Filter(CategoricalString = cat, rows=20000) -> q.Id, q.Unordered, q.Name, q.CategoricalInt, q.CategoricalString       
+          Scan(table, rows=100000) -> q.Id, q.Unordered, q.Name, q.CategoricalInt, q.CategoricalString          
+ Project(count, rows=20000) -> .count 
+    Agg(count(*)) group by (, rows=20000) -> .count    
+       Filter(CategoricalInt = subquery(1), rows=20000) -> t.Id, t.Unordered, t.Name, t.CategoricalInt, t.CategoricalString       
+          Scan(table, rows=100000) -> t.Id, t.Unordered, t.Name, t.CategoricalInt, t.CategoricalString          
 
 
 Optimized
-PlanWithSubQueries(u=1) -> .count
- Project(max(CategoricalInt)) -> .max(CategoricalInt) 
-    Agg(max(CategoricalInt)) group by () -> .max(CategoricalInt)    
-       Filter(CategoricalString = cat) -> q.CategoricalInt, q.CategoricalString       
-          Scan(table) with projection  -> q.CategoricalInt, q.CategoricalString          
- Project(count) -> .count 
-    Agg(count(*)) group by () -> .count    
-       Filter(CategoricalInt = subquery(1)) -> t.CategoricalInt       
-          Scan(table) with projection  -> t.CategoricalInt          
+PlanWithSubQueries(u=1, rows=40000) -> .count
+ Project(max(CategoricalInt), rows=20000) -> .max(CategoricalInt) 
+    Agg(max(CategoricalInt)) group by (, rows=20000) -> .max(CategoricalInt)    
+       Filter(CategoricalString = cat, rows=20000) -> q.CategoricalInt, q.CategoricalString       
+          Scan(table, rows=100000) with projection  -> q.CategoricalInt, q.CategoricalString          
+ Project(count, rows=20000) -> .count 
+    Agg(count(*)) group by (, rows=20000) -> .count    
+       Filter(CategoricalInt = subquery(1), rows=20000) -> t.CategoricalInt       
+          Scan(table, rows=100000) with projection  -> t.CategoricalInt          
 
 
 Cost Optimized

@@ -29,35 +29,35 @@ ORDER BY
 
 
 Original
-Project(l_shipmode, high_line_count, low_line_count) -> .l_shipmode, .high_line_count, .low_line_count
- Sort(l_shipmode ASC) -> .high_line_count, .low_line_count, .l_shipmode 
-    Agg(SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1)), l_shipmode) group by (l_shipmode) -> .high_line_count, .low_line_count, .l_shipmode    
-       JoinSet(orders (Inner) x lineitem (Inner)) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment       
+Project(l_shipmode, high_line_count, low_line_count, rows=6001215) -> .l_shipmode, .high_line_count, .low_line_count
+ Sort(l_shipmode ASC), rows=6001215 -> .high_line_count, .low_line_count, .l_shipmode 
+    Agg(SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1)), l_shipmode) group by (l_shipmode, rows=6001215) -> .high_line_count, .low_line_count, .l_shipmode    
+       JoinSet(orders (Inner) x lineitem (Inner), rows=6001215) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment       
        BinaryEdge { Expression = o_orderkey = l_orderkey, One = orders, Two = lineitem }
        UnaryEdge { Expression = l_shipmode IN subquery(1), Relation = lineitem }
        UnaryEdge { Expression = l_commitdate < l_receiptdate, Relation = lineitem }
        UnaryEdge { Expression = l_shipdate < l_commitdate, Relation = lineitem }
        UnaryEdge { Expression = l_receiptdate >= 01/01/1994 00:00:00, Relation = lineitem }
        UnaryEdge { Expression = l_receiptdate < 01/01/1995 00:00:00, Relation = lineitem }
-          Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment          
-          Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
+          Scan(orders, rows=1500000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment          
+          Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
 
 
 Optimized
-Project(l_shipmode, high_line_count, low_line_count) -> .l_shipmode, .high_line_count, .low_line_count
- Sort(l_shipmode ASC) -> .high_line_count, .low_line_count, .l_shipmode 
-    Agg(SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1)), l_shipmode) group by (l_shipmode) -> .high_line_count, .low_line_count, .l_shipmode    
-       Join(Semi on l_shipmode = $subquery_1$) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode, $subquery_1$.$subquery_1$       
-          Join(Inner on o_orderkey = l_orderkey) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode          
-             Scan(orders) with projection  -> .o_orderkey, .o_orderpriority             
+Project(l_shipmode, high_line_count, low_line_count, rows=3937395) -> .l_shipmode, .high_line_count, .low_line_count
+ Sort(l_shipmode ASC), rows=3937395 -> .high_line_count, .low_line_count, .l_shipmode 
+    Agg(SUM(CASE(WHEN o_orderpriority = 1-URGENT OR o_orderpriority = 2-HIGH THEN 1)), SUM(CASE(WHEN o_orderpriority <> 1-URGENT AND o_orderpriority <> 2-HIGH THEN 1)), l_shipmode) group by (l_shipmode, rows=3937395) -> .high_line_count, .low_line_count, .l_shipmode    
+       Join(Semi on l_shipmode = $subquery_1$, rows=3937395) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode, $subquery_1$.$subquery_1$       
+          Join(Inner on o_orderkey = l_orderkey, rows=3937395) -> .o_orderkey, .o_orderpriority, .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode          
+             Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderpriority             
           
-             Filter(l_receiptdate < 01/01/1995 00:00:00) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode             
-                Filter(l_receiptdate >= 01/01/1994 00:00:00) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                
-                   Filter(l_shipdate < l_commitdate) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                   
-                      Filter(l_commitdate < l_receiptdate) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                      
-                         Scan(lineitem) with projection  -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                         
+             Filter(l_receiptdate < 01/01/1995 00:00:00, rows=3937395) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode             
+                Filter(l_receiptdate >= 01/01/1994 00:00:00, rows=4374884) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                
+                   Filter(l_shipdate < l_commitdate, rows=4860983) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                   
+                      Filter(l_commitdate < l_receiptdate, rows=5401093) -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                      
+                         Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipmode                         
        
-          Scan($subquery_1$) -> $subquery_1$.$subquery_1$          
+          Scan($subquery_1$, rows=1000) -> $subquery_1$.$subquery_1$          
 
 
 Cost Optimized

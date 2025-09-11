@@ -246,6 +246,10 @@ public record HashJoinOperator(
         var scanCost = ScanSource.EstimateCost();
         var probeCost = ProbeSource.EstimateCost();
         var outputRows = BigInteger.Max(scanCost.OutputRows, probeCost.OutputRows); // TODO selectivity estimation/multiple
+        if (JoinType == JoinType.Semi)
+        {
+            outputRows = scanCost.OutputRows;
+        }
         var hashCreation = probeCost.OutputRows * ProbeKeys.Count * 2;
         var cpuOps = scanCost.OutputRows * ProbeKeys.Count + hashCreation;
 

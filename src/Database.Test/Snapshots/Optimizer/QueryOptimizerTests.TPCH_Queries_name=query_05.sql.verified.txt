@@ -23,10 +23,10 @@ order by revenue desc;
 
 
 Original
-Project(n_name, revenue) -> .n_name, .revenue
- Sort(revenue DESC) -> .revenue, .n_name 
-    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), n_name) group by (n_name) -> .revenue, .n_name    
-       JoinSet(customer (Inner) x orders (Inner) x lineitem (Inner) x supplier (Inner) x nation (Inner) x region (Inner)) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .n_comment, .r_regionkey, .r_name, .r_comment       
+Project(n_name, revenue, rows=6001215) -> .n_name, .revenue
+ Sort(revenue DESC), rows=6001215 -> .revenue, .n_name 
+    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), n_name) group by (n_name, rows=6001215) -> .revenue, .n_name    
+       JoinSet(customer (Inner) x orders (Inner) x lineitem (Inner) x supplier (Inner) x nation (Inner) x region (Inner), rows=6001215) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .n_comment, .r_regionkey, .r_name, .r_comment       
        BinaryEdge { Expression = c_custkey = o_custkey, One = customer, Two = orders }
        BinaryEdge { Expression = l_orderkey = o_orderkey, One = orders, Two = lineitem }
        BinaryEdge { Expression = l_suppkey = s_suppkey, One = lineitem, Two = supplier }
@@ -36,38 +36,38 @@ Project(n_name, revenue) -> .n_name, .revenue
        UnaryEdge { Expression = r_name = ASIA, Relation = region }
        UnaryEdge { Expression = o_orderdate >= 01/01/1994 00:00:00, Relation = orders }
        UnaryEdge { Expression = o_orderdate < 01/01/1995 00:00:00, Relation = orders }
-          Scan(customer) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment          
-          Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment          
-          Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
-          Scan(supplier) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment          
-          Scan(nation) -> .n_nationkey, .n_name, .n_regionkey, .n_comment          
-          Scan(region) -> .r_regionkey, .r_name, .r_comment          
+          Scan(customer, rows=150000) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment          
+          Scan(orders, rows=1500000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment          
+          Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
+          Scan(supplier, rows=10000) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment          
+          Scan(nation, rows=25) -> .n_nationkey, .n_name, .n_regionkey, .n_comment          
+          Scan(region, rows=5) -> .r_regionkey, .r_name, .r_comment          
 
 
 Optimized
-Project(n_name, revenue) -> .n_name, .revenue
- Sort(revenue DESC) -> .revenue, .n_name 
-    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), n_name) group by (n_name) -> .revenue, .n_name    
-       Filter(c_nationkey = s_nationkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name       
-          Join(Inner on n_regionkey = r_regionkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name          
-             Join(Inner on s_nationkey = n_nationkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey             
-                Join(Inner on l_suppkey = s_suppkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey                
-                   Join(Inner on l_orderkey = o_orderkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount                   
-                      Join(Inner on c_custkey = o_custkey) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate                      
-                         Scan(customer) with projection  -> .c_custkey, .c_nationkey                         
+Project(n_name, revenue, rows=1200243) -> .n_name, .revenue
+ Sort(revenue DESC), rows=1200243 -> .revenue, .n_name 
+    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), n_name) group by (n_name, rows=1200243) -> .revenue, .n_name    
+       Filter(c_nationkey = s_nationkey, rows=1200243) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name       
+          Join(Inner on n_regionkey = r_regionkey, rows=6001215) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey, .r_regionkey, .r_name          
+             Join(Inner on s_nationkey = n_nationkey, rows=6001215) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .n_regionkey             
+                Join(Inner on l_suppkey = s_suppkey, rows=6001215) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .s_suppkey, .s_nationkey                
+                   Join(Inner on l_orderkey = o_orderkey, rows=6001215) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount                   
+                      Join(Inner on c_custkey = o_custkey, rows=1215000) -> .c_custkey, .c_nationkey, .o_orderkey, .o_custkey, .o_orderdate                      
+                         Scan(customer, rows=150000) with projection  -> .c_custkey, .c_nationkey                         
                       
-                         Filter(o_orderdate < 01/01/1995 00:00:00) -> .o_orderkey, .o_custkey, .o_orderdate                         
-                            Filter(o_orderdate >= 01/01/1994 00:00:00) -> .o_orderkey, .o_custkey, .o_orderdate                            
-                               Scan(orders) with projection  -> .o_orderkey, .o_custkey, .o_orderdate                               
+                         Filter(o_orderdate < 01/01/1995 00:00:00, rows=1215000) -> .o_orderkey, .o_custkey, .o_orderdate                         
+                            Filter(o_orderdate >= 01/01/1994 00:00:00, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate                            
+                               Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_orderdate                               
                    
-                      Scan(lineitem) with projection  -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount                      
+                      Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount                      
                 
-                   Scan(supplier) with projection  -> .s_suppkey, .s_nationkey                   
+                   Scan(supplier, rows=10000) with projection  -> .s_suppkey, .s_nationkey                   
              
-                Scan(nation) with projection  -> .n_nationkey, .n_name, .n_regionkey                
+                Scan(nation, rows=25) with projection  -> .n_nationkey, .n_name, .n_regionkey                
           
-             Filter(r_name = ASIA) -> .r_regionkey, .r_name             
-                Scan(region) with projection  -> .r_regionkey, .r_name                
+             Filter(r_name = ASIA, rows=1) -> .r_regionkey, .r_name             
+                Scan(region, rows=5) with projection  -> .r_regionkey, .r_name                
 
 
 Cost Optimized

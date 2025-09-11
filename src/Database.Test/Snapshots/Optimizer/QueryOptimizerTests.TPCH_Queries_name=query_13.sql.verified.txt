@@ -20,29 +20,29 @@ ORDER BY
 
 
 Original
-Project(c_count, custdist) -> .c_count, .custdist
- Sort(custdist DESC, c_count DESC) -> .custdist, .c_count 
-    Agg(COUNT(*), c_count) group by (c_count) -> .custdist, .c_count    
-       Project(c_custkey, c_count) -> c_orders.c_custkey, c_orders.c_count       
-          Agg(COUNT(o_orderkey), c_custkey) group by (c_custkey) -> c_orders.c_count, c_orders.c_custkey          
-             JoinSet(customer (Inner) x orders (Inner)) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
+Project(c_count, custdist, rows=1500000) -> .c_count, .custdist
+ Sort(custdist DESC, c_count DESC), rows=1500000 -> .custdist, .c_count 
+    Agg(COUNT(*), c_count) group by (c_count, rows=1500000) -> .custdist, .c_count    
+       Project(c_custkey, c_count, rows=1500000) -> c_orders.c_custkey, c_orders.c_count       
+          Agg(COUNT(o_orderkey), c_custkey) group by (c_custkey, rows=1500000) -> c_orders.c_count, c_orders.c_custkey          
+             JoinSet(customer (Inner) x orders (Inner), rows=1500000) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment             
              BinaryEdge { Expression = c_custkey = o_custkey, One = customer, Two = orders }
              UnaryEdge { Expression = NOT o_comment LIKE %special%requests%, Relation = orders }
-                Scan(customer) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment                
-                Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                
+                Scan(customer, rows=150000) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment                
+                Scan(orders, rows=1500000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                
 
 
 Optimized
-Project(c_count, custdist) -> .c_count, .custdist
- Sort(custdist DESC, c_count DESC) -> .custdist, .c_count 
-    Agg(COUNT(*), c_count) group by (c_count) -> .custdist, .c_count    
-       Project(c_custkey, c_count) -> c_orders.c_custkey, c_orders.c_count       
-          Agg(COUNT(o_orderkey), c_custkey) group by (c_custkey) -> c_orders.c_count, c_orders.c_custkey          
-             Join(Inner on c_custkey = o_custkey) -> .c_custkey, .o_orderkey, .o_custkey, .o_comment             
-                Scan(customer) with projection  -> .c_custkey                
+Project(c_count, custdist, rows=1350000) -> .c_count, .custdist
+ Sort(custdist DESC, c_count DESC), rows=1350000 -> .custdist, .c_count 
+    Agg(COUNT(*), c_count) group by (c_count, rows=1350000) -> .custdist, .c_count    
+       Project(c_custkey, c_count, rows=1350000) -> c_orders.c_custkey, c_orders.c_count       
+          Agg(COUNT(o_orderkey), c_custkey) group by (c_custkey, rows=1350000) -> c_orders.c_count, c_orders.c_custkey          
+             Join(Inner on c_custkey = o_custkey, rows=1350000) -> .c_custkey, .o_orderkey, .o_custkey, .o_comment             
+                Scan(customer, rows=150000) with projection  -> .c_custkey                
              
-                Filter(NOT o_comment LIKE %special%requests%) -> .o_orderkey, .o_custkey, .o_comment                
-                   Scan(orders) with projection  -> .o_orderkey, .o_custkey, .o_comment                   
+                Filter(NOT o_comment LIKE %special%requests%, rows=1350000) -> .o_orderkey, .o_custkey, .o_comment                
+                   Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_comment                   
 
 
 Cost Optimized

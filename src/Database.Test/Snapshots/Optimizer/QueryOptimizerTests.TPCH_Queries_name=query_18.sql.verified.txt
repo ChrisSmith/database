@@ -35,43 +35,43 @@ limit 100;
 
 
 Original
-PlanWithSubQueries(u=1) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)
- Project(l_orderkey) -> .l_orderkey 
-    Filter(SUM(l_quantity) > cast(300 as Decimal)) -> .l_orderkey, .SUM(l_quantity)    
-       Agg(l_orderkey, SUM(l_quantity)) group by (l_orderkey) -> .l_orderkey, .SUM(l_quantity)       
-          Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
+PlanWithSubQueries(u=1, rows=5401193) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)
+ Project(l_orderkey, rows=5401093) -> .l_orderkey 
+    Filter(SUM(l_quantity) > cast(300 as Decimal), rows=5401093) -> .l_orderkey, .SUM(l_quantity)    
+       Agg(l_orderkey, SUM(l_quantity)) group by (l_orderkey, rows=6001215) -> .l_orderkey, .SUM(l_quantity)       
+          Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
  Limit(n=100) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity) 
-    Project(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity)) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)    
-       Sort(o_totalprice DESC, o_orderdate ASC) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice       
-          Agg(SUM(l_quantity), c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice) group by (c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice          
-             JoinSet(customer (Inner) x orders (Inner) x lineitem (Inner)) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
+    Project(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity), rows=6001215) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)    
+       Sort(o_totalprice DESC, o_orderdate ASC), rows=6001215 -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice       
+          Agg(SUM(l_quantity), c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice) group by (c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, rows=6001215) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice          
+             JoinSet(customer (Inner) x orders (Inner) x lineitem (Inner), rows=6001215) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
              UnaryEdge { Expression = o_orderkey IN subquery(1), Relation = orders }
              BinaryEdge { Expression = c_custkey = o_custkey, One = customer, Two = orders }
              BinaryEdge { Expression = o_orderkey = l_orderkey, One = orders, Two = lineitem }
-                Scan(customer) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment                
-                Scan(orders) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                
-                Scan(lineitem) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
+                Scan(customer, rows=150000) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment                
+                Scan(orders, rows=1500000) -> .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment                
+                Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
 
 
 Optimized
-PlanWithSubQueries(u=1) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)
- Project(l_orderkey) -> .l_orderkey 
-    Filter(SUM(l_quantity) > cast(300 as Decimal)) -> .l_orderkey, .SUM(l_quantity)    
-       Agg(l_orderkey, SUM(l_quantity)) group by (l_orderkey) -> .l_orderkey, .SUM(l_quantity)       
-          Scan(lineitem) with projection  -> .l_orderkey, .l_quantity          
- Project(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity)) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity) 
+PlanWithSubQueries(u=1, rows=5401193) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)
+ Project(l_orderkey, rows=5401093) -> .l_orderkey 
+    Filter(SUM(l_quantity) > cast(300 as Decimal), rows=5401093) -> .l_orderkey, .SUM(l_quantity)    
+       Agg(l_orderkey, SUM(l_quantity)) group by (l_orderkey, rows=6001215) -> .l_orderkey, .SUM(l_quantity)       
+          Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_quantity          
+ Project(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity), rows=100) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity) 
     TopSort(n=100, o_totalprice DESC, o_orderdate ASC) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice    
-       Agg(SUM(l_quantity), c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice) group by (c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice       
-          Join(Semi on o_orderkey = l_orderkey) -> .c_custkey, .c_name, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, .l_orderkey, .l_quantity, $subquery_1$.l_orderkey          
-             Join(Inner on o_orderkey = l_orderkey) -> .c_custkey, .c_name, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, .l_orderkey, .l_quantity             
-                Join(Inner on c_custkey = o_custkey) -> .c_custkey, .c_name, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate                
-                   Scan(customer) with projection  -> .c_custkey, .c_name                   
+       Agg(SUM(l_quantity), c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice) group by (c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, rows=6001215) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice       
+          Join(Semi on o_orderkey = l_orderkey, rows=6001215) -> .c_custkey, .c_name, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, .l_orderkey, .l_quantity, $subquery_1$.l_orderkey          
+             Join(Inner on o_orderkey = l_orderkey, rows=6001215) -> .c_custkey, .c_name, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, .l_orderkey, .l_quantity             
+                Join(Inner on c_custkey = o_custkey, rows=1500000) -> .c_custkey, .c_name, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate                
+                   Scan(customer, rows=150000) with projection  -> .c_custkey, .c_name                   
                 
-                   Scan(orders) with projection  -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate                   
+                   Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate                   
              
-                Scan(lineitem) with projection  -> .l_orderkey, .l_quantity                
+                Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_quantity                
           
-             Scan($subquery_1$) -> $subquery_1$.l_orderkey             
+             Scan($subquery_1$, rows=1000) -> $subquery_1$.l_orderkey             
 
 
 Cost Optimized
