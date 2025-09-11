@@ -35,16 +35,16 @@ Optimized
 Project(l_orderkey, revenue, o_orderdate, o_shippriority, rows=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
  TopSort(n=10, revenue DESC, o_orderdate ASC) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority 
     Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=5401093) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
-       Join(Inner on l_orderkey = o_orderkey, rows=5401093) -> .c_custkey, .c_mktsegment, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate       
-          Join(Inner on c_custkey = o_custkey, rows=1350000) -> .c_custkey, .c_mktsegment, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority          
-             Filter(c_mktsegment = BUILDING, rows=30000) -> .c_custkey, .c_mktsegment             
-                Scan(customer, rows=150000) with projection  -> .c_custkey, .c_mktsegment                
-          
-             Filter(o_orderdate < 03/15/1995 00:00:00, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
-                Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority                
-       
+       Join(Inner on l_orderkey = o_orderkey, rows=5401093) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment       
           Filter(l_shipdate > 03/15/1995 00:00:00, rows=5401093) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
              Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate             
+       
+          Join(Inner on c_custkey = o_custkey, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment          
+             Filter(o_orderdate < 03/15/1995 00:00:00, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
+                Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority                
+          
+             Filter(c_mktsegment = BUILDING, rows=30000) -> .c_custkey, .c_mktsegment             
+                Scan(customer, rows=150000) with projection  -> .c_custkey, .c_mktsegment                
 
 
 Cost Optimized

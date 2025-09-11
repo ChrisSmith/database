@@ -57,24 +57,24 @@ Project(nation, o_year, sum_profit, rows=1200243) -> .nation, .o_year, .sum_prof
  Sort(nation ASC, o_year DESC), rows=1200243 -> .sum_profit, .nation, .o_year 
     Agg(sum(amount), nation, o_year) group by (nation, o_year, rows=1200243) -> .sum_profit, .nation, .o_year    
        Project(n_name, extract(year, o_orderdate), l_extendedprice * cast(1 as Decimal) - l_discount - ps_supplycost * l_quantity, rows=1200243) -> profit.nation, profit.o_year, profit.amount       
-          Filter(ps_partkey = l_partkey, rows=1200243) -> .p_partkey, .p_name, .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate, .s_suppkey, .s_nationkey, .n_nationkey, .n_name          
-             Join(Inner on s_nationkey = n_nationkey, rows=6001215) -> .p_partkey, .p_name, .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate, .s_suppkey, .s_nationkey, .n_nationkey, .n_name             
-                Join(Inner on s_suppkey = l_suppkey, rows=6001215) -> .p_partkey, .p_name, .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate, .s_suppkey, .s_nationkey                
-                   Join(Inner on o_orderkey = l_orderkey, rows=6001215) -> .p_partkey, .p_name, .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate                   
-                      Join(Inner on ps_suppkey = l_suppkey, rows=6001215) -> .p_partkey, .p_name, .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .ps_partkey, .ps_suppkey, .ps_supplycost                      
-                         Join(Inner on p_partkey = l_partkey, rows=6001215) -> .p_partkey, .p_name, .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount                         
+          Filter(ps_partkey = l_partkey, rows=1200243) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate          
+             Join(Inner on o_orderkey = l_orderkey, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate             
+                Join(Inner on ps_suppkey = l_suppkey, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .ps_partkey, .ps_suppkey, .ps_supplycost                
+                   Join(Inner on s_nationkey = n_nationkey, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey, .n_nationkey, .n_name                   
+                      Join(Inner on s_suppkey = l_suppkey, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey                      
+                         Join(Inner on p_partkey = l_partkey, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name                         
+                            Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount                            
+                         
                             Filter(p_name LIKE %green%, rows=180000) -> .p_partkey, .p_name                            
                                Scan(part, rows=200000) with projection  -> .p_partkey, .p_name                               
-                         
-                            Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount                            
                       
-                         Scan(partsupp, rows=800000) with projection  -> .ps_partkey, .ps_suppkey, .ps_supplycost                         
+                         Scan(supplier, rows=10000) with projection  -> .s_suppkey, .s_nationkey                         
                    
-                      Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderdate                      
+                      Scan(nation, rows=25) with projection  -> .n_nationkey, .n_name                      
                 
-                   Scan(supplier, rows=10000) with projection  -> .s_suppkey, .s_nationkey                   
+                   Scan(partsupp, rows=800000) with projection  -> .ps_partkey, .ps_suppkey, .ps_supplycost                   
              
-                Scan(nation, rows=25) with projection  -> .n_nationkey, .n_name                
+                Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderdate                
 
 
 Cost Optimized
@@ -82,16 +82,16 @@ Project(nation, o_year, sum_profit) cost (output_rows=10, cpu=30, disk=0, total=
  Sort(nation ASC, o_year DESC) cost (output_rows=10, cpu=60, disk=0, total=153406) -> .nation, .o_year, .sum_profit 
     HashAggregate(nation, o_year, sum(amount)) cost (output_rows=10, cpu=4800968, disk=0, total=153406) -> .nation, .o_year, .sum_profit    
        Project(n_name, extract(year, o_orderdate), l_extendedprice * cast(1 as Decimal) - l_discount - ps_supplycost * l_quantity) cost (output_rows=600121, cpu=3000605, disk=0, total=148605) -> profit.nation, profit.o_year, profit.amount       
-          Filter(ps_partkey = l_partkey) cost (output_rows=600121, cpu=102020655, disk=0, total=145605) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate, .s_suppkey, .s_nationkey, .n_nationkey, .n_name          
-             HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=6001215, cpu=6001265, disk=0, total=43584) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate, .s_suppkey, .s_nationkey, .n_nationkey, .n_name             
-                HashJoin(Inner s_suppkey, l_suppkey) cost (output_rows=6001215, cpu=6021215, disk=0, total=37583) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate, .s_suppkey, .s_nationkey                
-                   HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=6001215, cpu=9001215, disk=0, total=31551) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate                   
-                      HashJoin(Inner ps_suppkey, l_suppkey) cost (output_rows=6001215, cpu=7601215, disk=0, total=21048) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .ps_partkey, .ps_suppkey, .ps_supplycost                      
+          Filter(ps_partkey = l_partkey) cost (output_rows=600121, cpu=102020655, disk=0, total=145605) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate          
+             HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=6001215, cpu=9001215, disk=0, total=43584) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .ps_partkey, .ps_suppkey, .ps_supplycost, .o_orderkey, .o_orderdate             
+                HashJoin(Inner ps_suppkey, l_suppkey) cost (output_rows=6001215, cpu=7601215, disk=0, total=33082) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey, .n_nationkey, .n_name, .ps_partkey, .ps_suppkey, .ps_supplycost                
+                   HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=6001215, cpu=6001265, disk=0, total=24679) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey, .n_nationkey, .n_name                   
+                      HashJoin(Inner s_suppkey, l_suppkey) cost (output_rows=6001215, cpu=6021215, disk=0, total=18678) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name, .s_suppkey, .s_nationkey                      
                          HashJoin(Inner p_partkey, l_partkey) cost (output_rows=6001215, cpu=6041215, disk=0, total=12647) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount, .p_partkey, .p_name                         
                             FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_partkey, .l_suppkey, .l_quantity, .l_extendedprice, .l_discount                         
                             Filter(p_name LIKE %green%) cost (output_rows=20000, cpu=400000, disk=0, total=600) -> .p_partkey, .p_name                            
                                FileScan({SolutionDirectory}tpch/1/part2.parquet) cost (output_rows=200000, cpu=200000, disk=2, total=200) -> .p_partkey, .p_name                      
-                         FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_partkey, .ps_suppkey, .ps_supplycost                   
-                      FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderdate                
-                   FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_nationkey             
-                FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name
+                         FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_nationkey                   
+                      FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name                
+                   FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_partkey, .ps_suppkey, .ps_supplycost             
+                FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderdate

@@ -11,11 +11,11 @@ Project(Id, rows=100000) -> t1.Id
 
 Optimized
 Project(Id, rows=100000) -> t1.Id
- Join(Inner on Id = Id, rows=100000) -> t1.Id, t2.Id 
+ Join(Inner on Id = Id, rows=100000) -> t2.Id, t1.Id 
+    Scan(table, rows=100000) with projection  -> t2.Id    
+ 
     Filter(Id = 1, rows=20000) -> t1.Id    
        Scan(table, rows=100000) with projection  -> t1.Id       
- 
-    Scan(table, rows=100000) with projection  -> t2.Id    
 
 
 Cost Optimized

@@ -202,92 +202,187 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
         };
     }
 
-    private LogicalPlan ExpandJoinSet(JoinSet joinSet, BindContext context)
+    private JoinOrder FindBestJoinOrder(JoinSet joinSet)
     {
-        var groups = new List<List<Tuple<JoinedRelation, BinaryEdge>>>();
-        var queue = new Queue<JoinedRelation>(joinSet.Relations.Where(r => r.JoinType == JoinType.Inner).ToList());
-        var noMatches = new List<JoinedRelation>();
+        // Currently, this is just a brute force exhaustive search of all possible join orders
+        // given by the edges in the join set. To support larger joins I'll probably want
+        // to consider using IKKBZ + DPhyp
+        // https://15799.courses.cs.cmu.edu/spring2025/slides/07-joins1.pdf
+        // https://db.in.tum.de/~radke/papers/hugejoins.pdf
 
         var binaryEdges = joinSet.Edges.Where(e => e is BinaryEdge).Cast<BinaryEdge>().ToList();
+        var relationsByName = joinSet.Relations.ToDictionary(r => r.Name);
+        var relationToEdges = new Dictionary<JoinedRelation, List<BinaryEdge>>();
 
-        while (queue.Count > 0)
+        foreach (var rel in joinSet.Relations)
         {
-            var current = queue.Dequeue();
-            if (groups.Count == 0)
+            if (rel.JoinType == JoinType.Inner)
             {
-                groups.Add(new List<Tuple<JoinedRelation, BinaryEdge>>
-                {
-                    new Tuple<JoinedRelation, BinaryEdge>(current, null!)
-                });
-                continue;
-            }
-
-
-            var found = false;
-            foreach (var edge in binaryEdges.Where(e => current.Name == e.One || current.Name == e.Two))
-            {
-                var other = edge.One == current.Name ? edge.Two : edge.One;
-
-                foreach (var group in groups)
-                {
-                    if (group.Any(g => g.Item1.Name == other))
-                    {
-                        // TODO this basic greedy algo can be improved
-                        group.Add(new Tuple<JoinedRelation, BinaryEdge>(current, edge));
-                        found = true;
-                        break;
-                    }
-                }
-                if (found)
-                {
-                    break;
-                }
-            }
-
-            if (found)
-            {
-                foreach (var m in noMatches)
-                {
-                    queue.Enqueue(m);
-                }
-                noMatches.Clear();
-            }
-            else
-            {
-                if (queue.Count == 0)
-                {
-                    groups.Add([new Tuple<JoinedRelation, BinaryEdge>(current, null!)]);
-                    foreach (var m in noMatches)
-                    {
-                        queue.Enqueue(m);
-                    }
-                    noMatches.Clear();
-                }
-                else
-                {
-                    noMatches.Add(current);
-                }
+                relationToEdges.Add(rel, binaryEdges
+                    .Where(e => e.One == rel.Name || e.Two == rel.Name)
+                    .Where(e => e.Expression is BinaryExpression { Operator: TokenType.EQUAL }) // Must be an equi-join
+                    .ToList()
+                );
             }
         }
 
+        var possibleJoins = new List<(JoinedRelation, JoinedRelation, BinaryEdge)>();
+        foreach (var (rel, edges) in relationToEdges)
+        {
+            foreach (var edge in edges)
+            {
+                var other = edge.One == rel.Name ? edge.Two : edge.One;
+                var otherRel = relationsByName[other];
+                possibleJoins.Add((rel, otherRel, edge));
+            }
+        }
+
+        var empty = new JoinOrder(0, [], []);
+        return FindBestJoinOrder(empty, possibleJoins, new HashSet<string>());
+    }
+
+    private JoinSet PushDownUnaryEdges(JoinSet joinSet)
+    {
+        var unaryEdges = joinSet.Edges.Where(e => e is UnaryEdge).Cast<UnaryEdge>().ToList();
+        if (unaryEdges.Count == 0)
+        {
+            return joinSet;
+        }
+
+        var plans = joinSet.Relations.ToDictionary(r => r.Name);
+        foreach (var edge in unaryEdges)
+        {
+            var relation = plans[edge.Relation];
+            relation = relation with
+            {
+                Plan = new Filter(relation.Plan, edge.Expression),
+                NumRows = (long)(relation.NumRows * CostEstimation.EstimateSelectivity(edge.Expression)),
+            };
+            plans[edge.Relation] = relation;
+        }
+
+        return joinSet with
+        {
+            Relations = plans.Values.ToList(),
+            Edges = joinSet.Edges.Where(e => e is not UnaryEdge).ToList(),
+        };
+    }
+
+    private record JoinOrder(
+        long NumRows,
+        IReadOnlyList<(JoinedRelation, JoinedRelation, BinaryEdge)> Joins,
+        IReadOnlyList<Tuple<IReadOnlySet<string>, LogicalPlan>> DisjoinPlans
+        );
+
+    private JoinOrder FindBestJoinOrder(
+        JoinOrder graph,
+        IReadOnlyList<(JoinedRelation, JoinedRelation, BinaryEdge)> possibleJoins,
+        IReadOnlySet<string> inSet
+        )
+    {
+        JoinOrder? min = null;
+
+        foreach (var join in possibleJoins)
+        {
+            var (node1, node2, edge) = join;
+            IReadOnlyList<(JoinedRelation, JoinedRelation, BinaryEdge)> newJoins = [.. graph.Joins, join];
+
+            var newConnectedNodes = graph.DisjoinPlans.ToList();
+
+            var components1 = newConnectedNodes.FirstOrDefault(c => c.Item1.Contains(node1.Name));
+            var components2 = newConnectedNodes.FirstOrDefault(c => c.Item1.Contains(node2.Name));
+
+            if (components1 == null && components2 == null)
+            {
+                var (left, right) = MaxLeft(node1.Plan, node2.Plan);
+                var joined = new Join(left, right, JoinType.Inner, edge.Expression);
+                newConnectedNodes.Add(new(new HashSet<string> { node1.Name, node2.Name }, joined));
+            }
+            else if (components1 != null && components2 != null)
+            {
+                if (components1.Equals(components2))
+                {
+                    // The two nodes are already connected, just skip this edge
+                    continue;
+                }
+                // We're merging two subgraphs, so we need to remove the old ones
+                newConnectedNodes.Remove(components1);
+                newConnectedNodes.Remove(components2);
+
+                var (hashset1, left1) = components1;
+                var (hashset2, left2) = components2;
+                (left1, left2) = MaxLeft(left1, left2);
+                var joined = new Join(left1, left2, JoinType.Inner, edge.Expression);
+                newConnectedNodes.Add(new(hashset1.Union(hashset2).ToHashSet(), joined));
+            }
+            else if (components1 != null)
+            {
+                // Add to existing subgraph
+                newConnectedNodes.Remove(components1);
+
+                var (hashset, left) = components1;
+                var right = node2.Plan;
+                (left, right) = MaxLeft(left, right);
+                var joined = new Join(left, right, JoinType.Inner, edge.Expression);
+                newConnectedNodes.Add(new(hashset.Union([node2.Name]).ToHashSet(), joined));
+            }
+            else if (components2 != null)
+            {
+                newConnectedNodes.Remove(components2);
+
+                var (hashset, left) = components2;
+                var right = node1.Plan;
+                (left, right) = MaxLeft(left, right);
+                var joined = new Join(left, right, JoinType.Inner, edge.Expression);
+                newConnectedNodes.Add(new(hashset.Union([node1.Name]).ToHashSet(), joined));
+            }
+
+
+            var newNumRows = newConnectedNodes.Sum(g => g.Item2.NumRows);
+            var newGraph = new JoinOrder(newNumRows, newJoins, newConnectedNodes);
+            var remainingJoins = possibleJoins.Where(j => j != join).ToList();
+
+            var candidate = FindBestJoinOrder(
+                newGraph,
+                remainingJoins,
+                inSet.Union([node1.Name, node2.Name]).ToHashSet()
+                );
+            if (min == null || candidate.NumRows < min.NumRows)
+            {
+                min = candidate;
+            }
+        }
+
+        if (min == null)
+        {
+            return graph;
+        }
+
+        return min;
+
+        (LogicalPlan, LogicalPlan) MaxLeft(LogicalPlan l, LogicalPlan r)
+        {
+            return l.NumRows > r.NumRows ? (l, r) : (r, l);
+        }
+    }
+
+    private LogicalPlan ExpandJoinSet(JoinSet joinSet, BindContext context)
+    {
+        // Push the filters down so the cardinality estimates reflect the filtered rows
+        // TODO consider duplicating the filters to both sides of the join where possible
+        joinSet = PushDownUnaryEdges(joinSet);
+        var best = FindBestJoinOrder(joinSet);
+        var plan = best.DisjoinPlans.SingleOrDefault()?.Item2;
+
         var detachedPlans = new List<LogicalPlan>();
+        if (plan != null)
+        {
+            detachedPlans.Add(plan);
+        }
 
         foreach (var rel in joinSet.Relations.Where(r => r.JoinType != JoinType.Inner))
         {
             detachedPlans.Add(rel.Plan);
-        }
-
-        foreach (var group in groups)
-        {
-            var plan = group.First().Item1.Plan;
-            foreach (var name in group.Skip(1))
-            {
-                plan = new Join(plan,
-                    name.Item1.Plan,
-                    name.Item1.JoinType,
-                    name.Item2.Expression);
-            }
-            detachedPlans.Add(plan);
         }
 
         var root = detachedPlans[0];
@@ -305,8 +400,8 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                 r = new Filter(r, filter);
             }
 
-            var usedEdges = groups.SelectMany(g => g.Skip(1).Select(t => t.Item2)).ToHashSet();
-            var unusedEdges = joinSet.Edges.Where(e => !usedEdges.Contains(e)).ToList();
+            var usedEdges = best.Joins.Select(t => t.Item3).ToHashSet();
+            var unusedEdges = joinSet.Edges.Where(e => !usedEdges.Contains(e) && e is not UnaryEdge).ToList();
             foreach (var edge in unusedEdges)
             {
                 r = new Filter(r, edge.Expression);
@@ -407,7 +502,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                     e.BoundMemoryTable.TableId,
                     null,
                     table.Schema,
-                    Cardinality: 1000, // TODO
+                    Cardinality: 100, // TODO this should be calculated from the subquery
                     Alias: e.Alias
                     );
                 var joinCond = new BinaryExpression(
@@ -625,8 +720,6 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                 result.Add(col);
             }
         }
-
-        // TODO why is Q04 not seeing the pushdown?
 
         usedColumns = result;
         return true;
