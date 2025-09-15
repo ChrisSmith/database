@@ -205,11 +205,12 @@ public class ExecutionTest
         result.Select(r => r.Values.Single()).ToList().Should().HaveCount(100);
     }
 
-    [TestCase("(1, 10, 100)")]
+    [TestCase("in (1, 10, 100)")]
     // [TestCase("(id + 1, id + 10, id + 100)")] // Per row evaluation not supported yet
+    [TestCase("not in (SELECT i.Id FROM table i where i.Id != 1 and i.Id != 10 and i.Id != 100)")]
     public void Where_In(string expr)
     {
-        var result = Query($"SELECT Id FROM table where Id in {expr};").AsRowList();
+        var result = Query($"SELECT o.Id FROM table o where o.Id {expr};").AsRowList();
         result.Select(r => r.Values.Single()).ToList().Should().BeEquivalentTo([1, 10, 100]);
     }
 
@@ -491,7 +492,6 @@ order by n_name
         });
     }
 
-    // This is ~100ms w/ subquery cache and 3m without
     [Test]
     public void TestNestedQuery_Correlated()
     {

@@ -91,6 +91,39 @@ public record StringCount : IAggregateFunction<string?, CountAggregateState, int
     }
 }
 
+public record CountDistinct<T> : IAggregateFunction<T, CountDistinctState<T>, int>
+{
+    public DataType ReturnType => DataType.Int;
+
+    public int Value(CountDistinctState<T> state) => state.Count;
+
+    public object? GetValue(object state) => Value((CountDistinctState<T>)state);
+
+    public IAggregateState Initialize()
+    {
+        return new CountDistinctState<T>();
+    }
+
+    public IAggregateState[] InitializeArray(int size)
+    {
+        return new CountDistinctState<T>[size];
+    }
+
+    public void InvokeNext(object values, IAggregateState[] state)
+    {
+        Next((T[])values, (CountDistinctState<T>[])state);
+    }
+
+    public void Next(T[] value, CountDistinctState<T>[] state)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            var item = value[i];
+            state[i].HashSet.Add(item);
+        }
+    }
+}
+
 public record StringMax : IAggregateFunction<string?, State<string>, string>
 {
     public DataType ReturnType => DataType.String;
@@ -221,6 +254,13 @@ public class State<T> : IAggregateState
 public class CountAggregateState : IAggregateState
 {
     public int Count { get; set; } = 0;
+}
+
+public class CountDistinctState<T> : IAggregateState
+{
+    public int Count => HashSet.Count;
+
+    public HashSet<T> HashSet = new();
 }
 
 public class AvgState<T> : IAggregateState

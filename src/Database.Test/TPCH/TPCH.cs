@@ -340,8 +340,31 @@ public class TPCHTests
     public void Q16(CancellationToken token)
     {
         var query = ReadQuery("query_16.sql");
-        var result = _runner.Run(query, token); ;
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        var result = _runner.Run(query, token);
+        result.Should().HaveCount(18314);
+        result[0..20].Should().BeEquivalentTo(new List<Row>
+        {
+            new(["Brand#41", "MEDIUM BRUSHED TIN", 3, 28]),
+            new(["Brand#54", "STANDARD BRUSHED COPPER", 14, 27]),
+            new(["Brand#11", "STANDARD BRUSHED TIN", 23, 24]),
+            new(["Brand#11", "STANDARD BURNISHED BRASS", 36, 24]),
+            new(["Brand#15", "MEDIUM ANODIZED NICKEL", 3, 24]),
+            new(["Brand#15", "SMALL ANODIZED BRASS", 45, 24]),
+            new(["Brand#15", "SMALL BURNISHED NICKEL", 19, 24]),
+            new(["Brand#21", "MEDIUM ANODIZED COPPER", 3, 24]),
+            new(["Brand#22", "SMALL BRUSHED NICKEL", 3, 24]),
+            new(["Brand#22", "SMALL BURNISHED BRASS", 19, 24]),
+            new(["Brand#25", "MEDIUM BURNISHED COPPER", 36, 24]),
+            new(["Brand#31", "PROMO POLISHED COPPER", 36, 24]),
+            new(["Brand#33", "LARGE POLISHED TIN", 23, 24]),
+            new(["Brand#33", "PROMO POLISHED STEEL", 14, 24]),
+            new(["Brand#35", "PROMO BRUSHED NICKEL", 14, 24]),
+            new(["Brand#41", "ECONOMY BRUSHED STEEL", 9, 24]),
+            new(["Brand#41", "ECONOMY POLISHED TIN", 19, 24]),
+            new(["Brand#41", "LARGE PLATED COPPER", 36, 24]),
+            new(["Brand#42", "ECONOMY PLATED BRASS", 3, 24]),
+            new(["Brand#42", "STANDARD POLISHED TIN", 49, 24])
+        });
     }
 
     [Test]

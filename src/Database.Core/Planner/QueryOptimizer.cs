@@ -543,6 +543,31 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
             }
         }
 
+        if (filter.Predicate is UnaryExpression
+            {
+                Operator: TokenType.NOT, Expression: BinaryExpression { Operator: TokenType.IN } notIn
+            }
+        )
+        {
+            if (notIn.Right is SubQueryResultExpression e)
+            {
+                var table = bufferPool.GetMemoryTable(e.BoundMemoryTable.TableId);
+                var scan = new Scan(
+                    e.Alias,
+                    e.BoundMemoryTable.TableId,
+                    null,
+                    table.Schema,
+                    Cardinality: 100, // TODO this should be calculated from the subquery
+                    Alias: e.Alias
+                );
+                var joinCond = new BinaryExpression(
+                    TokenType.EQUAL, "=",
+                    notIn.Left,
+                    new ColumnExpression(table.Schema.Single().Name, e.Alias));
+                return new Join(filter.Input, scan, JoinType.AntiSemi, joinCond);
+            }
+        }
+
         // This is not correct, need to look higher up the tree
         if (!AllFiltersOrScan(filter.Input)
             && TryPushDownFilter(filter.Input, filter.Predicate, [], out var updated))

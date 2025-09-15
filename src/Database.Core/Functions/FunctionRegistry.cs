@@ -21,6 +21,15 @@ public class FunctionRegistry
             { DataType.Decimal, typeof(Count<decimal>)},
             { DataType.String, typeof(StringCount)},
         }));
+        _funcs.Add("count_distinct", new("count_distinct", 1, new()
+        {
+            { DataType.Int, typeof(CountDistinct<int>)},
+            { DataType.Long, typeof(CountDistinct<long>)},
+            { DataType.Float, typeof(CountDistinct<float>)},
+            { DataType.Double, typeof(CountDistinct<double>)},
+            { DataType.Decimal, typeof(CountDistinct<decimal>)},
+            { DataType.String, typeof(CountDistinct<string>)},
+        }));
 
         _funcs.Add("sum", new("sum", 1, new()
         {

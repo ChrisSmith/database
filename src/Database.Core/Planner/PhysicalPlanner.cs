@@ -378,7 +378,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
         var outputColumns = new List<ColumnSchema>(inputColumns.Count);
         var outputColumnsRefs = new List<ColumnRef>(inputColumns.Count);
 
-        var numOutputColumns = join.JoinType == JoinType.Semi
+        var numOutputColumns = join.JoinType is JoinType.Semi or JoinType.AntiSemi
             ? left.Columns.Count
             : inputColumns.Count;
 
@@ -411,7 +411,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             );
         }
 
-        if (join.JoinType == JoinType.Inner || join.JoinType == JoinType.Semi)
+        if (join.JoinType is JoinType.Inner or JoinType.Semi or JoinType.AntiSemi)
         {
             var expressions = _binder.Bind(context, join.Condition!, inputColumns);
             // TODO split join condition

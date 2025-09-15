@@ -59,7 +59,7 @@ public class CostEstimation(Catalog.Catalog catalog, ParquetPool bufferPool)
                 numRows = (long)(left.OutputCardinality * selectivity * right.OutputCardinality);
                 return new CostEstimate(numRows, rowsProcessed + numRows, selectivity);
             }
-            if (join.JoinType == JoinType.Semi)
+            if (join.JoinType == JoinType.Semi || join.JoinType == JoinType.AntiSemi)
             {
                 // TODO on the selectivity here
                 return left;
