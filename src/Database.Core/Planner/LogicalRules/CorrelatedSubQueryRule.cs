@@ -152,7 +152,7 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
             foreach (var edge in joinSet2.Edges)
             {
                 if (edge is UnaryEdge { Expression: BinaryExpression { } b }
-                    && (b.Left is SubQueryResultExpression || b.Right is SubQueryResultExpression))
+                    && b.AnyChildOrSelf(e => e is SubQueryResultExpression))
                 {
                     correlatedExpr = b;
                 }

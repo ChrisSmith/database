@@ -1,6 +1,7 @@
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -8,7 +9,9 @@ public record SubqueryOperator(
     ParquetPool BufferPool,
     List<IOperation> UncorrelatedSources,
     List<IReadOnlyList<ColumnSchema>> UncorrelatedOutputSchemas,
-    IOperation Source) : BaseOperation(Source.Columns, Source.ColumnRefs)
+    IOperation Source,
+    CostEstimate CostEstimate
+    ) : BaseOperation(Source.Columns, Source.ColumnRefs, CostEstimate)
 {
     private bool _executedSubQueries;
 

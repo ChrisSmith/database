@@ -14,8 +14,9 @@ public record ProjectionOperation(
     IReadOnlyList<BaseExpression> Expressions,
     IReadOnlyList<ColumnSchema> OutputColumns,
     IReadOnlyList<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate,
     bool Materialize)
-    : BaseOperation(OutputColumns, OutputColumnRefs)
+    : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private ExpressionInterpreter _interpreter = new();
 
@@ -69,7 +70,7 @@ public record ProjectionOperation(
         var expressionCost = CostEstimation.EstimateExpressionCost(Expressions);
 
         return sourceCost.Add(new Cost(
-            OutputRows: sourceCost.OutputRows,
+            OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: sourceCost.OutputRows * expressionCost,
             DiskOperations: 0
         ));

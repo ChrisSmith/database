@@ -1,6 +1,7 @@
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Planner;
 using Parquet;
 using Parquet.Schema;
 
@@ -11,8 +12,10 @@ public record FileScan(
     Catalog.Catalog Catalog,
     string Path,
     IReadOnlyList<ColumnSchema> OutputColumns,
-    IReadOnlyList<ColumnRef> OutputColumnRefs)
-    : BaseOperation(OutputColumns, OutputColumnRefs)
+    IReadOnlyList<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+    )
+    : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private ParquetReader? _reader = null;
     private int _group = -1;
@@ -61,7 +64,7 @@ public record FileScan(
         var table = Catalog.GetTableByPath(Path);
 
         return new Cost(
-            OutputRows: table.NumRows,
+            OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: table.NumRows,
             DiskOperations: table.NumRowGroups,
             TotalRowsProcessed: table.NumRows,
