@@ -517,8 +517,17 @@ public class Parser
             // function invocation
             if (Check(LEFT_PAREN))
             {
-                var arguments = ParseFunctionArguments();
-                return new FunctionExpression(ident.Lexeme, arguments);
+                var functionName = ident.Lexeme;
+                var (arguments, distinct) = ParseFunctionArguments();
+                if (distinct)
+                {
+                    if (!functionName.Equals("count", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new ParseException(Peek(), "DISTINCT is only supported on COUNT");
+                    }
+                    functionName = "count_distinct";
+                }
+                return new FunctionExpression(functionName, arguments);
             }
 
             if (ident.Lexeme.Equals("date", StringComparison.OrdinalIgnoreCase)) // TODO should this be a keyword?
@@ -635,26 +644,26 @@ public class Parser
         return new CaseExpression(conditions, results, null);
     }
 
-    private BaseExpression[] ParseFunctionArguments()
+    private (BaseExpression[], bool distinct) ParseFunctionArguments()
     {
         // https://www.sqlite.org/syntax/function-arguments.html
         // TODO distinct + order by
         Consume(LEFT_PAREN, "Expected '('");
+
         if (Match(RIGHT_PAREN))
         {
-            return [];
+            return ([], false);
         }
 
         if (Match(STAR))
         {
             Consume(RIGHT_PAREN, "Expected ')'");
-            return [new StarExpression()];
+            return ([new StarExpression()], false);
         }
 
+        var distinct = Match(DISTINCT);
 
         var arguments = new List<BaseExpression>();
-
-
 
         if (!Check(RIGHT_PAREN))
         {
@@ -687,7 +696,7 @@ public class Parser
         }
 
         Consume(RIGHT_PAREN, "Expected ')'");
-        return arguments.ToArray();
+        return (arguments.ToArray(), distinct);
     }
 
 

@@ -66,9 +66,13 @@ public record HashJoinOperator(
 
             return new RowGroup(offsets.Count, targetRg, OutputColumnRefs);
         }
-        if (JoinType == JoinType.Semi)
+        if (JoinType == JoinType.Semi || JoinType == JoinType.AntiSemi)
         {
             var contains = _hashTable!.Contains(scanKeys);
+            if (JoinType == JoinType.AntiSemi)
+            {
+                contains = contains.Select(c => !c).ToArray();
+            }
             var count = contains.Count(c => c);
             CopyColumnsToNewTable(rowGroup, contains, count, targetRg);
 

@@ -23,5 +23,6 @@ public enum JoinType
     Right,
     Full,
     Semi,
+    AntiSemi,
 }
 public record JoinStatement(JoinType JoinType, ITableStatement Table, BaseExpression JoinConstraint) : IStatement;
