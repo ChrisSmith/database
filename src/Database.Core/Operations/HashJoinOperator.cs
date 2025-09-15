@@ -17,8 +17,9 @@ public record HashJoinOperator(
     List<BaseExpression> ScanKeys,
     List<BaseExpression> ProbeKeys,
     List<ColumnSchema> OutputColumns,
-    List<ColumnRef> OutputColumnRefs
-) : BaseOperation(OutputColumns, OutputColumnRefs)
+    List<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+) : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private bool _done = false;
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
@@ -245,11 +246,8 @@ public record HashJoinOperator(
     {
         var scanCost = ScanSource.EstimateCost();
         var probeCost = ProbeSource.EstimateCost();
-        var outputRows = BigInteger.Max(scanCost.OutputRows, probeCost.OutputRows); // TODO selectivity estimation/multiple
-        if (JoinType == JoinType.Semi)
-        {
-            outputRows = scanCost.OutputRows;
-        }
+
+        var outputRows = CostEstimate.OutputCardinality;
         var hashCreation = probeCost.OutputRows * ProbeKeys.Count * 2;
         var cpuOps = scanCost.OutputRows * ProbeKeys.Count + hashCreation;
 

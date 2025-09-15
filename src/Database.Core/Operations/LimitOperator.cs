@@ -2,6 +2,7 @@ using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -11,8 +12,9 @@ public record LimitOperator(
     IOperation Source,
     int LimitCount,
     IReadOnlyList<ColumnSchema> OutputColumns,
-    IReadOnlyList<ColumnRef> OutputColumnRefs
-) : BaseOperation(OutputColumns, OutputColumnRefs)
+    IReadOnlyList<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+) : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private bool _done = false;
     private int _count = 0;
@@ -84,7 +86,7 @@ public record LimitOperator(
     {
         var sourceCost = Source.EstimateCost();
         return sourceCost.Add(new Cost(
-            OutputRows: LimitCount,
+            OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: LimitCount * Columns.Count,
             DiskOperations: 0
         ));

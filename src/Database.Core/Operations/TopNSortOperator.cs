@@ -4,6 +4,7 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -16,8 +17,9 @@ public record TopNSortOperator(
     IReadOnlyList<OrderingExpression> OrderExpressions,
     // List<ColumnSchema> SortColumns,
     List<ColumnSchema> OutputColumns,
-    List<ColumnRef> OutputColumnRefs
-    ) : BaseOperation(OutputColumns, OutputColumnRefs)
+    List<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+    ) : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     bool _done = false;
 
@@ -109,7 +111,7 @@ public record TopNSortOperator(
         var sortCost = sourceCost.OutputRows * BigInteger.Log2(sourceCost.OutputRows) * OrderExpressions.Count;
 
         return sourceCost.Add(new Cost(
-            OutputRows: Limit,
+            OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: (long)sortCost,
             DiskOperations: 0
         ));

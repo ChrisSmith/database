@@ -24,8 +24,9 @@ public partial class QueryPlanner
         _catalog = catalog;
         _bufferPool = bufferPool;
         _binder = new ExpressionBinder(bufferPool, new FunctionRegistry());
-        _optimizer = new QueryOptimizer(_options, _binder, bufferPool);
-        _physicalPlanner = new PhysicalPlanner(_options, catalog, bufferPool);
+        var costEstimation = new CostEstimation(catalog, bufferPool);
+        _optimizer = new QueryOptimizer(_options, _binder, bufferPool, costEstimation);
+        _physicalPlanner = new PhysicalPlanner(_options, catalog, bufferPool, costEstimation);
         _costBasedOptimizer = new CostBasedOptimizer(_options, _physicalPlanner);
     }
 
@@ -432,7 +433,7 @@ public partial class QueryPlanner
                     tableStmt.Alias ?? tableStmt.Table,
                     scan,
                     JoinType.Cross,
-                    scan.NumRows
+                    scan.Cardinality
                     ));
             }
             else if (table is SelectStatement selectStmt)
@@ -466,7 +467,7 @@ public partial class QueryPlanner
                     tableStmt.Alias ?? tableStmt.Table,
                     scan,
                     join.JoinType,
-                    scan.NumRows
+                    scan.Cardinality
                     ));
 
                 conjunctions.AddRange(QueryRewriter.SplitRewriteSplitConjunctions(join.JoinConstraint));
@@ -489,8 +490,8 @@ public partial class QueryPlanner
                 try
                 {
                     _ = _binder.Bind(context, expr, one.Plan.OutputSchema, mutateContext: false);
-                    _ = _binder.Bind(context, expr, one.Plan.OutputSchema, mutateContext: true);
-                    edges.Add(new UnaryEdge(one.Name, expr));
+                    var bound = _binder.Bind(context, expr, one.Plan.OutputSchema, mutateContext: true);
+                    edges.Add(new UnaryEdge(one.Name, bound));
                     found = true;
                     break;
                 }
@@ -514,8 +515,8 @@ public partial class QueryPlanner
                     {
                         var mergedSchema = ExtendSchema(one.Plan.OutputSchema, two.Plan.OutputSchema);
                         _ = _binder.Bind(context, expr, mergedSchema, mutateContext: false);
-                        _ = _binder.Bind(context, expr, mergedSchema, mutateContext: true);
-                        edges.Add(new BinaryEdge(one.Name, two.Name, expr));
+                        var bound = _binder.Bind(context, expr, mergedSchema, mutateContext: true);
+                        edges.Add(new BinaryEdge(one.Name, two.Name, bound));
                         found = true;
                         break;
                     }

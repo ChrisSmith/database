@@ -1,6 +1,7 @@
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -9,8 +10,9 @@ public record DistinctOperation(
     MemoryBasedTable MemoryTable,
     IOperation Source,
     List<ColumnSchema> OutputColumns,
-    List<ColumnRef> OutputColumnRefs
-    ) : BaseOperation(OutputColumns, OutputColumnRefs)
+    List<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+    ) : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private HashSet<Row> _unique = null;
 
@@ -83,9 +85,8 @@ public record DistinctOperation(
     public override Cost EstimateCost()
     {
         var sourceCost = Source.EstimateCost();
-        // TODO distinct estimate
         return sourceCost.Add(new Cost(
-            OutputRows: sourceCost.OutputRows,
+            OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: sourceCost.OutputRows * Columns.Count,
             DiskOperations: 0
         ));

@@ -1,6 +1,7 @@
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
+using Database.Core.Planner;
 using Parquet;
 using Parquet.Schema;
 
@@ -10,8 +11,10 @@ public record ScanMemoryTable(
     MemoryBasedTable Table,
     Catalog.Catalog Catalog,
     IReadOnlyList<ColumnSchema> OutputColumns,
-    IReadOnlyList<ColumnRef> OutputColumnRefs)
-    : BaseOperation(OutputColumns, OutputColumnRefs)
+    IReadOnlyList<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+    )
+    : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private IReadOnlyList<int>? _rowGroups = null;
     private int _group = -1;
@@ -56,8 +59,8 @@ public record ScanMemoryTable(
         // var table = Catalog.GetTable()
 
         return new Cost(
-            OutputRows: 0,
-            CpuOperations: 0,
+            OutputRows: CostEstimate.OutputCardinality,
+            CpuOperations: CostEstimate.OutputCardinality,
             DiskOperations: 0,
             TotalRowsProcessed: 0,
             TotalCpuOperations: 0,

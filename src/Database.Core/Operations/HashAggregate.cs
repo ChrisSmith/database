@@ -14,8 +14,9 @@ public record HashAggregate(
     MemoryBasedTable GroupingTable,
     List<BaseExpression> OutputExpressions, // grouping columns + aggregates
     List<ColumnSchema> OutputColumns,
-    List<ColumnRef> OutputColumnRefs
-    ) : BaseOperation(OutputColumns, OutputColumnRefs)
+    List<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+    ) : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private bool _done = false;
 
@@ -195,11 +196,9 @@ public record HashAggregate(
     {
         var sourceCost = Source.EstimateCost();
         var expressionCost = CostEstimation.EstimateExpressionCost(OutputExpressions) * sourceCost.OutputRows;
-        // TODO cardinality estimates of the grouping keys
-        var numGroups = 10;
 
         return sourceCost.Add(new Cost(
-            OutputRows: numGroups,
+            OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: expressionCost * 2,
             DiskOperations: 0
         ));

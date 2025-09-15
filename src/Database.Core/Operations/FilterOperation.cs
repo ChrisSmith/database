@@ -1,9 +1,8 @@
-using System.Numerics;
 using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
-using Database.Core.Functions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -13,8 +12,9 @@ public record FilterOperation(
     IOperation Source,
     BaseExpression Expression,
     IReadOnlyList<ColumnSchema> OutputColumns,
-    IReadOnlyList<ColumnRef> OutputColumnRefs
-    ) : BaseOperation(OutputColumns, OutputColumnRefs)
+    IReadOnlyList<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+    ) : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private bool _done = false;
 
@@ -122,7 +122,7 @@ public record FilterOperation(
     {
         var sourceCost = Source.EstimateCost();
         return sourceCost.Add(new Cost(
-            OutputRows: sourceCost.OutputRows / 10, // TODO need to estimate the selectivity of predicates
+            OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: sourceCost.OutputRows * Columns.Count,
             DiskOperations: 0
             ));

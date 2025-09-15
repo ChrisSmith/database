@@ -2,6 +2,7 @@ using System.Numerics;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -22,7 +23,8 @@ public interface IOperation
 
 public abstract record BaseOperation(
     IReadOnlyList<ColumnSchema> Columns,
-    IReadOnlyList<ColumnRef> ColumnRefs) : IOperation
+    IReadOnlyList<ColumnRef> ColumnRefs,
+    CostEstimate CostEstimate) : IOperation
 {
     public abstract RowGroup? Next(CancellationToken token);
 

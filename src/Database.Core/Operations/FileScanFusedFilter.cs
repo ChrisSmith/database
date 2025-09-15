@@ -2,6 +2,7 @@ using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
+using Database.Core.Planner;
 using Parquet;
 using Parquet.Schema;
 
@@ -13,9 +14,10 @@ public record FileScanFusedFilter(
     Catalog.Catalog Catalog,
     BaseExpression Expression,
     IReadOnlyList<ColumnSchema> OutputColumns,
-    IReadOnlyList<ColumnRef> OutputColumnRefs
+    IReadOnlyList<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
     )
-    : BaseOperation(OutputColumns, OutputColumnRefs)
+    : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private ParquetReader? _reader = null;
     private TableSchema _table;
@@ -84,8 +86,7 @@ public record FileScanFusedFilter(
     public override Cost EstimateCost()
     {
         var table = Catalog.GetTableByPath(Path);
-        // TODO need to estimate the selectivity of predicates
-        var outputRows = (long)(table.NumRows * .1);
+        var outputRows = CostEstimate.OutputCardinality;
 
         return new Cost(
             OutputRows: outputRows,

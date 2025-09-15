@@ -3,6 +3,7 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -12,8 +13,9 @@ public record UngroupedAggregate(
     IOperation Source,
     IReadOnlyList<BaseExpression> Expressions,
     IReadOnlyList<ColumnSchema> OutputColumns,
-    IReadOnlyList<ColumnRef> OutputColumnRefs
-    ) : BaseOperation(OutputColumns, OutputColumnRefs)
+    IReadOnlyList<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+    ) : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private bool _done = false;
 
@@ -99,7 +101,7 @@ public record UngroupedAggregate(
     {
         var sourceCost = Source.EstimateCost();
         return sourceCost.Add(new Cost(
-            OutputRows: sourceCost.OutputRows,
+            OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: sourceCost.OutputRows * Columns.Count,
             DiskOperations: 0
         ));

@@ -3,6 +3,7 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
+using Database.Core.Planner;
 
 namespace Database.Core.Operations;
 
@@ -13,8 +14,9 @@ public record NestedLoopJoinOperator(
     MemoryBasedTable Table,
     BaseExpression? Expression,
     List<ColumnSchema> OutputColumns,
-    List<ColumnRef> OutputColumnRefs
-) : BaseOperation(OutputColumns, OutputColumnRefs)
+    List<ColumnRef> OutputColumnRefs,
+    CostEstimate CostEstimate
+) : BaseOperation(OutputColumns, OutputColumnRefs, CostEstimate)
 {
     private bool _done = false;
     private ExpressionInterpreter _interpreter = new ExpressionInterpreter();
@@ -157,11 +159,9 @@ public record NestedLoopJoinOperator(
         var leftSource = LeftSource.EstimateCost();
         var rightSource = RightSource.EstimateCost();
 
-        var outputRows = leftSource.OutputRows * rightSource.OutputRows;
-
         return leftSource.Add(new Cost(
-            OutputRows: outputRows,
-            CpuOperations: outputRows,
+            OutputRows: CostEstimate.OutputCardinality,
+            CpuOperations: CostEstimate.OutputCardinality,
             DiskOperations: rightSource.DiskOperations,
             TotalCpuOperations: rightSource.TotalCpuOperations,
             TotalDiskOperations: rightSource.TotalDiskOperations,
