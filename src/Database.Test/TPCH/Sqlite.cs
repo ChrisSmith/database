@@ -2,6 +2,7 @@ using Database.BenchmarkRunner;
 
 namespace Database.Test.TPCH;
 
+[Ignore("Manual Only")]
 [CancelAfter(10_000)]
 public class SqliteTpchTests
 {

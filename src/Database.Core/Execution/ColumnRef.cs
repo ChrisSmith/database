@@ -6,7 +6,7 @@ namespace Database.Core.Execution;
 public interface IStorageLocation { }
 
 public record struct MemoryStorage(TableId TableId) : IStorageLocation { }
-public record struct ParquetStorage(ParquetFileHandle Handle) : IStorageLocation { }
+public record struct ParquetStorage(TableId TableId, ParquetFileHandle Handle) : IStorageLocation { }
 
 public record struct ColumnRef(ColumnId ColumnId, IStorageLocation Storage, int RowGroup, int Column);
 
