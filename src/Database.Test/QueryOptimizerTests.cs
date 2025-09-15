@@ -26,9 +26,10 @@ public class QueryOptimizerTests
         _options = new ConfigOptions();
         _bufferPool = new ParquetPool();
         _catalog = new Catalog(_bufferPool);
-        _optimizer = new QueryOptimizer(_options, new ExpressionBinder(_bufferPool, new FunctionRegistry()), _bufferPool);
-        _cbo = new CostBasedOptimizer(_options, new PhysicalPlanner(_options, _catalog, _bufferPool));
-        _explain = new ExplainQuery(_options);
+        var costEstimation = new CostEstimation(_catalog, _bufferPool);
+        _optimizer = new QueryOptimizer(_options, new ExpressionBinder(_bufferPool, new FunctionRegistry()), _bufferPool, costEstimation);
+        _cbo = new CostBasedOptimizer(_options, new PhysicalPlanner(_options, _catalog, _bufferPool, costEstimation));
+        _explain = new ExplainQuery(_options, costEstimation);
         TestDatasets.AddTestDatasetsToCatalog(_catalog);
     }
 

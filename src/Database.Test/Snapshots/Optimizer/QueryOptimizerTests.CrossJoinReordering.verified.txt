@@ -35,13 +35,13 @@ Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
 Optimized
 Project(l_orderkey, revenue, o_orderdate, o_shippriority, rows=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
  TopSort(n=10, revenue DESC, o_orderdate ASC) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority 
-    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=5401093) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
-       Join(Inner on l_orderkey = o_orderkey, rows=5401093) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment       
-          Filter(l_shipdate > 03/15/1995 00:00:00, rows=5401093) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
+    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=48009) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
+       Join(Inner on l_orderkey = o_orderkey, rows=48009) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment       
+          Filter(l_shipdate > 03/15/1995 00:00:00, rows=1200243) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
              Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate             
        
-          Join(Inner on c_custkey = o_custkey, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment          
-             Filter(o_orderdate < 03/15/1995 00:00:00, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
+          Join(Inner on c_custkey = o_custkey, rows=60000) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment          
+             Filter(o_orderdate < 03/15/1995 00:00:00, rows=300000) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
                 Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority                
           
              Filter(c_mktsegment = BUILDING, rows=30000) -> .c_custkey, .c_mktsegment             
@@ -49,14 +49,14 @@ Project(l_orderkey, revenue, o_orderdate, o_shippriority, rows=10) -> .l_orderke
 
 
 Cost Optimized
-Project(l_orderkey, revenue, o_orderdate, o_shippriority) cost (output_rows=10, cpu=40, disk=0, total=45043) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
+Project(l_orderkey, revenue, o_orderdate, o_shippriority) cost (output_rows=10, cpu=40, disk=0, total=41562) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
  TopSort(n=10, revenue DESC, o_orderdate ASC) -> .l_orderkey, .o_orderdate, .o_shippriority, .revenue 
-    HashAggregate(l_orderkey, o_orderdate, o_shippriority, sum(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=10, cpu=6001210, disk=0, total=45043) -> .l_orderkey, .o_orderdate, .o_shippriority, .revenue    
-       HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=600121, cpu=900121, disk=0, total=39042) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment       
-          Filter(l_shipdate > 03/15/1995 00:00:00) cost (output_rows=600121, cpu=24004860, disk=0, total=30010) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
+    HashAggregate(l_orderkey, o_orderdate, o_shippriority, sum(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=48009, cpu=480090, disk=0, total=40122) -> .l_orderkey, .o_orderdate, .o_shippriority, .revenue    
+       HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=48009, cpu=1320243, disk=0, total=39642) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment       
+          Filter(l_shipdate > 03/15/1995 00:00:00) cost (output_rows=1200243, cpu=24004860, disk=0, total=30010) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
              FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate       
-          HashJoin(Inner c_custkey, o_custkey) cost (output_rows=150000, cpu=180000, disk=0, total=8131) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment          
-             Filter(o_orderdate < 03/15/1995 00:00:00) cost (output_rows=150000, cpu=6000000, disk=0, total=7501) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
+          HashJoin(Inner c_custkey, o_custkey) cost (output_rows=60000, cpu=360000, disk=0, total=8311) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment          
+             Filter(o_orderdate < 03/15/1995 00:00:00) cost (output_rows=300000, cpu=6000000, disk=0, total=7501) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority             
                 FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority          
-             Filter(c_mktsegment = BUILDING) cost (output_rows=15000, cpu=300000, disk=0, total=450) -> .c_custkey, .c_mktsegment             
+             Filter(c_mktsegment = BUILDING) cost (output_rows=30000, cpu=300000, disk=0, total=450) -> .c_custkey, .c_mktsegment             
                 FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_mktsegment

@@ -10,9 +10,9 @@ Project(Id, rows=100000) -> t1.Id
 
 
 Optimized
-Project(Id, rows=400000000) -> t1.Id
- Join(Cross, rows=400000000) -> t1.Id, t1.CategoricalInt, t2.Id, t2.CategoricalInt 
-    Filter(Id = 1, rows=4000) -> t1.Id, t1.CategoricalInt    
+Project(Id, rows=2000000000) -> t1.Id
+ Join(Cross, rows=2000000000) -> t1.Id, t1.CategoricalInt, t2.Id, t2.CategoricalInt 
+    Filter(Id = 1, rows=20000) -> t1.Id, t1.CategoricalInt    
        Filter(Id = CategoricalInt, rows=20000) -> t1.Id, t1.CategoricalInt       
           Scan(table, rows=100000) with projection  -> t1.Id, t1.CategoricalInt          
  
@@ -20,9 +20,9 @@ Project(Id, rows=400000000) -> t1.Id
 
 
 Cost Optimized
-Project(Id) cost (output_rows=100000000, cpu=100000000, disk=0, total=200423) -> .Id
- NestedLoopJoin() cost (output_rows=100000000, cpu=100000000, disk=10, total=100423) -> t1.Id, t1.CategoricalInt, t2.Id, t2.CategoricalInt 
-    Filter(Id = 1) cost (output_rows=1000, cpu=20000, disk=0, total=321) -> t1.Id, t1.CategoricalInt    
-       Filter(Id = CategoricalInt) cost (output_rows=10000, cpu=200000, disk=0, total=301) -> t1.Id, t1.CategoricalInt       
+Project(Id) cost (output_rows=2000000000, cpu=2000000000, disk=0, total=4000443) -> .Id
+ NestedLoopJoin() cost (output_rows=2000000000, cpu=2000000000, disk=10, total=2000443) -> t1.Id, t1.CategoricalInt, t2.Id, t2.CategoricalInt 
+    Filter(Id = 1) cost (output_rows=20000, cpu=40000, disk=0, total=341) -> t1.Id, t1.CategoricalInt    
+       Filter(Id = CategoricalInt) cost (output_rows=20000, cpu=200000, disk=0, total=301) -> t1.Id, t1.CategoricalInt       
           FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> t1.Id, t1.CategoricalInt 
     FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> t2.Id, t2.CategoricalInt

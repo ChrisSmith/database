@@ -10,7 +10,7 @@ using static Database.Core.TokenType;
 
 namespace Database.Core.Planner;
 
-public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, ParquetPool bufferPool)
+public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, ParquetPool bufferPool, CostEstimation costEstimator)
 {
     private ExpressionBinder _binder = new(bufferPool, new FunctionRegistry());
 
@@ -128,6 +128,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
         var expressions = _binder.Bind(context, top.OrderBy, inputColumns);
 
+        var cost = costEstimator.Estimate(top);
         return new TopNSortOperator(
             top.Count,
             bufferPool,
@@ -135,7 +136,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             input,
             expressions,
             outputColumns,
-            outputColumnsRefs
+            outputColumnsRefs,
+            cost
             );
     }
 
@@ -154,11 +156,13 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             }
         }
 
+        var cost = costEstimator.Estimate(planWithSub);
         return new SubqueryOperator(
             bufferPool,
             uncorrelatedPlans,
             intermediateOutputs,
-            main
+            main,
+            cost
         );
     }
 
@@ -184,17 +188,20 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
 
+        var cost = costEstimator.Estimate(limit);
         return new LimitOperator(
             bufferPool,
             memTable,
             input,
             limit.Count,
             outputColumns,
-            outputColumnsRefs);
+            outputColumnsRefs,
+            cost);
     }
 
     private IOperation CreateScan(Scan scan, BindContext context)
     {
+        var cost = costEstimator.Estimate(scan);
         var outputColumns = scan.OutputSchema;
         var columnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
 
@@ -206,7 +213,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 memTable,
                 catalog,
                 outputColumns,
-                columnRefs
+                columnRefs,
+                cost
             );
         }
 
@@ -218,7 +226,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 catalog,
                 filter,
                 outputColumns,
-                columnRefs
+                columnRefs,
+                cost
             );
         }
 
@@ -227,7 +236,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             catalog,
             table.Location,
             outputColumns,
-            columnRefs
+            columnRefs,
+            cost
             );
     }
 
@@ -360,6 +370,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
     private IOperation CreateJoin(Join join, IOperation left, IOperation right, BindContext context)
     {
+        var cost = costEstimator.Estimate(join);
         var inputColumns = QueryPlanner.ExtendSchema(left.Columns, right.Columns);
         var memRef = catalog.OpenMemoryTable();
         var memTable = bufferPool.GetMemoryTable(memRef.TableId);
@@ -395,7 +406,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 memTable,
                 expression,
                 outputColumns,
-                outputColumnsRefs
+                outputColumnsRefs,
+                cost
             );
         }
 
@@ -437,7 +449,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 [scanExpr],
                 [probeExpr],
                 outputColumns,
-                outputColumnsRefs
+                outputColumnsRefs,
+                cost
             );
         }
 
@@ -500,6 +513,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
 
         var outputColumnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
 
+        var cost = costEstimator.Estimate(aggregate);
+
         if (aggregate.GroupBy.Count == 0)
         {
             return new UngroupedAggregate(
@@ -508,7 +523,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
                 source,
                 outputExpressions,
                 outputColumns,
-                outputColumnRefs);
+                outputColumnRefs,
+                cost);
         }
 
         return new HashAggregate(
@@ -517,7 +533,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             memTable,
             outputExpressions,
             outputColumns,
-            outputColumnRefs);
+            outputColumnRefs,
+            cost);
     }
 
     private IOperation CreateSort(
@@ -558,6 +575,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             sortColumns.Add(newColumn);
         }
 
+        var cost = costEstimator.Estimate(sort);
         return new SortOperator(
             bufferPool,
             memTable,
@@ -565,7 +583,8 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             orderExpressions,
             sortColumns,
             outputColumns,
-            outputColumnsRefs);
+            outputColumnsRefs,
+            cost);
     }
 
     private IOperation CreateDistinct(Distinct distinct, IOperation source, BindContext context)
@@ -589,12 +608,14 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
 
+        var cost = costEstimator.Estimate(distinct);
         return new DistinctOperation(
             bufferPool,
             memTable,
             source,
             outputColumns,
-            outputColumnsRefs);
+            outputColumnsRefs,
+            cost);
     }
 
     private IOperation CreateProjection(Projection projection, IOperation input, BindContext context)
@@ -656,6 +677,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
         }
 
         var outputColumnRefs = outputColumns.Select(c => c.ColumnRef).ToList();
+        var cost = costEstimator.Estimate(projection);
         return new ProjectionOperation(
             bufferPool,
             memTable,
@@ -663,6 +685,7 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             outputExpressions,
             outputColumns,
             outputColumnRefs,
+            cost,
             Materialize: false
             );
     }
@@ -730,12 +753,16 @@ public class PhysicalPlanner(ConfigOptions config, Catalog.Catalog catalog, Parq
             outputColumnsRefs.Add(newColumn.ColumnRef);
         }
 
+        var estimate = costEstimator.Estimate(filter);
+
         return new FilterOperation(
             bufferPool,
             memTable,
             input,
             whereExpr,
             outputColumns,
-            outputColumnsRefs);
+            outputColumnsRefs,
+            estimate
+            );
     }
 }

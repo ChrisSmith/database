@@ -5,7 +5,7 @@ using Database.Core.Options;
 
 namespace Database.Core.Planner;
 
-public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
+public class ExplainQuery(ConfigOptions options, CostEstimation cost, string IdentString = "  ")
 {
     public string Explain(LogicalPlan plan)
     {
@@ -18,7 +18,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
     {
         if (plan is Filter filter)
         {
-            Write($"Filter({filter.Predicate}, rows={plan.NumRows})", writer, ident);
+            Write($"Filter({filter.Predicate}, rows={Estimate(plan)})", writer, ident);
             WriteOutputColumns(filter.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(filter.Input, writer, ident + 1);
@@ -28,7 +28,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
         if (plan is Join join)
         {
             var joinCon = join.Condition != null ? " on " + join.Condition : "";
-            Write($"Join({join.JoinType}{joinCon}, rows={plan.NumRows})", writer, ident);
+            Write($"Join({join.JoinType}{joinCon}, rows={Estimate(plan)})", writer, ident);
             WriteOutputColumns(join.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(join.Left, writer, ident + 1);
@@ -39,7 +39,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (plan is Aggregate aggregate)
         {
-            Write($"Agg({Expressions(aggregate.Aggregates)}) group by ({Expressions(aggregate.GroupBy)}, rows={plan.NumRows})", writer, ident);
+            Write($"Agg({Expressions(aggregate.Aggregates)}) group by ({Expressions(aggregate.GroupBy)}, rows={Estimate(plan)})", writer, ident);
             WriteOutputColumns(aggregate.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(aggregate.Input, writer, ident + 1);
@@ -48,7 +48,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (plan is Projection project)
         {
-            Write($"Project({Expressions(project.Expressions)}, rows={plan.NumRows})", writer, ident);
+            Write($"Project({Expressions(project.Expressions)}, rows={Estimate(plan)})", writer, ident);
             WriteOutputColumns(project.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(project.Input, writer, ident + 1);
@@ -57,7 +57,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (plan is Distinct distinct)
         {
-            Write($"Distinct, rows={plan.NumRows}", writer, ident);
+            Write($"Distinct, rows={Estimate(plan)}", writer, ident);
             WriteOutputColumns(distinct.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(distinct.Input, writer, ident + 1);
@@ -66,7 +66,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (plan is Sort sort)
         {
-            Write($"Sort({Expressions(sort.OrderBy)}), rows={plan.NumRows}", writer, ident);
+            Write($"Sort({Expressions(sort.OrderBy)}), rows={Estimate(plan)}", writer, ident);
             WriteOutputColumns(sort.OutputSchema, writer);
             WriteLine("", writer, ident);
             Explain(sort.Input, writer, ident + 1);
@@ -77,7 +77,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
         {
             var filterCon = scan.Filter != null ? " where " + scan.Filter : "";
             var withProjection = scan.Projection ? " with projection " : "";
-            Write($"Scan({scan.Table}, rows={scan.NumRows}){filterCon}{withProjection}", writer, ident);
+            Write($"Scan({scan.Table}, rows={Estimate(plan)}){filterCon}{withProjection}", writer, ident);
             WriteOutputColumns(scan.OutputSchema, writer);
             WriteLine("", writer, ident);
             return;
@@ -103,7 +103,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (plan is Apply apply)
         {
-            Write($"Apply(c={apply.Correlated.Count}, rows={plan.NumRows})", writer, ident);
+            Write($"Apply(c={apply.Correlated.Count}, rows={Estimate(plan)})", writer, ident);
             WriteOutputColumns(apply.OutputSchema, writer);
             WriteLine("", writer, ident);
             foreach (var subquery in apply.Correlated)
@@ -117,7 +117,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
         if (plan is JoinSet joinSet)
         {
             var tables = string.Join(" x ", joinSet.Relations.Select(r => $"{r.Name} ({r.JoinType})"));
-            Write($"JoinSet({tables}, rows={plan.NumRows})", writer, ident);
+            Write($"JoinSet({tables}, rows={Estimate(plan)})", writer, ident);
             WriteOutputColumns(joinSet.OutputSchema, writer);
             WriteLine("", writer, ident);
             foreach (var edge in joinSet.Edges)
@@ -138,7 +138,7 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
 
         if (plan is PlanWithSubQueries planWithSub)
         {
-            Write($"PlanWithSubQueries(u={planWithSub.Uncorrelated.Count}, rows={plan.NumRows})", writer, ident);
+            Write($"PlanWithSubQueries(u={planWithSub.Uncorrelated.Count}, rows={Estimate(plan)})", writer, ident);
             WriteOutputColumns(planWithSub.OutputSchema, writer);
             WriteLine("", writer, ident);
             foreach (var subquery in planWithSub.Uncorrelated)
@@ -150,6 +150,11 @@ public class ExplainQuery(ConfigOptions options, string IdentString = "  ")
         }
 
         throw new NotImplementedException("Explain not implemented for this plan: {" + plan + "}");
+    }
+
+    private string Estimate(LogicalPlan plan)
+    {
+        return cost.Estimate(plan).OutputCardinality.ToString();
     }
 
     private void Write(string s, StringWriter writer, int ident)

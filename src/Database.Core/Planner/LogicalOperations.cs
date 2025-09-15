@@ -157,7 +157,7 @@ public record Projection(
     }
 }
 
-public record JoinedRelation(string Name, LogicalPlan Plan, JoinType JoinType, long NumRows); // TODO remove NumRows
+public record JoinedRelation(string Name, LogicalPlan Plan, JoinType JoinType);
 
 public record JoinSet(
     IReadOnlyList<JoinedRelation> Relations,
