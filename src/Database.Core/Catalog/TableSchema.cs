@@ -25,7 +25,7 @@ public record TableSchema(
 ///
 /// </summary>
 /// <param name="Statistics">per column statistics for this row group</param>
-public record RowGroupMeta(long RowCount, List<Statistics> Statistics);
+public record RowGroupMeta(int RowCount, List<Statistics> Statistics);
 
 public record Statistics(
     long? NullCount,

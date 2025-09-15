@@ -28,7 +28,7 @@ public record Catalog(ParquetPool BufferPool)
         var handle = BufferPool.OpenFile(path);
         var reader = handle.Reader;
         var meta = reader.Metadata ?? throw new Exception("No metadata");
-        var tableRef = new ParquetStorage(handle);
+        var tableRef = new ParquetStorage(id, handle);
 
         var numColumns = handle.DataFields.Length;
         var schema = new List<ColumnSchema>(numColumns);
@@ -70,7 +70,7 @@ public record Catalog(ParquetPool BufferPool)
                 var pstats = rg.GetStatistics(field) ?? throw new Exception($"No stats for {field.Name} in row group {i}");
                 stats.Add(new Statistics(pstats.NullCount, pstats.DistinctCount, pstats.MinValue, pstats.MaxValue));
             }
-            rowGroups.Add(new RowGroupMeta(rg.RowCount, stats));
+            rowGroups.Add(new RowGroupMeta(checked((int)rg.RowCount), stats));
         }
 
         var table = new TableSchema(
