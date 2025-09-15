@@ -13,6 +13,6 @@ Project(Id, rows=20000) -> .Id
 
 
 Cost Optimized
-Project(Id) cost (output_rows=10000, cpu=10000, disk=0, total=211) -> .Id
- Filter(Id = 1) cost (output_rows=10000, cpu=100000, disk=0, total=201) -> t1.Id 
+Project(Id) cost (output_rows=20000, cpu=20000, disk=0, total=221) -> .Id
+ Filter(Id = 1) cost (output_rows=20000, cpu=100000, disk=0, total=201) -> t1.Id 
     FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> t1.Id

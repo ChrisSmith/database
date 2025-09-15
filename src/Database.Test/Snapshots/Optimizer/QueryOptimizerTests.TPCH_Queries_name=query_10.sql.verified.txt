@@ -49,35 +49,35 @@ Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_com
 
 
 Optimized
-Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_comment, rows=1215000) -> .c_custkey, .c_name, .revenue, .c_acctbal, .n_name, .c_address, .c_phone, .c_comment
- Sort(revenue DESC), rows=1215000 -> .revenue, .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment 
-    Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount), c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment) group by (c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment, rows=1215000) -> .revenue, .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment    
-       Join(Inner on l_orderkey = o_orderkey, rows=1215000) -> .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .n_nationkey, .n_name, .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag       
-          Join(Inner on c_nationkey = n_nationkey, rows=1215000) -> .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .n_nationkey, .n_name          
-             Join(Inner on c_custkey = o_custkey, rows=1215000) -> .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment             
-                Filter(o_orderdate < 01/01/1994 00:00:00, rows=1215000) -> .o_orderkey, .o_custkey, .o_orderdate                
-                   Filter(o_orderdate >= 10/01/1993 00:00:00, rows=1350000) -> .o_orderkey, .o_custkey, .o_orderdate                   
-                      Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_orderdate                      
-             
-                Scan(customer, rows=150000) with projection  -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment                
+Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_comment, rows=240049) -> .c_custkey, .c_name, .revenue, .c_acctbal, .n_name, .c_address, .c_phone, .c_comment
+ Sort(revenue DESC), rows=240049 -> .revenue, .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment 
+    Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount), c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment) group by (c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment, rows=240049) -> .revenue, .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment    
+       Join(Inner on c_custkey = o_custkey, rows=240049) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .n_nationkey, .n_name       
+          Join(Inner on l_orderkey = o_orderkey, rows=240048) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .o_orderkey, .o_custkey, .o_orderdate          
+             Filter(l_returnflag = R, rows=1200243) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag             
+                Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag                
+          
+             Filter(o_orderdate < 01/01/1994 00:00:00, rows=300000) -> .o_orderkey, .o_custkey, .o_orderdate             
+                Filter(o_orderdate >= 10/01/1993 00:00:00, rows=300000) -> .o_orderkey, .o_custkey, .o_orderdate                
+                   Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_orderdate                   
+       
+          Join(Inner on c_nationkey = n_nationkey, rows=150000) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .n_nationkey, .n_name          
+             Scan(customer, rows=150000) with projection  -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment             
           
              Scan(nation, rows=25) with projection  -> .n_nationkey, .n_name             
-       
-          Filter(l_returnflag = R, rows=1200243) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag          
-             Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag             
 
 
 Cost Optimized
-Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_comment) cost (output_rows=10, cpu=80, disk=0, total=48644) -> .c_custkey, .c_name, .revenue, .c_acctbal, .n_name, .c_address, .c_phone, .c_comment
- Sort(revenue DESC) cost (output_rows=10, cpu=30, disk=0, total=48644) -> .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment, .revenue 
-    HashAggregate(c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment, SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=10, cpu=10802178, disk=0, total=48644) -> .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment, .revenue    
-       HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=600121, cpu=900121, disk=0, total=37842) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate, .n_nationkey, .n_name       
-          Filter(l_returnflag = R) cost (output_rows=600121, cpu=24004860, disk=0, total=30010) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag          
-             FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag       
-          HashJoin(Inner n_nationkey, c_nationkey) cost (output_rows=150000, cpu=150050, disk=0, total=6931) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate, .n_nationkey, .n_name          
-             HashJoin(Inner o_custkey, c_custkey) cost (output_rows=150000, cpu=180000, disk=0, total=6781) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .o_orderkey, .o_custkey, .o_orderdate             
-                FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment             
-                Filter(o_orderdate < 01/01/1994 00:00:00) cost (output_rows=15000, cpu=450000, disk=0, total=6451) -> .o_orderkey, .o_custkey, .o_orderdate                
-                   Filter(o_orderdate >= 10/01/1993 00:00:00) cost (output_rows=150000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_custkey, .o_orderdate                   
-                      FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_orderdate          
+Project(c_custkey, c_name, revenue, c_acctbal, n_name, c_address, c_phone, c_comment) cost (output_rows=240049, cpu=1920392, disk=0, total=49874) -> .c_custkey, .c_name, .revenue, .c_acctbal, .n_name, .c_address, .c_phone, .c_comment
+ Sort(revenue DESC) cost (output_rows=240049, cpu=4080833, disk=0, total=47954) -> .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment, .revenue 
+    HashAggregate(c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment, SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=240049, cpu=4320882, disk=0, total=43873) -> .c_custkey, .c_name, .c_acctbal, .c_phone, .n_name, .c_address, .c_comment, .revenue    
+       HashJoin(Inner c_custkey, o_custkey) cost (output_rows=240049, cpu=540048, disk=0, total=39552) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .o_orderkey, .o_custkey, .o_orderdate, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .n_nationkey, .n_name       
+          HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=240048, cpu=1800243, disk=0, total=38712) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag, .o_orderkey, .o_custkey, .o_orderdate          
+             Filter(l_returnflag = R) cost (output_rows=1200243, cpu=24004860, disk=0, total=30010) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag             
+                FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_extendedprice, .l_discount, .l_returnflag          
+             Filter(o_orderdate < 01/01/1994 00:00:00) cost (output_rows=300000, cpu=900000, disk=0, total=6901) -> .o_orderkey, .o_custkey, .o_orderdate             
+                Filter(o_orderdate >= 10/01/1993 00:00:00) cost (output_rows=300000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_custkey, .o_orderdate                
+                   FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_orderdate       
+          HashJoin(Inner n_nationkey, c_nationkey) cost (output_rows=150000, cpu=150050, disk=0, total=300) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment, .n_nationkey, .n_name          
+             FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_comment          
              FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name

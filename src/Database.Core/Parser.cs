@@ -371,7 +371,7 @@ public class Parser
         return new OrderingExpression(expr, ascending);
     }
 
-    private BaseExpression ParseExpr()
+    public BaseExpression ParseExpr()
     {
         var expr = ParseOr();
 

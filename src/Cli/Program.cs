@@ -229,9 +229,10 @@ void EvalQuery(string query, QueryPlanner queryPlanner)
     var parser = new Parser(tokens);
     var statement = parser.Parse();
     var it = new Interpreter(bufferPool);
-    var optimizer = new QueryOptimizer(config, new ExpressionBinder(bufferPool, new FunctionRegistry()), bufferPool);
-    var explainer = new ExplainQuery(config);
-    var physicalPlanner = new PhysicalPlanner(config, catalog, bufferPool);
+    var costEstimation = new CostEstimation(catalog, bufferPool);
+    var optimizer = new QueryOptimizer(config, new ExpressionBinder(bufferPool, new FunctionRegistry()), bufferPool, costEstimation);
+    var explainer = new ExplainQuery(config, costEstimation);
+    var physicalPlanner = new PhysicalPlanner(config, catalog, bufferPool, costEstimation);
     var costBasedOptimizer = new CostBasedOptimizer(config, physicalPlanner);
 
     if (statement.Explain)

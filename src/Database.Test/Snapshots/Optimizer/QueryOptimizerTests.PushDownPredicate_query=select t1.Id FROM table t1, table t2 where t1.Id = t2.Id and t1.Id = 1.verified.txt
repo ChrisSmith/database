@@ -10,8 +10,8 @@ Project(Id, rows=100000) -> t1.Id
 
 
 Optimized
-Project(Id, rows=100000) -> t1.Id
- Join(Inner on Id = Id, rows=100000) -> t2.Id, t1.Id 
+Project(Id, rows=20000) -> t1.Id
+ Join(Inner on Id = Id, rows=20000) -> t2.Id, t1.Id 
     Scan(table, rows=100000) with projection  -> t2.Id    
  
     Filter(Id = 1, rows=20000) -> t1.Id    
@@ -19,8 +19,8 @@ Project(Id, rows=100000) -> t1.Id
 
 
 Cost Optimized
-Project(Id) cost (output_rows=100000, cpu=100000, disk=0, total=522) -> .Id
- HashJoin(Inner Id, Id) cost (output_rows=100000, cpu=120000, disk=0, total=422) -> t2.Id, t1.Id 
+Project(Id) cost (output_rows=20000, cpu=20000, disk=0, total=462) -> .Id
+ HashJoin(Inner Id, Id) cost (output_rows=20000, cpu=140000, disk=0, total=442) -> t2.Id, t1.Id 
     FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> t2.Id 
-    Filter(Id = 1) cost (output_rows=10000, cpu=100000, disk=0, total=201) -> t1.Id    
+    Filter(Id = 1) cost (output_rows=20000, cpu=100000, disk=0, total=201) -> t1.Id    
        FileScan({SolutionDirectory}data.parquet) cost (output_rows=100000, cpu=100000, disk=10, total=101) -> t1.Id

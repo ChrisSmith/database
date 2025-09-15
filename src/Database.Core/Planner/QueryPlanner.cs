@@ -432,8 +432,7 @@ public partial class QueryPlanner
                 relations.Add(new JoinedRelation(
                     tableStmt.Alias ?? tableStmt.Table,
                     scan,
-                    JoinType.Cross,
-                    scan.Cardinality
+                    JoinType.Cross
                     ));
             }
             else if (table is SelectStatement selectStmt)
@@ -446,8 +445,7 @@ public partial class QueryPlanner
                 relations.Add(new JoinedRelation(
                     name,
                     scan,
-                    JoinType.Cross,
-                    1000 // TODO need estimate for subquery
+                    JoinType.Cross
                 ));
             }
             else
@@ -466,8 +464,7 @@ public partial class QueryPlanner
                 relations.Add(new JoinedRelation(
                     tableStmt.Alias ?? tableStmt.Table,
                     scan,
-                    join.JoinType,
-                    scan.Cardinality
+                    join.JoinType
                     ));
 
                 conjunctions.AddRange(QueryRewriter.SplitRewriteSplitConjunctions(join.JoinConstraint));
