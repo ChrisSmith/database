@@ -4,7 +4,7 @@
 |--------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|
 | **DuckDb** | 250ms | 40ms | 110ms | 180ms | 210ms | 20ms | 80ms | 280ms | 330ms | 150ms | 40ms | 60ms | 180ms | 10ms | 20ms | 30ms | 240ms | 340ms | 240ms | 50ms | 560ms | 30ms |
 | **ClickHouse** | 350ms (1.4x) | ❌ | 160ms (1.5x) | ❌ | 310ms (1.5x) | 40ms (1.8x) | 120ms (1.4x) | 350ms (1.3x) | 440ms (1.3x) | 270ms (1.8x) | 50ms (1.4x) | 100ms (1.7x) | 150ms (1.1x) | 20ms (1.5x) | ❌ | 30ms (1.2x) | 320ms (1.4x) | 310ms (1.1x) | 520ms (2.2x) | 60ms (1.2x) | ❌ | ❌ |
-| **Database** | 1,740ms (6.8x) | 250ms (6.3x) | 640ms (5.8x) | 2,130ms (11.6x) | 610ms (2.9x) | 120ms (6.1x) | 340ms (4.1x) | 620ms (2.2x) | 2,050ms (6.2x) | 540ms (3.5x) | 80ms (2.2x) | 450ms (7.9x) | 4,440ms (25.1x) | 100ms (7.8x) | ❌ | 180ms (6.7x) | 850ms (3.6x) | 2,320ms (6.8x) | ❌ | ❌ | ❌ | ❌ |
+| **Database** | 1,730ms (6.8x) | 290ms (7.2x) | 650ms (5.9x) | 2,350ms (12.8x) | 650ms (3.1x) | 130ms (6.3x) | 370ms (4.4x) | 700ms (2.5x) | 2,110ms (6.4x) | 520ms (3.4x) | 80ms (2.0x) | 440ms (7.7x) | 4,620ms (26.1x) | 100ms (7.4x) | ❌ | 180ms (6.8x) | 760ms (3.2x) | 2,340ms (6.9x) | 670ms (2.8x) | ❌ | ❌ | ❌ |
 | **Spark** | 4,300ms (16.9x) | 1,100ms (27.4x) | 1,210ms (11.0x) | 1,360ms (7.4x) | 2,130ms (10.2x) | 140ms (7.2x) | 1,590ms (18.9x) | 880ms (3.2x) | 1,740ms (5.3x) | 1,490ms (9.7x) | 400ms (10.6x) | 580ms (10.1x) | 1,470ms (8.3x) | 210ms (16.5x) | ❌ | 510ms (19.0x) | 1,720ms (7.3x) | 4,090ms (12.0x) | 550ms (2.3x) | 470ms (9.8x) | 4,900ms (8.7x) | 370ms (11.8x) |
 | **Sqlite** | 5,310ms (20.9x) | 1,410ms (35.2x) | 7,130ms (64.9x) | ❌ | ❌ | 740ms (36.9x) | 2,990ms (35.6x) | 13,630ms (49.4x) | 17,960ms (54.4x) | 970ms (6.3x) | 1,160ms (30.4x) | 760ms (13.4x) | 4,270ms (24.1x) | 400ms (31.2x) | 1,130ms (66.4x) | 240ms (8.9x) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
@@ -13,8 +13,8 @@
 - **DuckDb**: 22/22 queries successful (100.0% success rate)
 - **ClickHouse**: 17/22 queries successful (77.3% success rate)
   - 5 failures
-- **Database**: 17/22 queries successful (77.3% success rate)
-  - 5 failures
+- **Database**: 18/22 queries successful (81.8% success rate)
+  - 4 failures
 - **Spark**: 21/22 queries successful (95.5% success rate)
   - 1 failures
 - **Sqlite**: 14/22 queries successful (63.6% success rate)
@@ -23,7 +23,7 @@
 ### Performance Comparison (Successful Queries Only)
 - **Average execution time (DuckDb)**: 156ms
 - **Average execution time (ClickHouse)**: 211ms
-- **Average execution time (Database)**: 1,027ms
+- **Average execution time (Database)**: 1,037ms
 - **Average execution time (Spark)**: 1,486ms
 - **Average execution time (Sqlite)**: 4,150ms
 
