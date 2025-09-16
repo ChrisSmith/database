@@ -10,5 +10,6 @@ public record SelectStatement(
     BaseExpression? Having,
     OrderByStatement? Order,
     LimitStatement? Limit,
-    string? Alias
+    string? Alias,
+    CommonTableStatements? Ctes
     ) : ITableStatement;
