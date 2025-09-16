@@ -61,12 +61,12 @@ PlanWithSubQueries(u=1, rows=100) -> .c_name, .c_custkey, .o_orderkey, .o_orderd
           Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_quantity          
  Project(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity), rows=100) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity) 
     TopSort(n=100, o_totalprice DESC, o_orderdate ASC) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice    
-       Agg(SUM(l_quantity), c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice) group by (c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, rows=6001255) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice       
-          Join(Inner on o_orderkey = l_orderkey, rows=6001255) -> .l_orderkey, .l_quantity, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, $subquery_1$.l_orderkey, .c_custkey, .c_name          
+       Agg(SUM(l_quantity), c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice) group by (c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, rows=6001251) -> .SUM(l_quantity), .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice       
+          Join(Inner on o_orderkey = l_orderkey, rows=6001251) -> .l_orderkey, .l_quantity, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, $subquery_1$.l_orderkey, .c_custkey, .c_name          
              Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_quantity             
           
-             Join(Inner on c_custkey = o_custkey, rows=1500010) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, $subquery_1$.l_orderkey, .c_custkey, .c_name             
-                Join(Semi on o_orderkey = l_orderkey, rows=1500000) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, $subquery_1$.l_orderkey                
+             Join(Inner on c_custkey = o_custkey, rows=1500009) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, $subquery_1$.l_orderkey, .c_custkey, .c_name             
+                Join(Semi on o_orderkey = l_orderkey, rows=1499999) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, $subquery_1$.l_orderkey                
                    Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate                   
                 
                    Scan($subquery_1$, rows=100) -> $subquery_1$.l_orderkey                   
@@ -79,13 +79,13 @@ PlanWithSubQueries(u=1) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_to
  Project(l_orderkey) cost (output_rows=1200243, cpu=1200243, disk=0, total=55215) -> .l_orderkey 
     Filter(SUM(l_quantity) > cast(300 as Decimal)) cost (output_rows=1200243, cpu=12002430, disk=0, total=54014) -> .l_orderkey, .SUM(l_quantity)    
        HashAggregate(l_orderkey, SUM(l_quantity)) cost (output_rows=6001215, cpu=36007290, disk=0, total=42012) -> .l_orderkey, .SUM(l_quantity)       
-          FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_quantity Project(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity)) cost (output_rows=100, cpu=600, disk=0, total=368032) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity) 
+          FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_quantity Project(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity)) cost (output_rows=100, cpu=600, disk=0, total=368031) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity) 
     TopSort(n=100, o_totalprice DESC, o_orderdate ASC) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)    
-       HashAggregate(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity)) cost (output_rows=6001255, cpu=84017570, disk=0, total=103976) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)       
-          HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=6001255, cpu=9001235, disk=0, total=19958) -> .l_orderkey, .l_quantity, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, .c_custkey, .c_name          
+       HashAggregate(c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice, SUM(l_quantity)) cost (output_rows=6001251, cpu=84017514, disk=0, total=103976) -> .c_name, .c_custkey, .o_orderkey, .o_orderdate, .o_totalprice, .SUM(l_quantity)       
+          HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=6001251, cpu=9001233, disk=0, total=19958) -> .l_orderkey, .l_quantity, .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, .c_custkey, .c_name          
              FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_quantity          
-             HashJoin(Inner c_custkey, o_custkey) cost (output_rows=1500010, cpu=1800000, disk=0, total=4951) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, .c_custkey, .c_name             
-                HashJoin(Semi l_orderkey, o_orderkey) cost (output_rows=1500000, cpu=1500200, disk=0, total=3001) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate                
+             HashJoin(Inner c_custkey, o_custkey) cost (output_rows=1500009, cpu=1799999, disk=0, total=4951) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate, .c_custkey, .c_name             
+                HashJoin(Semi l_orderkey, o_orderkey) cost (output_rows=1499999, cpu=1500200, disk=0, total=3001) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate                
                    FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_custkey, .o_totalprice, .o_orderdate                
                    ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=100, cpu=100, disk=0, total=0) -> $subquery_1$.l_orderkey             
                 FileScan({SolutionDirectory}tpch/1/customer2.parquet) cost (output_rows=150000, cpu=150000, disk=2, total=150) -> .c_custkey, .c_name

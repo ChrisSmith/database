@@ -32,10 +32,10 @@ Project(o_orderpriority, order_count, rows=300000) -> .o_orderpriority, .order_c
 
 
 Optimized
-Project(o_orderpriority, order_count, rows=300000) -> .o_orderpriority, .order_count
- Sort(o_orderpriority ASC), rows=300000 -> .order_count, .o_orderpriority 
-    Agg(count(*), o_orderpriority) group by (o_orderpriority, rows=300000) -> .order_count, .o_orderpriority    
-       Join(Semi on o_orderkey = l_orderkey, rows=300000) -> .o_orderkey, .o_orderdate, .o_orderpriority, correlated0.l_orderkey       
+Project(o_orderpriority, order_count, rows=165223) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC), rows=165223 -> .order_count, .o_orderpriority 
+    Agg(count(*), o_orderpriority) group by (o_orderpriority, rows=165223) -> .order_count, .o_orderpriority    
+       Join(Semi on o_orderkey = l_orderkey, rows=165223) -> .o_orderkey, .o_orderdate, .o_orderpriority, correlated0.l_orderkey       
           Filter(o_orderdate < 10/01/1993 00:00:00, rows=300000) -> .o_orderkey, .o_orderdate, .o_orderpriority          
              Filter(o_orderdate >= 07/01/1993 00:00:00, rows=300000) -> .o_orderkey, .o_orderdate, .o_orderpriority             
                 Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderdate, .o_orderpriority                
@@ -46,10 +46,10 @@ Project(o_orderpriority, order_count, rows=300000) -> .o_orderpriority, .order_c
 
 
 Cost Optimized
-Project(o_orderpriority, order_count) cost (output_rows=300000, cpu=600000, disk=0, total=42611) -> .o_orderpriority, .order_count
- Sort(o_orderpriority ASC) cost (output_rows=300000, cpu=5400000, disk=0, total=42011) -> .o_orderpriority, .order_count 
-    HashAggregate(o_orderpriority, count(*)) cost (output_rows=300000, cpu=1800000, disk=0, total=36611) -> .o_orderpriority, .order_count    
-       HashJoin(Semi l_orderkey, o_orderkey) cost (output_rows=300000, cpu=2700486, disk=0, total=34811) -> .o_orderkey, .o_orderdate, .o_orderpriority       
+Project(o_orderpriority, order_count) cost (output_rows=165223, cpu=330446, disk=0, total=38942) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC) cost (output_rows=165223, cpu=2808791, disk=0, total=38611) -> .o_orderpriority, .order_count 
+    HashAggregate(o_orderpriority, count(*)) cost (output_rows=165223, cpu=991338, disk=0, total=35802) -> .o_orderpriority, .order_count    
+       HashJoin(Semi l_orderkey, o_orderkey) cost (output_rows=165223, cpu=2700486, disk=0, total=34811) -> .o_orderkey, .o_orderdate, .o_orderpriority       
           Filter(o_orderdate < 10/01/1993 00:00:00) cost (output_rows=300000, cpu=900000, disk=0, total=6901) -> .o_orderkey, .o_orderdate, .o_orderpriority          
              Filter(o_orderdate >= 07/01/1993 00:00:00) cost (output_rows=300000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_orderdate, .o_orderpriority             
                 FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderdate, .o_orderpriority       
