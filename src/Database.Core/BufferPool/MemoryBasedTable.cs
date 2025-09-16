@@ -20,6 +20,28 @@ public class MemoryBasedTable(MemoryStorage storage, Catalog.Catalog catalog)
 
     private static volatile int _nextRowGroup = 0;
 
+    private long? _rowCountEstimate;
+
+    public void SetRowCountEstimate(long rowCountEstimate)
+    {
+        _rowCountEstimate = rowCountEstimate;
+    }
+    public long RowCountEstimate()
+    {
+        if (_rowGroups.Count == 0)
+        {
+            return _rowCountEstimate ?? 100;
+        }
+
+        int sum = 0;
+        foreach (var rowGroup in _rowGroups)
+        {
+            sum += rowGroup[0].Length;
+        }
+
+        return sum;
+    }
+
     public RowGroupRef AddRowGroup()
     {
         var id = Interlocked.Decrement(ref _nextRowGroup);

@@ -17,6 +17,7 @@ public partial class QueryPlanner
     private ConfigOptions _options;
     private readonly Catalog.Catalog _catalog;
     private readonly ParquetPool _bufferPool;
+    private CostEstimation _costEstimation;
 
     public QueryPlanner(ConfigOptions options, Catalog.Catalog catalog, ParquetPool bufferPool)
     {
@@ -24,9 +25,9 @@ public partial class QueryPlanner
         _catalog = catalog;
         _bufferPool = bufferPool;
         _binder = new ExpressionBinder(bufferPool, new FunctionRegistry());
-        var costEstimation = new CostEstimation(catalog, bufferPool);
-        _optimizer = new QueryOptimizer(_options, _binder, bufferPool, costEstimation);
-        _physicalPlanner = new PhysicalPlanner(_options, catalog, bufferPool, costEstimation);
+        _costEstimation = new CostEstimation(catalog, bufferPool);
+        _optimizer = new QueryOptimizer(_options, _binder, bufferPool, _costEstimation);
+        _physicalPlanner = new PhysicalPlanner(_options, catalog, bufferPool, _costEstimation);
         _costBasedOptimizer = new CostBasedOptimizer(_options, _physicalPlanner);
     }
 
@@ -281,6 +282,9 @@ public partial class QueryPlanner
 
                     subPlan = ReBindPlan(subPlan, bindContext);
                 }
+
+                var cost = _costEstimation.Estimate(subPlan);
+                table.SetRowCountEstimate(cost.OutputCardinality);
 
                 var sourceCol = subPlan.OutputSchema[0];
                 var newColumn = table.AddColumnToSchema(sourceCol.Name, sourceCol.DataType, "", "");

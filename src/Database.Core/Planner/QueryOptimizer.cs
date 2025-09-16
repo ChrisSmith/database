@@ -532,7 +532,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                     e.BoundMemoryTable.TableId,
                     null,
                     table.Schema,
-                    Cardinality: 100, // TODO this should be calculated from the subquery
+                    Cardinality: table.RowCountEstimate(),
                     Alias: e.Alias
                     );
                 var joinCond = new BinaryExpression(
@@ -557,7 +557,7 @@ public class QueryOptimizer(ConfigOptions config, ExpressionBinder _binder, Parq
                     e.BoundMemoryTable.TableId,
                     null,
                     table.Schema,
-                    Cardinality: 100, // TODO this should be calculated from the subquery
+                    Cardinality: table.RowCountEstimate(),
                     Alias: e.Alias
                 );
                 var joinCond = new BinaryExpression(

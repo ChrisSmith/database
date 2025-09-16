@@ -69,29 +69,29 @@ PlanWithSubQueries(u=1, rows=0) -> .p_brand, .p_type, .p_size, .supplier_cnt
              Join(AntiSemi on ps_suppkey = s_suppkey, rows=0) -> .ps_partkey, .ps_suppkey, $subquery_2$.s_suppkey             
                 Scan(partsupp, rows=800000) with projection  -> .ps_partkey, .ps_suppkey                
              
-                Scan($subquery_2$, rows=100) -> $subquery_2$.s_suppkey                
+                Scan($subquery_2$, rows=2000) -> $subquery_2$.s_suppkey                
           
-             Join(Semi on p_size = $subquery_1$, rows=39999) -> .p_partkey, .p_brand, .p_type, .p_size, $subquery_1$.$subquery_1$             
+             Join(Semi on p_size = $subquery_1$, rows=33289) -> .p_partkey, .p_brand, .p_type, .p_size, $subquery_1$.$subquery_1$             
                 Filter(NOT starts_with(p_type, MEDIUM POLISHED), rows=40000) -> .p_partkey, .p_brand, .p_type, .p_size                
                    Filter(p_brand <> Brand#45, rows=40000) -> .p_partkey, .p_brand, .p_type, .p_size                   
                       Scan(part, rows=200000) with projection  -> .p_partkey, .p_brand, .p_type, .p_size                      
              
-                Scan($subquery_1$, rows=100) -> $subquery_1$.$subquery_1$                
+                Scan($subquery_1$, rows=8) -> $subquery_1$.$subquery_1$                
 
 
 Cost Optimized
 PlanWithSubQueries(u=1) -> .p_brand, .p_type, .p_size, .supplier_cnt
  Project(s_suppkey) cost (output_rows=2000, cpu=2000, disk=0, total=32) -> .s_suppkey 
     Filter(s_comment LIKE %Customer%Complaints%) cost (output_rows=2000, cpu=20000, disk=0, total=30) -> .s_suppkey, .s_comment    
-       FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_comment Project(p_brand, p_type, p_size, supplier_cnt) cost (output_rows=0, cpu=0, disk=0, total=2840) -> .p_brand, .p_type, .p_size, .supplier_cnt 
-    Sort(supplier_cnt DESC, p_brand ASC, p_type ASC, p_size ASC) cost (output_rows=0, cpu=0, disk=0, total=2840) -> .p_brand, .p_type, .p_size, .supplier_cnt    
-       HashAggregate(p_brand, p_type, p_size, count_distinct(ps_suppkey)) cost (output_rows=0, cpu=0, disk=0, total=2840) -> .p_brand, .p_type, .p_size, .supplier_cnt       
-          HashJoin(Inner ps_partkey, p_partkey) cost (output_rows=0, cpu=39999, disk=0, total=2840) -> .p_partkey, .p_brand, .p_type, .p_size, .ps_partkey, .ps_suppkey          
-             HashJoin(Semi $subquery_1$, p_size) cost (output_rows=39999, cpu=40200, disk=0, total=1200) -> .p_partkey, .p_brand, .p_type, .p_size             
+       FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_comment Project(p_brand, p_type, p_size, supplier_cnt) cost (output_rows=0, cpu=0, disk=0, total=2837) -> .p_brand, .p_type, .p_size, .supplier_cnt 
+    Sort(supplier_cnt DESC, p_brand ASC, p_type ASC, p_size ASC) cost (output_rows=0, cpu=0, disk=0, total=2837) -> .p_brand, .p_type, .p_size, .supplier_cnt    
+       HashAggregate(p_brand, p_type, p_size, count_distinct(ps_suppkey)) cost (output_rows=0, cpu=0, disk=0, total=2837) -> .p_brand, .p_type, .p_size, .supplier_cnt       
+          HashJoin(Inner ps_partkey, p_partkey) cost (output_rows=0, cpu=33289, disk=0, total=2837) -> .p_partkey, .p_brand, .p_type, .p_size, .ps_partkey, .ps_suppkey          
+             HashJoin(Semi $subquery_1$, p_size) cost (output_rows=33289, cpu=40016, disk=0, total=1200) -> .p_partkey, .p_brand, .p_type, .p_size             
                 Filter(NOT starts_with(p_type, MEDIUM POLISHED)) cost (output_rows=40000, cpu=160000, disk=0, total=1160) -> .p_partkey, .p_brand, .p_type, .p_size                
                    Filter(p_brand <> Brand#45) cost (output_rows=40000, cpu=800000, disk=0, total=1000) -> .p_partkey, .p_brand, .p_type, .p_size                   
                       FileScan({SolutionDirectory}tpch/1/part2.parquet) cost (output_rows=200000, cpu=200000, disk=2, total=200) -> .p_partkey, .p_brand, .p_type, .p_size             
-                ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=100, cpu=100, disk=0, total=0) -> $subquery_1$.$subquery_1$          
-             HashJoin(AntiSemi s_suppkey, ps_suppkey) cost (output_rows=0, cpu=800200, disk=0, total=1600) -> .ps_partkey, .ps_suppkey             
+                ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=8, cpu=8, disk=0, total=0) -> $subquery_1$.$subquery_1$          
+             HashJoin(AntiSemi s_suppkey, ps_suppkey) cost (output_rows=0, cpu=804000, disk=0, total=1604) -> .ps_partkey, .ps_suppkey             
                 FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_partkey, .ps_suppkey             
-                ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=100, cpu=100, disk=0, total=0) -> $subquery_2$.s_suppkey
+                ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=2000, cpu=2000, disk=0, total=0) -> $subquery_2$.s_suppkey

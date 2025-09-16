@@ -56,8 +56,6 @@ public record ScanMemoryTable(
 
     public override Cost EstimateCost()
     {
-        // var table = Catalog.GetTable()
-
         return new Cost(
             OutputRows: CostEstimate.OutputCardinality,
             CpuOperations: CostEstimate.OutputCardinality,
