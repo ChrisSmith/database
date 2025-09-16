@@ -332,8 +332,11 @@ public class TPCHTests
     public void Q15(CancellationToken token)
     {
         var query = ReadQuery("query_15.sql");
-        var result = _runner.Run(query, token); ;
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        var result = _runner.Run(query, token);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new([8449, "Supplier#000008449", "5BXWsJERA2mP5OyO4", "20-469-856-8873",1772627.2087m]),
+        });
     }
 
     [Test]

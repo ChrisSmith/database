@@ -12,6 +12,12 @@ public record Catalog(ParquetPool BufferPool)
     private static volatile int _nextColumnId = 0;
     private static volatile int _nextMemoryTableId = 0;
 
+    public bool HasTable(string name)
+    {
+        var table = Tables.FirstOrDefault(t => t.Name == name);
+        return table != null;
+    }
+
     public TableSchema GetTable(string name)
     {
         var table = Tables.FirstOrDefault(t => t.Name == name);

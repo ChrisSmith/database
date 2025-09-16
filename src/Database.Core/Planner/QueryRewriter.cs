@@ -27,9 +27,12 @@ public static class QueryRewriter
         var tables = new List<TableSchema>(tablesStmts.Count);
         foreach (var tableStmt in tablesStmts)
         {
-            // TODO aliases?
-            var table = catalog.Tables.Single(t => t.Name == tableStmt.Table);
-            tables.Add(table);
+            var table = catalog.Tables.FirstOrDefault(t => t.Name == tableStmt.Table);
+            // IF the table is a CTE it won't be found
+            if (table != null)
+            {
+                tables.Add(table);
+            }
         }
 
         var results = new List<BaseExpression>(expressions.Count);

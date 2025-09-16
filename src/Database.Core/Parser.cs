@@ -34,54 +34,70 @@ public class Parser
 
     private IStatement ParseStatement()
     {
+        CommonTableStatements ctes = null;
+        if (Match(WITH))
+        {
+            ctes = ParseCommonTableExpressions();
+        }
+
         if (Match(SELECT))
         {
-            var selectList = ParseSelectListStatement();
-            var from = ParseFromStatement();
-
-            BaseExpression? where = null;
-            GroupByStatement? group = null;
-            BaseExpression? having = null;
-            OrderByStatement? order = null;
-            LimitStatement? limit = null;
-
-            if (Match(WHERE))
+            return ParseSelectStatement() with
             {
-                where = ParseWhereStatement();
-            }
-
-            if (Match(GROUP))
-            {
-                group = ParseGroupByStatement();
-            }
-
-            if (Match(HAVING))
-            {
-                having = ParseHavingStatement();
-            }
-
-            if (Match(ORDER))
-            {
-                order = ParseOrderByStatement();
-            }
-
-            if (Match(LIMIT))
-            {
-                limit = ParseLimit();
-            }
-
-            return new SelectStatement(
-                selectList,
-                from,
-                where,
-                group,
-                having,
-                order,
-                limit,
-                Alias: null);
+                Ctes = ctes,
+            };
         }
 
         throw new ParseException(Peek(), "Expected statement");
+    }
+
+    private SelectStatement ParseSelectStatement()
+    {
+        var selectList = ParseSelectListStatement();
+        var from = ParseFromStatement();
+
+        BaseExpression? where = null;
+        GroupByStatement? group = null;
+        BaseExpression? having = null;
+        OrderByStatement? order = null;
+        LimitStatement? limit = null;
+
+        if (Match(WHERE))
+        {
+            where = ParseWhereStatement();
+        }
+
+        if (Match(GROUP))
+        {
+            group = ParseGroupByStatement();
+        }
+
+        if (Match(HAVING))
+        {
+            having = ParseHavingStatement();
+        }
+
+        if (Match(ORDER))
+        {
+            order = ParseOrderByStatement();
+        }
+
+        if (Match(LIMIT))
+        {
+            limit = ParseLimit();
+        }
+
+        return new SelectStatement(
+            selectList,
+            from,
+            where,
+            group,
+            having,
+            order,
+            limit,
+            Alias: null,
+            Ctes: null
+            );
     }
 
     private BaseExpression ParseHavingStatement()
@@ -280,6 +296,55 @@ public class Parser
         }
 
         throw new ParseException(Peek(), "Expected table or subquery");
+    }
+
+    private CommonTableStatements ParseCommonTableExpressions()
+    {
+        var statements = new List<CommonTableStatement>();
+
+        do
+        {
+            statements.Add(ParseCommonTableExpression());
+        } while (Match(COMMA));
+
+        return new CommonTableStatements(statements);
+    }
+
+    private CommonTableStatement ParseCommonTableExpression()
+    {
+        var name = Consume(IDENTIFIER, "Expected table name identifier");
+
+        var aliases = new List<string>();
+        if (Match(LEFT_PAREN)) // column alias list
+        {
+            do
+            {
+                aliases.Add(Consume(IDENTIFIER, "Expected column alias").Lexeme);
+            } while (Match(COMMA));
+            Consume(RIGHT_PAREN, "Expected ')'");
+        }
+
+        Consume(AS, "Expected AS after table name");
+        Consume(LEFT_PAREN, "Expected '('");
+        Consume(SELECT, "Expected SELECT");
+        var select = ParseSelectStatement() with
+        {
+            Alias = name.Lexeme,
+        };
+        Consume(RIGHT_PAREN, "Expected ')'");
+
+        if (select.SelectList.Expressions.Count != aliases.Count)
+        {
+            throw new ParseException(Peek(), $"Expected number of aliases to match number of columns. {select.SelectList.Expressions} != {aliases.Count}");
+        }
+        var expressions = new List<BaseExpression>(select.SelectList.Expressions.Count);
+        for (var i = 0; i < select.SelectList.Expressions.Count; i++)
+        {
+            expressions.Add(select.SelectList.Expressions[i] with { Alias = aliases[i] });
+        }
+
+        select = select with { SelectList = select.SelectList with { Expressions = expressions } };
+        return new CommonTableStatement(select);
     }
 
     private SelectListStatement ParseSelectListStatement()

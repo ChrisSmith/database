@@ -49,7 +49,7 @@ public partial class QueryPlanner
         {
             var (updatedWhere, subQueryStatements) = QueryRewriter.ExtractSubqueries(select.Where, subQueryId: uncorrelatedPlans.Count);
 
-            (var queryPlans, updatedWhere) = ProcessSubQueries(context, updatedWhere, subQueryStatements);
+            (var queryPlans, updatedWhere) = ProcessSubQueries(context, updatedWhere, subQueryStatements, select.Ctes);
             for (var i = 0; i < queryPlans.Count; i++)
             {
                 var queryPlan = queryPlans[i];
@@ -70,7 +70,7 @@ public partial class QueryPlanner
         {
             var (updatedHaving, subQueryStatements) = QueryRewriter.ExtractSubqueries(select.Having, subQueryId: uncorrelatedPlans.Count);
 
-            (var queryPlans, updatedHaving) = ProcessSubQueries(context, updatedHaving, subQueryStatements);
+            (var queryPlans, updatedHaving) = ProcessSubQueries(context, updatedHaving, subQueryStatements, select.Ctes);
             uncorrelatedPlans.AddRange(queryPlans);
 
             select = select with { Having = updatedHaving };
@@ -225,7 +225,8 @@ public partial class QueryPlanner
     private (List<LogicalPlan>, BaseExpression) ProcessSubQueries(
         BindContext parentContext,
         BaseExpression expression,
-        List<SubQueryPlan> subQueryStatements
+        List<SubQueryPlan> subQueryStatements,
+        CommonTableStatements? outerCtes
         )
     {
         // IFF the subqueries are uncorrelated we can bind them first. they'll be run first
@@ -245,7 +246,7 @@ public partial class QueryPlanner
 
             if (subQueryStmt is SubQuerySelectPlan subQueryPlan)
             {
-                var subPlan = CreateLogicalPlan(subQueryPlan.Select, bindContext);
+                var subPlan = CreateLogicalPlan(subQueryPlan.Select with { Ctes = outerCtes }, bindContext);
                 if (subPlan.OutputSchema.Count != 1)
                 {
                     if (!subQueryPlan.ExistsOnly)
@@ -424,17 +425,34 @@ public partial class QueryPlanner
     {
         List<BaseExpression> conjunctions = QueryRewriter.SplitRewriteSplitConjunctions(select.Where);
 
+        var ctesByName = select.Ctes?.TableStatements.ToDictionary(t => t.Statement.Alias!, t => CreateLogicalPlan(t.Statement, context));
+
         var relations = new List<JoinedRelation>();
         foreach (var table in select.From.TableStatements)
         {
             if (table is TableStatement tableStmt)
             {
-                var scan = CreateScanForTable(tableStmt);
-                relations.Add(new JoinedRelation(
-                    tableStmt.Alias ?? tableStmt.Table,
-                    scan,
-                    JoinType.Cross
+                if (_catalog.HasTable(tableStmt.Table))
+                {
+                    var scan = CreateScanForTable(tableStmt);
+                    relations.Add(new JoinedRelation(
+                        tableStmt.Alias ?? tableStmt.Table,
+                        scan,
+                        JoinType.Cross
                     ));
+                }
+                else if (ctesByName != null && ctesByName.TryGetValue(tableStmt.Table, out var ctePlan))
+                {
+                    relations.Add(new JoinedRelation(
+                        tableStmt.Alias ?? tableStmt.Table,
+                        ctePlan,
+                        JoinType.Cross
+                    ));
+                }
+                else
+                {
+                    throw new QueryPlanException($"Unknown table '{tableStmt.Table}'");
+                }
             }
             else if (table is SelectStatement selectStmt)
             {
@@ -574,6 +592,11 @@ public partial class QueryPlanner
         Scan CreateScanForTable(TableStatement tableStmt)
         {
             var table = _catalog.GetTable(tableStmt.Table);
+            if (table == null)
+            {
+                // Maybe its a CTE
+            }
+
             context.AddSymbols(table, tableStmt.Alias);
 
             return new Scan(
