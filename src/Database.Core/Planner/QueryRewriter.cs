@@ -123,18 +123,25 @@ public static class QueryRewriter
 
             if (expr is ExpressionList exprList)
             {
+                if (!exprList.Statements.All(s => s is LiteralExpression))
+                {
+                    throw new QueryPlanException("IN clause expression list currently only support literals.");
+                }
+
+                // Check to see if this is a duplicated subquery literal
+                var match = subQueryPlans.FirstOrDefault(p => p is SubQueryInPlan inPlan
+                                                              && AreEquivalentSubQueries(inPlan.ExpressionList.Statements, exprList.Statements));
+                if (match != null)
+                {
+                    return match.Expression;
+                }
+
                 // The expression list might be correlated with the outer
                 // query, transform it into an equivalent select and execute that
                 var subResult = new SubQueryResultExpression(++subQueryId, Correlated: false)
                 {
                     Alias = $"$subquery_{subQueryId}$",
                 };
-
-                if (!exprList.Statements.All(s => s is LiteralExpression))
-                {
-                    throw new QueryPlanException("IN clause expression list currently only support literals.");
-                }
-
                 subQueryPlans.Add(new SubQueryInPlan(exprList, subResult));
 
                 return subResult;
@@ -154,6 +161,22 @@ public static class QueryRewriter
         });
 
         return (updatedExpression, subQueryPlans);
+    }
+
+    private static bool AreEquivalentSubQueries(IReadOnlyList<BaseExpression> left, IReadOnlyList<BaseExpression> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (!left[i].Equals(right[i]))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     // TODO this needs test cases
@@ -306,6 +329,75 @@ public static class QueryRewriter
             }
         }
 
+        // TODO make this cost based?
+        // If there are subexpressions that overlap but are not identical
+        // Pull a superset up but leave the originals in place
+        // This allows some predicate pushdown at the expense of duplicate evaluation
+        var expandedExprs = new Dictionary<(ColumnExpression, TokenType), List<LiteralExpression>>();
+        var allExprs = conjuncts.SelectMany(l => l)
+            .Where(e => e is BinaryExpression { Left: ColumnExpression })
+            .Cast<BinaryExpression>().ToList();
+
+        var supported = new[] { TokenType.GREATER_EQUAL, TokenType.LESS_EQUAL, TokenType.EQUAL };
+
+        foreach (var expr in allExprs)
+        {
+            if (!supported.Contains(expr.Operator))
+            {
+                continue;
+            }
+            if (expr.Right is not LiteralExpression rightLit)
+            {
+                continue;
+            }
+
+            if (rightLit is not (StringLiteral or IntegerLiteral or DecimalLiteral))
+            {
+                continue;
+            }
+
+            var key = ((ColumnExpression)expr.Left, expr.Operator);
+            if (expandedExprs.TryGetValue(key, out var existing))
+            {
+                existing.Add(rightLit);
+            }
+            else
+            {
+                expandedExprs.Add(key, [rightLit]);
+            }
+        }
+
+        var expandedFilters = new List<BaseExpression>(expandedExprs.Count);
+        foreach (var ((column, op), literals) in expandedExprs)
+        {
+            BaseExpression expr;
+            if (op == TokenType.EQUAL)
+            {
+                // TODO can't do IN yet because this is after subqueries are created
+                // var rightLit = new ExpressionList(literals);
+                // expr = new BinaryExpression(TokenType.IN,"in", column, rightLit);
+
+                var eqExprs = literals.Select(l => new BinaryExpression(TokenType.EQUAL, "=", column, l)).ToList();
+                expr = JoinJunction(eqExprs, TokenType.OR, "or");
+            }
+            else if (op == TokenType.GREATER_EQUAL)
+            {
+                var rightLit = MinLiteral(literals);
+                expr = new BinaryExpression(op, ">=", column, rightLit);
+            }
+            else if (op == TokenType.LESS_EQUAL)
+            {
+                var rightLit = MaxLiteral(literals);
+                expr = new BinaryExpression(op, "<=", column, rightLit);
+            }
+            else
+            {
+                throw new QueryPlanException($"Unsupported operator '{op}' for expression hoisting");
+            }
+
+            expandedFilters.Add(expr);
+        }
+
         var left = JoinJunction(hoisted.ToList(), TokenType.AND, "and");
         var rejoined = new List<BaseExpression>();
         foreach (var conjunct in conjuncts)
@@ -315,7 +407,62 @@ public static class QueryRewriter
         var right = JoinJunction(rejoined, TokenType.OR, "or");
 
         var result = new BinaryExpression(TokenType.AND, "and", left, right);
+
+        foreach (var expr in expandedFilters)
+        {
+            result = new BinaryExpression(TokenType.AND, "and", result, expr);
+        }
         return result;
+    }
+
+    private static LiteralExpression MinLiteral(List<LiteralExpression> literals)
+    {
+        var first = literals[0];
+        if (first is IntegerLiteral intLit)
+        {
+            var min = intLit.Literal;
+            foreach (var lit in literals)
+            {
+                min = Math.Min(min, ((IntegerLiteral)lit).Literal);
+            }
+            return new IntegerLiteral(min);
+        }
+        else if (first is DecimalLiteral decLit)
+        {
+            var min = decLit.Literal;
+            foreach (var lit in literals)
+            {
+                min = Math.Min(min, ((DecimalLiteral)lit).Literal);
+            }
+            return new DecimalLiteral(min);
+        }
+
+        throw new QueryPlanException("Min on non integer literal");
+    }
+
+    private static LiteralExpression MaxLiteral(List<LiteralExpression> literals)
+    {
+        var first = literals[0];
+        if (first is IntegerLiteral intLit)
+        {
+            var min = intLit.Literal;
+            foreach (var lit in literals)
+            {
+                min = Math.Max(min, ((IntegerLiteral)lit).Literal);
+            }
+            return new IntegerLiteral(min);
+        }
+        else if (first is DecimalLiteral decLit)
+        {
+            var min = decLit.Literal;
+            foreach (var lit in literals)
+            {
+                min = Math.Max(min, ((DecimalLiteral)lit).Literal);
+            }
+            return new DecimalLiteral(min);
+        }
+
+        throw new QueryPlanException("Min on non integer literal");
     }
 
     private static BaseExpression JoinJunction(IReadOnlyList<BaseExpression> expressions, TokenType op, string opLiteral)
