@@ -32,3 +32,18 @@ create view partsupp as select * from read_parquet('./tpch/1/partsupp2.parquet')
 create view region as select * from read_parquet('./tpch/1/region2.parquet');
 create view supplier as select * from read_parquet('./tpch/1/supplier2.parquet');
 ```
+
+
+From DuckDB import to Postgres
+```sql
+ATTACH 'dbname=postgres user=chris password= host=localhost' AS pg (TYPE postgres);
+
+create table pg.customer as (select * from customer);
+create table pg.lineitem as (select * from lineitem);
+create table pg.nation as (select * from nation);
+create table pg.orders as (select * from orders);
+create table pg.part as (select * from part);
+create table pg.partsupp as (select * from partsupp);
+create table pg.region as (select * from region);
+create table pg.supplier as (select * from supplier);
+```

@@ -23,6 +23,7 @@ var allRunners = new IQueryRunner[]
 {
     new DuckDbRunner(),
     new ClickHouseRunner(),
+    new PostgresRunner(),
     new DatabaseRunner(),
     new SparkRunner(),
     new SqliteRunner(),
