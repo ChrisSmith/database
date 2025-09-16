@@ -24,6 +24,8 @@ public class DatabaseRunner : IQueryRunner
         _planner = new QueryPlanner(_options, _catalog, _bufferPool);
     }
 
+    public ConfigOptions Options => _options;
+
     public TimeSpan Timeout { get; set; }
 
     public void Initialize()

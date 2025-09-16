@@ -68,6 +68,8 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
             plan = proj.Input;
         }
 
+        bool useSemiJoin = false;
+
         if (plan is Aggregate { Input: Filter { Predicate: BinaryExpression { Operator: TokenType.EQUAL } p } f } agg)
         {
             // Drop the correlated filter and replace it with a group by on the input
@@ -122,6 +124,20 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
             FunctionExpression aggFn;
             if (projectionExpr != null)
             {
+                if (projectionExpr is BoolLiteral { Literal: true })
+                {
+                    // Instead of an aggregate then a join, we can use a semi join
+                    // TODO Should probably be cost based?
+                    // Applying the semi-join prevents join reordering
+                    useSemiJoin = true;
+
+                    var boundInnerColumn = _binder.Bind(context, innerColumn, plan.OutputSchema);
+                    plan = new Projection(plan,
+                        [boundInnerColumn],
+                        QueryPlanner.SchemaFromExpressions([boundInnerColumn], $"correlated{id}"),
+                        Alias: $"correlated{id}");
+                }
+
                 aggFn = new FunctionExpression("max", projectionExpr) { Alias = projectionExpr.Alias };
             }
             else
@@ -131,9 +147,12 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
                 aggFn = new FunctionExpression("max", valueColumnExpr) { Alias = valueColumn.Name };
             }
 
-            var boundInnerColumn = _binder.Bind(context, innerColumn, plan.OutputSchema);
-            var aggregates = _binder.Bind(context, [boundInnerColumn, aggFn], plan.OutputSchema);
-            plan = new Aggregate(plan, [boundInnerColumn], aggregates, $"correlated{id}");
+            if (!useSemiJoin)
+            {
+                var boundInnerColumn = _binder.Bind(context, innerColumn, plan.OutputSchema);
+                var aggregates = _binder.Bind(context, [boundInnerColumn, aggFn], plan.OutputSchema);
+                plan = new Aggregate(plan, [boundInnerColumn], aggregates, $"correlated{id}");
+            }
         }
 
         var joinCol = plan.OutputSchema.First();
@@ -195,9 +214,14 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
         var schema = QueryPlanner.GetCombinedOutputSchema([rootPlan, plan]);
         joinCond = _binder.Bind(context, joinCond, schema);
 
-        rootPlan = new Join(rootPlan, plan, JoinType.Inner, joinCond);
+        var joinType = useSemiJoin ? JoinType.Semi : JoinType.Inner;
+        rootPlan = new Join(rootPlan, plan, joinType, joinCond);
 
 
+        if (useSemiJoin)
+        {
+            return rootPlan;
+        }
 
         BaseExpression rightExpr;
         if (projectionExpr != null)
@@ -216,7 +240,6 @@ public class CorrelatedSubQueryRule(ConfigOptions config, ExpressionBinder _bind
         var correlatedFilter = _binder.Bind(context, correlatedExpr, rootPlan.OutputSchema);
         rootPlan = new Filter(rootPlan, correlatedFilter);
         // join cond rewrite should be t.CategoricalInt = max(CategoricalInt) and t.CategoricalString = q.CategoricalString
-
 
         return rootPlan;
     }

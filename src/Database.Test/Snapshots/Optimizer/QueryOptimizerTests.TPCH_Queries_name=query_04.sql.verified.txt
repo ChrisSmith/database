@@ -32,29 +32,27 @@ Project(o_orderpriority, order_count, rows=300000) -> .o_orderpriority, .order_c
 
 
 Optimized
-Project(o_orderpriority, order_count, rows=240048) -> .o_orderpriority, .order_count
- Sort(o_orderpriority ASC), rows=240048 -> .order_count, .o_orderpriority 
-    Agg(count(*), o_orderpriority) group by (o_orderpriority, rows=240048) -> .order_count, .o_orderpriority    
-       Join(Inner on o_orderkey = l_orderkey, rows=240048) -> .o_orderkey, .o_orderdate, .o_orderpriority, correlated0.l_orderkey, correlated0.True       
+Project(o_orderpriority, order_count, rows=300000) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC), rows=300000 -> .order_count, .o_orderpriority 
+    Agg(count(*), o_orderpriority) group by (o_orderpriority, rows=300000) -> .order_count, .o_orderpriority    
+       Join(Semi on o_orderkey = l_orderkey, rows=300000) -> .o_orderkey, .o_orderdate, .o_orderpriority, correlated0.l_orderkey       
           Filter(o_orderdate < 10/01/1993 00:00:00, rows=300000) -> .o_orderkey, .o_orderdate, .o_orderpriority          
              Filter(o_orderdate >= 07/01/1993 00:00:00, rows=300000) -> .o_orderkey, .o_orderdate, .o_orderpriority             
-                Filter(True = True, rows=300000) -> .o_orderkey, .o_orderdate, .o_orderpriority                
-                   Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderdate, .o_orderpriority                   
+                Scan(orders, rows=1500000) with projection  -> .o_orderkey, .o_orderdate, .o_orderpriority                
        
-          Agg(l_orderkey, max(True)) group by (l_orderkey, rows=1200243) -> correlated0.l_orderkey, correlated0.True          
+          Project(l_orderkey, rows=1200243) -> correlated0.l_orderkey          
              Filter(l_commitdate < l_receiptdate, rows=1200243) -> .l_orderkey, .l_commitdate, .l_receiptdate             
                 Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_commitdate, .l_receiptdate                
 
 
 Cost Optimized
-Project(o_orderpriority, order_count) cost (output_rows=240048, cpu=480096, disk=0, total=46813) -> .o_orderpriority, .order_count
- Sort(o_orderpriority ASC) cost (output_rows=240048, cpu=4080816, disk=0, total=46333) -> .o_orderpriority, .order_count 
-    HashAggregate(o_orderpriority, count(*)) cost (output_rows=240048, cpu=1440288, disk=0, total=42252) -> .o_orderpriority, .order_count    
-       HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=240048, cpu=1800243, disk=0, total=40812) -> correlated0.l_orderkey, correlated0.True, .o_orderkey, .o_orderdate, .o_orderpriority       
-          HashAggregate(l_orderkey, max(True)) cost (output_rows=1200243, cpu=7201458, disk=0, total=31210) -> correlated0.l_orderkey, correlated0.True          
+Project(o_orderpriority, order_count) cost (output_rows=300000, cpu=600000, disk=0, total=42611) -> .o_orderpriority, .order_count
+ Sort(o_orderpriority ASC) cost (output_rows=300000, cpu=5400000, disk=0, total=42011) -> .o_orderpriority, .order_count 
+    HashAggregate(o_orderpriority, count(*)) cost (output_rows=300000, cpu=1800000, disk=0, total=36611) -> .o_orderpriority, .order_count    
+       HashJoin(Semi l_orderkey, o_orderkey) cost (output_rows=300000, cpu=2700486, disk=0, total=34811) -> .o_orderkey, .o_orderdate, .o_orderpriority       
+          Filter(o_orderdate < 10/01/1993 00:00:00) cost (output_rows=300000, cpu=900000, disk=0, total=6901) -> .o_orderkey, .o_orderdate, .o_orderpriority          
+             Filter(o_orderdate >= 07/01/1993 00:00:00) cost (output_rows=300000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_orderdate, .o_orderpriority             
+                FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderdate, .o_orderpriority       
+          Project(l_orderkey) cost (output_rows=1200243, cpu=1200243, disk=0, total=25209) -> correlated0.l_orderkey          
              Filter(l_commitdate < l_receiptdate) cost (output_rows=1200243, cpu=18003645, disk=0, total=24008) -> .l_orderkey, .l_commitdate, .l_receiptdate             
-                FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_commitdate, .l_receiptdate       
-          Filter(o_orderdate < 10/01/1993 00:00:00) cost (output_rows=300000, cpu=900000, disk=0, total=7801) -> .o_orderkey, .o_orderdate, .o_orderpriority          
-             Filter(o_orderdate >= 07/01/1993 00:00:00) cost (output_rows=300000, cpu=900000, disk=0, total=6901) -> .o_orderkey, .o_orderdate, .o_orderpriority             
-                Filter(True = True) cost (output_rows=300000, cpu=4500000, disk=0, total=6001) -> .o_orderkey, .o_orderdate, .o_orderpriority                
-                   FileScan({SolutionDirectory}tpch/1/orders2.parquet) cost (output_rows=1500000, cpu=1500000, disk=13, total=1501) -> .o_orderkey, .o_orderdate, .o_orderpriority
+                FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_commitdate, .l_receiptdate

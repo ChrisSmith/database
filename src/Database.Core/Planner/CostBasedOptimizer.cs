@@ -102,7 +102,7 @@ public class CostBasedOptimizer(ConfigOptions config, PhysicalPlanner physicalPl
 
         var original = join with { Left = left, Right = right };
 
-        if (join.JoinType == JoinType.Left || join.JoinType == JoinType.Right)
+        if (join.JoinType != JoinType.Inner && join.JoinType != JoinType.Cross)
         {
             return original;
         }
