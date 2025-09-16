@@ -1,0 +1,64 @@
+﻿SELECT SUM(l_extendedprice * (1 - l_discount)) AS revenue
+FROM lineitem, part
+WHERE (
+    p_partkey = l_partkey
+    AND p_brand = 'Brand#12'
+    AND p_container IN ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+    AND l_quantity >= 1
+    AND l_quantity <= 1 + 10
+    AND p_size BETWEEN 1 AND 5
+    AND l_shipmode IN ('AIR', 'AIR REG')
+    AND l_shipinstruct = 'DELIVER IN PERSON'
+)
+OR (
+    p_partkey = l_partkey
+    AND p_brand = 'Brand#23'
+    AND p_container IN ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+    AND l_quantity >= 10
+    AND l_quantity <= 10 + 10
+    AND p_size BETWEEN 1 AND 10
+    AND l_shipmode IN ('AIR', 'AIR REG')
+    AND l_shipinstruct = 'DELIVER IN PERSON'
+)
+OR (
+    p_partkey = l_partkey
+    AND p_brand = 'Brand#34'
+    AND p_container IN ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
+    AND l_quantity >= 20
+    AND l_quantity <= 20 + 10
+    AND p_size BETWEEN 1 AND 15
+    AND l_shipmode IN ('AIR', 'AIR REG')
+    AND l_shipinstruct = 'DELIVER IN PERSON'
+);
+
+
+Original
+Project(revenue, rows=6001215) -> .revenue
+ Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by (, rows=6001215) -> .revenue 
+    JoinSet(lineitem (Inner) x part (Inner), rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment    
+    BinaryEdge { Expression = p_brand = Brand#12 and p_container IN subquery(1) and l_quantity >= cast(1 as Decimal) and l_quantity <= cast(11 as Decimal) and p_size between 1 and 5 and l_shipmode IN subquery(2) or p_brand = Brand#23 and p_container IN subquery(3) and l_quantity >= cast(10 as Decimal) and l_quantity <= cast(20 as Decimal) and p_size between 1 and 10 and l_shipmode IN subquery(4) or p_brand = Brand#34 and p_container IN subquery(5) and l_quantity >= cast(20 as Decimal) and l_quantity <= cast(30 as Decimal) and p_size between 1 and 15 and l_shipmode IN subquery(6), One = lineitem, Two = part }
+    BinaryEdge { Expression = p_partkey = l_partkey, One = lineitem, Two = part }
+    UnaryEdge { Expression = l_shipinstruct = DELIVER IN PERSON, Relation = lineitem }
+       Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment       
+       Scan(part, rows=200000) -> .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment       
+
+
+Optimized
+Project(revenue, rows=240048) -> .revenue
+ Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by (, rows=240048) -> .revenue 
+    Filter(p_brand = Brand#12 and p_container IN subquery(1) and l_quantity >= cast(1 as Decimal) and l_quantity <= cast(11 as Decimal) and p_size between 1 and 5 and l_shipmode IN subquery(2) or p_brand = Brand#23 and p_container IN subquery(3) and l_quantity >= cast(10 as Decimal) and l_quantity <= cast(20 as Decimal) and p_size between 1 and 10 and l_shipmode IN subquery(4) or p_brand = Brand#34 and p_container IN subquery(5) and l_quantity >= cast(20 as Decimal) and l_quantity <= cast(30 as Decimal) and p_size between 1 and 15 and l_shipmode IN subquery(6), rows=240048) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, .p_partkey, .p_brand, .p_size, .p_container    
+       Join(Inner on p_partkey = l_partkey, rows=1200243) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, .p_partkey, .p_brand, .p_size, .p_container       
+          Filter(l_shipinstruct = DELIVER IN PERSON, rows=1200243) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode          
+             Scan(lineitem, rows=6001215) with projection  -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode             
+       
+          Scan(part, rows=200000) with projection  -> .p_partkey, .p_brand, .p_size, .p_container          
+
+
+Cost Optimized
+Project(revenue) cost (output_rows=240048, cpu=240048, disk=0, total=56296) -> .revenue
+ UngroupedAggregate(SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=240048, cpu=240048, disk=0, total=56056) -> .revenue 
+    Filter(p_brand = Brand#12 and p_container IN subquery(1) and l_quantity >= cast(1 as Decimal) and l_quantity <= cast(11 as Decimal) and p_size between 1 and 5 and l_shipmode IN subquery(2) or p_brand = Brand#23 and p_container IN subquery(3) and l_quantity >= cast(10 as Decimal) and l_quantity <= cast(20 as Decimal) and p_size between 1 and 10 and l_shipmode IN subquery(4) or p_brand = Brand#34 and p_container IN subquery(5) and l_quantity >= cast(20 as Decimal) and l_quantity <= cast(30 as Decimal) and p_size between 1 and 15 and l_shipmode IN subquery(6)) cost (output_rows=240048, cpu=12002430, disk=0, total=55816) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, .p_partkey, .p_brand, .p_size, .p_container    
+       HashJoin(Inner p_partkey, l_partkey) cost (output_rows=1200243, cpu=1600243, disk=0, total=43813) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, .p_partkey, .p_brand, .p_size, .p_container       
+          Filter(l_shipinstruct = DELIVER IN PERSON) cost (output_rows=1200243, cpu=36007290, disk=0, total=42012) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode          
+             FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode       
+          FileScan({SolutionDirectory}tpch/1/part2.parquet) cost (output_rows=200000, cpu=200000, disk=2, total=200) -> .p_partkey, .p_brand, .p_size, .p_container

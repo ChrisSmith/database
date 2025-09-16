@@ -1,0 +1,97 @@
+﻿SELECT
+    p_brand,
+    p_type,
+    p_size,
+    COUNT(DISTINCT ps_suppkey) AS supplier_cnt
+FROM
+    partsupp,
+    part
+WHERE
+    p_partkey = ps_partkey
+    AND p_brand <> 'Brand#45'
+    AND p_type NOT LIKE 'MEDIUM POLISHED%'
+    AND p_size IN (
+        49,
+        14,
+        23,
+        45,
+        19,
+        3,
+        36,
+        9
+    )
+    AND ps_suppkey NOT IN (
+        SELECT
+            s_suppkey
+        FROM
+            supplier
+        WHERE
+            s_comment LIKE '%Customer%Complaints%'
+    )
+GROUP BY
+    p_brand,
+    p_type,
+    p_size
+ORDER BY
+    supplier_cnt DESC,
+    p_brand,
+    p_type,
+    p_size;
+
+
+Original
+PlanWithSubQueries(u=1, rows=800000) -> .p_brand, .p_type, .p_size, .supplier_cnt
+ Project(s_suppkey, rows=2000) -> .s_suppkey 
+    Filter(s_comment LIKE %Customer%Complaints%, rows=2000) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment    
+       Scan(supplier, rows=10000) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment       
+ Project(p_brand, p_type, p_size, supplier_cnt, rows=800000) -> .p_brand, .p_type, .p_size, .supplier_cnt 
+    Sort(supplier_cnt DESC, p_brand ASC, p_type ASC, p_size ASC), rows=800000 -> .supplier_cnt, .p_brand, .p_type, .p_size    
+       Agg(count_distinct(ps_suppkey), p_brand, p_type, p_size) group by (p_brand, p_type, p_size, rows=800000) -> .supplier_cnt, .p_brand, .p_type, .p_size       
+          JoinSet(partsupp (Inner) x part (Inner), rows=800000) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment, .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment          
+          BinaryEdge { Expression = p_partkey = ps_partkey, One = partsupp, Two = part }
+          UnaryEdge { Expression = p_brand <> Brand#45, Relation = part }
+          UnaryEdge { Expression = NOT starts_with(p_type, MEDIUM POLISHED), Relation = part }
+          UnaryEdge { Expression = p_size IN subquery(1), Relation = part }
+          UnaryEdge { Expression = NOT ps_suppkey IN subquery(2), Relation = partsupp }
+             Scan(partsupp, rows=800000) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment             
+             Scan(part, rows=200000) -> .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment             
+
+
+Optimized
+PlanWithSubQueries(u=1, rows=160000) -> .p_brand, .p_type, .p_size, .supplier_cnt
+ Project(s_suppkey, rows=2000) -> .s_suppkey 
+    Filter(s_comment LIKE %Customer%Complaints%, rows=2000) -> .s_suppkey, .s_comment    
+       Scan(supplier, rows=10000) with projection  -> .s_suppkey, .s_comment       
+ Project(p_brand, p_type, p_size, supplier_cnt, rows=160000) -> .p_brand, .p_type, .p_size, .supplier_cnt 
+    Sort(supplier_cnt DESC, p_brand ASC, p_type ASC, p_size ASC), rows=160000 -> .supplier_cnt, .p_brand, .p_type, .p_size    
+       Agg(count_distinct(ps_suppkey), p_brand, p_type, p_size) group by (p_brand, p_type, p_size, rows=160000) -> .supplier_cnt, .p_brand, .p_type, .p_size       
+          Join(Inner on p_partkey = ps_partkey, rows=160000) -> .ps_partkey, .ps_suppkey, $subquery_2$.s_suppkey, .p_partkey, .p_brand, .p_type, .p_size, $subquery_1$.$subquery_1$          
+             Join(AntiSemi on ps_suppkey = s_suppkey, rows=800000) -> .ps_partkey, .ps_suppkey, $subquery_2$.s_suppkey             
+                Scan(partsupp, rows=800000) with projection  -> .ps_partkey, .ps_suppkey                
+             
+                Scan($subquery_2$, rows=100) -> $subquery_2$.s_suppkey                
+          
+             Join(Semi on p_size = $subquery_1$, rows=40000) -> .p_partkey, .p_brand, .p_type, .p_size, $subquery_1$.$subquery_1$             
+                Filter(NOT starts_with(p_type, MEDIUM POLISHED), rows=40000) -> .p_partkey, .p_brand, .p_type, .p_size                
+                   Filter(p_brand <> Brand#45, rows=40000) -> .p_partkey, .p_brand, .p_type, .p_size                   
+                      Scan(part, rows=200000) with projection  -> .p_partkey, .p_brand, .p_type, .p_size                      
+             
+                Scan($subquery_1$, rows=100) -> $subquery_1$.$subquery_1$                
+
+
+Cost Optimized
+PlanWithSubQueries(u=1) -> .p_brand, .p_type, .p_size, .supplier_cnt
+ Project(s_suppkey) cost (output_rows=2000, cpu=2000, disk=0, total=32) -> .s_suppkey 
+    Filter(s_comment LIKE %Customer%Complaints%) cost (output_rows=2000, cpu=20000, disk=0, total=30) -> .s_suppkey, .s_comment    
+       FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_comment Project(p_brand, p_type, p_size, supplier_cnt) cost (output_rows=160000, cpu=640000, disk=0, total=16800) -> .p_brand, .p_type, .p_size, .supplier_cnt 
+    Sort(supplier_cnt DESC, p_brand ASC, p_type ASC, p_size ASC) cost (output_rows=160000, cpu=10880000, disk=0, total=16160) -> .p_brand, .p_type, .p_size, .supplier_cnt    
+       HashAggregate(p_brand, p_type, p_size, count_distinct(ps_suppkey)) cost (output_rows=160000, cpu=1600000, disk=0, total=5280) -> .p_brand, .p_type, .p_size, .supplier_cnt       
+          HashJoin(Inner p_partkey, ps_partkey) cost (output_rows=160000, cpu=880000, disk=0, total=3680) -> .ps_partkey, .ps_suppkey, .p_partkey, .p_brand, .p_type, .p_size          
+             HashJoin(AntiSemi s_suppkey, ps_suppkey) cost (output_rows=800000, cpu=800200, disk=0, total=1600) -> .ps_partkey, .ps_suppkey             
+                FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_partkey, .ps_suppkey             
+                ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=100, cpu=100, disk=0, total=0) -> $subquery_2$.s_suppkey          
+             HashJoin(Semi $subquery_1$, p_size) cost (output_rows=40000, cpu=40200, disk=0, total=1200) -> .p_partkey, .p_brand, .p_type, .p_size             
+                Filter(NOT starts_with(p_type, MEDIUM POLISHED)) cost (output_rows=40000, cpu=160000, disk=0, total=1160) -> .p_partkey, .p_brand, .p_type, .p_size                
+                   Filter(p_brand <> Brand#45) cost (output_rows=40000, cpu=800000, disk=0, total=1000) -> .p_partkey, .p_brand, .p_type, .p_size                   
+                      FileScan({SolutionDirectory}tpch/1/part2.parquet) cost (output_rows=200000, cpu=200000, disk=2, total=200) -> .p_partkey, .p_brand, .p_type, .p_size             
+                ScanMemoryTable(Database.Core.BufferPool.MemoryBasedTable) cost (output_rows=100, cpu=100, disk=0, total=0) -> $subquery_1$.$subquery_1$

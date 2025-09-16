@@ -6,6 +6,8 @@ namespace Database.Core.Expressions;
 [DebuggerDisplay("subquery({SubQueryId})")]
 public record SubQueryResultExpression(int SubQueryId, bool Correlated) : BaseExpression
 {
+    public bool IsArrayLike { get; set; }
+
     /// <summary>
     /// Output memory table
     /// </summary>

@@ -1,6 +1,8 @@
+using Database.Core.BufferPool;
 using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Functions;
+using Database.Core.Planner;
 
 namespace Database.Core.Expressions;
 
@@ -11,6 +13,16 @@ public class ExpressionInterpreter
         if (exp is BinaryExpression be)
         {
             var left = Execute(be.Left, rowGroup, token);
+
+            if (be.Operator == TokenType.IN)
+            {
+                if (be.Right.BoundFunction is not TableValuedFunction tvf)
+                {
+                    throw new ExpressionEvaluationException($"expected right hand side of IN expressions to be a table valued function. got {be.Right.GetType().Name}");
+                }
+                return ExecuteInStatement(rowGroup, be.Alias, left, tvf.Table, token);
+            }
+
             var right = Execute(be.Right, rowGroup, token);
             return Execute(exp, be.BoundFunction!, left, right);
         }
@@ -421,6 +433,64 @@ public class ExpressionInterpreter
         );
     }
 
+    private IColumn ExecuteInStatement(RowGroup rowGroup, string alias, IColumn left, MemoryBasedTable table, CancellationToken token)
+    {
+        var rgs = table.GetRowGroups();
+        if (rgs.Count != 1)
+        {
+            throw new Exception($"In Subquery must return a single row group, got {rgs.Count}");
+        }
+
+        var columnRef = table.Schema.Single().ColumnRef;
+        var column = table.GetColumn(columnRef with { RowGroup = rgs[0] });
+
+        if (left.Type != column.Type)
+        {
+            throw new Exception($"In Subquery column type {column.Type} does not match left column type {left.Type}");
+        }
+
+        Array outputArray = column.Type.DataTypeFromClrType() switch
+        {
+            DataType.Int => Contains((int[])left.ValuesArray, (int[])column.ValuesArray),
+            DataType.Long => Contains((long[])left.ValuesArray, (long[])column.ValuesArray),
+            DataType.Float => Contains((float[])left.ValuesArray, (float[])column.ValuesArray),
+            DataType.Double => Contains((double[])left.ValuesArray, (double[])column.ValuesArray),
+            DataType.String => Contains((string[])left.ValuesArray, (string[])column.ValuesArray),
+            DataType.Date => Contains((DateOnly[])left.ValuesArray, (DateOnly[])column.ValuesArray),
+            DataType.DateTime => Contains((DateTime[])left.ValuesArray, (DateTime[])column.ValuesArray),
+            DataType.Decimal => Contains((decimal[])left.ValuesArray, (decimal[])column.ValuesArray),
+            DataType.Bool => Contains((bool[])left.ValuesArray, (bool[])column.ValuesArray),
+            _ => throw new NotImplementedException($"In Subquery column type {column.Type} not implemented")
+        };
+
+        return ColumnHelper.CreateColumn(
+            typeof(bool),
+            alias,
+            outputArray
+        );
+    }
+
+    private static bool[] Contains<T>(T[] source, T[] values) where T : IEquatable<T>
+    {
+        var results = new bool[source.Length];
+        for (var i = 0; i < source.Length; i++)
+        {
+            results[i] = Contains(source[i], values);
+        }
+        return results;
+    }
+
+    private static bool Contains<T>(T source, T[] values) where T : IEquatable<T>
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (values[i].Equals(source))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 public class ExpressionEvaluationException(string message) : Exception(message) { }

@@ -173,6 +173,12 @@ public static class QueryRewriter
             return expression;
         }
 
+        var statments = SplitDisjunctions(expression);
+        if (statments.Count >= 3)
+        {
+            return HoistDisjunction(statments);
+        }
+
         var leftConjuncts = SplitConjunctions(b.Left);
         var rightConjuncts = SplitConjunctions(b.Right);
 
@@ -262,7 +268,82 @@ public static class QueryRewriter
         }
     }
 
+    private static BaseExpression HoistDisjunction(List<BaseExpression> statements)
+    {
+        if (statements.Count == 1)
+        {
+            return statements[0];
+        }
+
+        var conjuncts = new List<List<BaseExpression>>(statements.Count);
+
+        foreach (var stmt in statements)
+        {
+            conjuncts.Add(SplitConjunctions(stmt));
+        }
+
+        var hoisted = new HashSet<BaseExpression>();
+
+        // Find any expressions that exist in all lists
+        for (var i = 0; i < conjuncts.Count; i++)
+        {
+            var list = conjuncts[i];
+            foreach (var expr in list)
+            {
+                var existsInAll = conjuncts.All(l => l.Contains(expr));
+                if (existsInAll)
+                {
+                    hoisted.Add(expr);
+                }
+            }
+        }
+
+        foreach (var conjunct in conjuncts)
+        {
+            foreach (var expr in hoisted)
+            {
+                conjunct.Remove(expr);
+            }
+        }
+
+        var left = JoinJunction(hoisted.ToList(), TokenType.AND, "and");
+        var rejoined = new List<BaseExpression>();
+        foreach (var conjunct in conjuncts)
+        {
+            rejoined.Add(JoinJunction(conjunct, TokenType.AND, "and"));
+        }
+        var right = JoinJunction(rejoined, TokenType.OR, "or");
+
+        var result = new BinaryExpression(TokenType.AND, "and", left, right);
+        return result;
+    }
+
+    private static BaseExpression JoinJunction(IReadOnlyList<BaseExpression> expressions, TokenType op, string opLiteral)
+    {
+        if (expressions.Count < 2)
+        {
+            return expressions.Single();
+        }
+
+        var result = expressions[0];
+        for (var i = 1; i < expressions.Count; i++)
+        {
+            result = new BinaryExpression(op, opLiteral, result, expressions[i]);
+        }
+        return result;
+    }
+
     public static List<BaseExpression> SplitConjunctions(BaseExpression? expr)
+    {
+        return SplitBinaryExpression(expr, TokenType.AND);
+    }
+
+    public static List<BaseExpression> SplitDisjunctions(BaseExpression? expr)
+    {
+        return SplitBinaryExpression(expr, TokenType.OR);
+    }
+
+    private static List<BaseExpression> SplitBinaryExpression(BaseExpression? expr, TokenType op)
     {
         if (expr == null)
         {
@@ -275,7 +356,7 @@ public static class QueryRewriter
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
-            if (current is BinaryExpression { Operator: TokenType.AND } binExpr)
+            if (current is BinaryExpression binExpr && binExpr.Operator == op)
             {
                 queue.Enqueue(binExpr.Left);
                 queue.Enqueue(binExpr.Right);

@@ -206,7 +206,15 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                 if (!subQueryRes.Correlated)
                 {
                     var outputTable = bufferPool.GetMemoryTable(subQueryRes.BoundMemoryTable.TableId);
-                    function = new SelectSubQueryFunction(symbol.ColumnRef, symbol.DataType, outputTable, bufferPool);
+
+                    if (subQueryRes.IsArrayLike)
+                    {
+                        function = new TableValuedFunction(symbol.DataType, outputTable);
+                    }
+                    else
+                    {
+                        function = new SelectSubQueryFunction(symbol.ColumnRef, symbol.DataType, outputTable, bufferPool);
+                    }
                 }
                 else
                 {

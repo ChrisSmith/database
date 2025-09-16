@@ -414,7 +414,10 @@ public class TPCHTests
     {
         var query = ReadQuery("query_19.sql");
         var result = _runner.Run(query, token); ;
-        result.Should().HaveCountGreaterOrEqualTo(1);
+        result.Should().BeEquivalentTo(new List<Row>
+        {
+            new ([3083843.0578m]),
+        });
     }
 
     [Test]
