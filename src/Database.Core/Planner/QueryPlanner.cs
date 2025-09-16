@@ -367,6 +367,7 @@ public partial class QueryPlanner
                         BoundDataType = newColumn.DataType,
                         BoundOutputColumn = newColumn.ColumnRef,
                         BoundMemoryTable = memRef,
+                        IsArrayLike = true,
                     },
                 };
 
