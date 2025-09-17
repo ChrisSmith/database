@@ -305,3 +305,6 @@ metastore_db/
 sqlite_database.db
 clickhouse/
 metadata
+
+.rustc_info.json
+CACHEDIR.TAG

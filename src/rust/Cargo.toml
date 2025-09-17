@@ -1,0 +1,8 @@
+[package]
+name = "db-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+datafusion = "50.0.0"
+tokio = { version = "1.0", features = ["rt-multi-thread"] }
