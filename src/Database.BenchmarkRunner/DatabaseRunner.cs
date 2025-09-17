@@ -40,6 +40,12 @@ public class DatabaseRunner : IQueryRunner
 
     public List<Row> Run(string query, CancellationToken token)
     {
+        return Run(query, token, out _);
+    }
+
+    public List<Row> Run(string query, CancellationToken token, out TimeSpan? duration)
+    {
+        duration = null;
         var scanner = new Scanner(query);
         var tokens = scanner.ScanTokens();
         var parser = new Parser(tokens);

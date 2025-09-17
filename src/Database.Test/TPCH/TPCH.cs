@@ -205,8 +205,8 @@ public class TPCHTests
     public void Q10(CancellationToken token)
     {
         var query = ReadQuery("query_10.sql");
-        var result = _runner.Run(query, token); ;
-        // result.Should().HaveCount(37967);
+        var result = _runner.Run(query, token);
+        result.Should().HaveCount(37967);
         result[0..10].Should().BeEquivalentTo(new List<Row>
         {
             new ([57040, "Customer#000057040", 734235.2455m, 632.87m, "JAPAN", "nICtsILWBB", "22-895-641-3466", "ep. blithely regular foxes promise slyly furiously ironic depend"]),

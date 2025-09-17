@@ -21,9 +21,12 @@ async fn main() -> datafusion::error::Result<()> {
     return Ok(());
   }
 
-  println!("Reading query from {}", args[1]);
+//   println!("Reading query from {}", args[1]);
 
-  let query = fs::read_to_string(&args[1])?;
+  let query = match &args[1].starts_with("/") {
+    true => fs::read_to_string(&args[1])?,
+    false => args[1].clone(),
+  };
 
   let time = Instant::now();
   let df = ctx.sql(&query).await?;

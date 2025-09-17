@@ -10,5 +10,7 @@ public interface IQueryRunner
 
     public List<Row> Run(string query, CancellationToken token);
 
+    public List<Row> Run(string query, CancellationToken token, out TimeSpan? duration);
+
     public TimeSpan Timeout { get; set; }
 }

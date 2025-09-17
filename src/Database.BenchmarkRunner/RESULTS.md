@@ -2,36 +2,40 @@
 
 | Runner | [query_01](Queries/query_01.sql) | [query_02](Queries/query_02.sql) | [query_03](Queries/query_03.sql) | [query_04](Queries/query_04.sql) | [query_05](Queries/query_05.sql) | [query_06](Queries/query_06.sql) | [query_07](Queries/query_07.sql) | [query_08](Queries/query_08.sql) | [query_09](Queries/query_09.sql) | [query_10](Queries/query_10.sql) | [query_11](Queries/query_11.sql) | [query_12](Queries/query_12.sql) | [query_13](Queries/query_13.sql) | [query_14](Queries/query_14.sql) | [query_15](Queries/query_15.sql) | [query_16](Queries/query_16.sql) | [query_17](Queries/query_17.sql) | [query_18](Queries/query_18.sql) | [query_19](Queries/query_19.sql) | [query_20](Queries/query_20.sql) | [query_21](Queries/query_21.sql) | [query_22](Queries/query_22.sql) |
 |--------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|------------|
-| **DuckDb** | 300ms | 50ms | 160ms | 220ms | 250ms | 20ms | 100ms | 310ms | 360ms | 170ms | 40ms | 60ms | 210ms | 10ms | 10ms | 30ms | 260ms | 370ms | 270ms | 50ms | 610ms | 40ms |
-| **ClickHouse** | 400ms (1.3x) | ❌ | 170ms (1.1x) | ❌ | 330ms (1.3x) | 40ms (1.8x) | 130ms (1.4x) | 430ms (1.4x) | 520ms (1.4x) | 270ms (1.6x) | 60ms (1.4x) | 100ms (1.7x) | 160ms (1.3x) | 20ms (1.5x) | 30ms (3.1x) | 40ms (1.2x) | 350ms (1.3x) | 330ms (1.1x) | 540ms (2.0x) | 60ms (1.2x) | ❌ | ❌ |
-| **Postgres** | 2,690ms (8.8x) | ❌ | 970ms (6.1x) | 880ms (4.0x) | 480ms (2.0x) | 430ms (21.4x) | 570ms (6.0x) | 490ms (1.6x) | 1,260ms (3.5x) | 670ms (3.9x) | 100ms (2.6x) | 680ms (11.0x) | 580ms (2.8x) | 420ms (29.8x) | 400ms (39.9x) | 180ms (6.1x) | ❌ | 3,050ms (8.2x) | 600ms (2.2x) | ❌ | ❌ | 200ms (5.4x) |
-| **Database** | 1,660ms (5.5x) | 350ms (6.6x) | 580ms (3.7x) | 680ms (3.1x) | 810ms (3.3x) | 100ms (5.0x) | 260ms (2.8x) | 740ms (2.4x) | 2,000ms (5.5x) | 500ms (2.9x) | 80ms (1.9x) | 420ms (6.8x) | 1,590ms (7.6x) | 110ms (7.9x) | 170ms (17.4x) | 220ms (7.5x) | 720ms (2.8x) | 2,350ms (6.3x) | 730ms (2.7x) | ❌ | ❌ | ❌ |
-| **Spark** | 3,960ms (13.0x) | 1,770ms (33.5x) | 2,530ms (15.9x) | 1,760ms (8.0x) | 2,470ms (10.1x) | 120ms (6.2x) | 1,760ms (18.5x) | 980ms (3.1x) | 2,200ms (6.1x) | 1,470ms (8.5x) | 360ms (9.2x) | 610ms (9.8x) | 1,430ms (6.8x) | 150ms (10.9x) | 360ms (36.4x) | 490ms (17.0x) | 1,890ms (7.3x) | 4,330ms (11.7x) | 600ms (2.3x) | 410ms (8.0x) | 5,010ms (8.2x) | 440ms (11.6x) |
-| **Sqlite** | 5,630ms (18.5x) | 1,390ms (26.2x) | 7,720ms (48.5x) | ❌ | ❌ | 790ms (39.5x) | 3,080ms (32.5x) | 14,240ms (45.3x) | 17,480ms (48.0x) | 970ms (5.7x) | 1,160ms (29.7x) | 760ms (12.2x) | 4,290ms (20.4x) | 420ms (29.9x) | 390ms (39.2x) | 240ms (8.2x) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **DuckDb** | 250ms | 40ms | 110ms | 190ms | 210ms | 20ms | 90ms | 280ms | 340ms | 160ms | 40ms | 60ms | 180ms | 10ms | 10ms | 30ms | 240ms | 350ms | 250ms | 50ms | 570ms | 30ms |
+| **ClickHouse** | 350ms (1.4x) | ❌ | 160ms (1.5x) | ❌ | 300ms (1.4x) | 40ms (1.8x) | 110ms (1.3x) | 360ms (1.3x) | 450ms (1.3x) | 260ms (1.6x) | 50ms (1.4x) | 100ms (1.7x) | 160ms (1.2x) | 20ms (1.6x) | 30ms (3.0x) | 30ms (1.1x) | 330ms (1.4x) | 310ms (1.1x) | 530ms (2.1x) | 60ms (1.2x) | ❌ | ❌ |
+| **DataFusion** | 400ms (1.6x) | 140ms (3.7x) | 130ms (1.2x) | 170ms (1.1x) | 350ms (1.7x) | 60ms (3.0x) | 340ms (3.9x) | 300ms (1.1x) | 380ms (1.1x) | 240ms (1.5x) | 120ms (3.4x) | 110ms (1.8x) | 210ms (1.1x) | 70ms (5.1x) | 70ms (6.6x) | 100ms (3.5x) | 380ms (1.6x) | 740ms (2.1x) | 240ms (1.0x) | 40ms (1.1x) | 520ms (1.1x) | 90ms (3.1x) |
+| **Database** | 1,560ms (6.2x) | 320ms (8.6x) | 600ms (5.4x) | 660ms (3.5x) | 800ms (3.9x) | 180ms (9.3x) | 280ms (3.3x) | 680ms (2.4x) | 2,020ms (5.9x) | 480ms (3.0x) | 100ms (2.8x) | 400ms (6.9x) | 1,430ms (7.7x) | 110ms (8.5x) | 270ms (27.2x) | 210ms (7.3x) | 720ms (3.0x) | 2,180ms (6.3x) | 700ms (2.8x) | ❌ | ❌ | ❌ |
+| **Postgres** | 2,430ms (9.7x) | ❌ | 800ms (7.2x) | 800ms (4.3x) | 470ms (2.3x) | 400ms (21.3x) | 540ms (6.3x) | 440ms (1.6x) | 1,140ms (3.4x) | 650ms (4.1x) | 100ms (2.7x) | 650ms (11.2x) | 530ms (2.9x) | 400ms (30.8x) | 390ms (39.4x) | 180ms (6.0x) | ❌ | 2,960ms (8.5x) | 570ms (2.3x) | ❌ | ❌ | 190ms (6.4x) |
+| **Spark** | 3,520ms (14.1x) | 400ms (10.7x) | 1,040ms (9.5x) | 1,220ms (6.5x) | 1,990ms (9.6x) | 130ms (6.7x) | 1,410ms (16.4x) | 800ms (2.8x) | 1,590ms (4.7x) | 1,440ms (9.1x) | 350ms (9.4x) | 550ms (9.5x) | 1,340ms (7.2x) | 180ms (14.2x) | 330ms (33.0x) | 480ms (16.6x) | 1,670ms (7.0x) | 4,070ms (11.8x) | 550ms (2.2x) | 390ms (7.8x) | 4,820ms (8.5x) | 350ms (11.5x) |
+| **Sqlite** | 5,100ms (20.4x) | 1,310ms (35.5x) | 7,010ms (63.7x) | ❌ | ❌ | 740ms (38.8x) | 2,990ms (34.8x) | 15,240ms (54.0x) | 15,550ms (45.6x) | 940ms (5.9x) | 1,120ms (30.2x) | 730ms (12.6x) | 4,540ms (24.6x) | 400ms (30.9x) | 380ms (37.7x) | 230ms (8.1x) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ## Summary
 
 - **DuckDb**: 22/22 queries successful (100.0% success rate)
 - **ClickHouse**: 18/22 queries successful (81.8% success rate)
   - 4 failures
-- **Postgres**: 18/22 queries successful (81.8% success rate)
-  - 4 failures
+- **DataFusion**: 22/22 queries successful (100.0% success rate)
 - **Database**: 19/22 queries successful (86.4% success rate)
   - 3 failures
+- **Postgres**: 18/22 queries successful (81.8% success rate)
+  - 4 failures
 - **Spark**: 22/22 queries successful (100.0% success rate)
 - **Sqlite**: 14/22 queries successful (63.6% success rate)
   - 8 timeouts
 
 ### Performance Comparison (Successful Queries Only)
-- **Average execution time (DuckDb)**: 177ms
-- **Average execution time (ClickHouse)**: 221ms
-- **Average execution time (Postgres)**: 813ms
-- **Average execution time (Database)**: 740ms
-- **Average execution time (Spark)**: 1,596ms
-- **Average execution time (Sqlite)**: 4,182ms
+- **Average execution time (DuckDb)**: 158ms
+- **Average execution time (ClickHouse)**: 202ms
+- **Average execution time (DataFusion)**: 236ms
+- **Average execution time (Database)**: 721ms
+- **Average execution time (Postgres)**: 758ms
+- **Average execution time (Spark)**: 1,301ms
+- **Average execution time (Sqlite)**: 4,019ms
 
 - **Performance ratio**: ClickHouse is ~1x slower than DuckDb on average
+- **Performance ratio**: DataFusion is ~1x slower than DuckDb on average
+- **Performance ratio**: Database is ~5x slower than DuckDb on average
 - **Performance ratio**: Postgres is ~5x slower than DuckDb on average
-- **Performance ratio**: Database is ~4x slower than DuckDb on average
-- **Performance ratio**: Spark is ~9x slower than DuckDb on average
-- **Performance ratio**: Sqlite is ~24x slower than DuckDb on average
+- **Performance ratio**: Spark is ~8x slower than DuckDb on average
+- **Performance ratio**: Sqlite is ~25x slower than DuckDb on average

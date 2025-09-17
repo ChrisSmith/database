@@ -3,59 +3,59 @@
     "DuckDb": {
       "0": {
         "Status": "OK",
-        "ElapsedMs": 305
+        "ElapsedMs": 250
       },
       "1": {
         "Status": "OK",
-        "ElapsedMs": 53
+        "ElapsedMs": 37
       },
       "2": {
         "Status": "OK",
-        "ElapsedMs": 159
+        "ElapsedMs": 110
       },
       "3": {
         "Status": "OK",
-        "ElapsedMs": 219
+        "ElapsedMs": 187
       },
       "4": {
         "Status": "OK",
-        "ElapsedMs": 246
+        "ElapsedMs": 207
       },
       "5": {
         "Status": "OK",
-        "ElapsedMs": 20
+        "ElapsedMs": 19
       },
       "6": {
         "Status": "OK",
-        "ElapsedMs": 95
+        "ElapsedMs": 86
       },
       "7": {
         "Status": "OK",
-        "ElapsedMs": 314
+        "ElapsedMs": 282
       },
       "8": {
         "Status": "OK",
-        "ElapsedMs": 364
+        "ElapsedMs": 341
       },
       "9": {
         "Status": "OK",
-        "ElapsedMs": 172
+        "ElapsedMs": 158
       },
       "10": {
         "Status": "OK",
-        "ElapsedMs": 39
+        "ElapsedMs": 37
       },
       "11": {
         "Status": "OK",
-        "ElapsedMs": 62
+        "ElapsedMs": 58
       },
       "12": {
         "Status": "OK",
-        "ElapsedMs": 210
+        "ElapsedMs": 185
       },
       "13": {
         "Status": "OK",
-        "ElapsedMs": 14
+        "ElapsedMs": 13
       },
       "14": {
         "Status": "OK",
@@ -67,81 +67,81 @@
       },
       "16": {
         "Status": "OK",
-        "ElapsedMs": 258
+        "ElapsedMs": 237
       },
       "17": {
         "Status": "OK",
-        "ElapsedMs": 370
+        "ElapsedMs": 346
       },
       "18": {
         "Status": "OK",
-        "ElapsedMs": 268
+        "ElapsedMs": 247
       },
       "19": {
         "Status": "OK",
-        "ElapsedMs": 51
+        "ElapsedMs": 50
       },
       "20": {
         "Status": "OK",
-        "ElapsedMs": 608
+        "ElapsedMs": 568
       },
       "21": {
         "Status": "OK",
-        "ElapsedMs": 38
+        "ElapsedMs": 30
       }
     },
     "ClickHouse": {
       "0": {
         "Status": "OK",
-        "ElapsedMs": 404
+        "ElapsedMs": 351
       },
       "1": {
         "Status": "FAILED",
-        "ElapsedMs": 447
+        "ElapsedMs": 309
       },
       "2": {
         "Status": "OK",
-        "ElapsedMs": 172
+        "ElapsedMs": 160
       },
       "3": {
         "Status": "FAILED",
-        "ElapsedMs": 302
+        "ElapsedMs": 284
       },
       "4": {
         "Status": "OK",
-        "ElapsedMs": 329
+        "ElapsedMs": 300
       },
       "5": {
         "Status": "OK",
-        "ElapsedMs": 36
+        "ElapsedMs": 35
       },
       "6": {
         "Status": "OK",
-        "ElapsedMs": 129
+        "ElapsedMs": 114
       },
       "7": {
         "Status": "OK",
-        "ElapsedMs": 430
+        "ElapsedMs": 355
       },
       "8": {
         "Status": "OK",
-        "ElapsedMs": 524
+        "ElapsedMs": 451
       },
       "9": {
         "Status": "OK",
-        "ElapsedMs": 273
+        "ElapsedMs": 256
       },
       "10": {
         "Status": "OK",
-        "ElapsedMs": 56
+        "ElapsedMs": 53
       },
       "11": {
         "Status": "OK",
-        "ElapsedMs": 103
+        "ElapsedMs": 101
       },
       "12": {
         "Status": "OK",
-        "ElapsedMs": 162
+        "ElapsedMs": 158
       },
       "13": {
         "Status": "OK",
@@ -149,203 +149,203 @@
       },
       "14": {
         "Status": "OK",
-        "ElapsedMs": 31
+        "ElapsedMs": 30
       },
       "15": {
         "Status": "OK",
-        "ElapsedMs": 35
+        "ElapsedMs": 33
       },
       "16": {
         "Status": "OK",
-        "ElapsedMs": 346
+        "ElapsedMs": 329
       },
       "17": {
         "Status": "OK",
-        "ElapsedMs": 333
+        "ElapsedMs": 314
       },
       "18": {
         "Status": "OK",
-        "ElapsedMs": 540
+        "ElapsedMs": 531
       },
       "19": {
         "Status": "OK",
-        "ElapsedMs": 60
+        "ElapsedMs": 58
       },
       "20": {
         "Status": "FAILED",
-        "ElapsedMs": 3
+        "ElapsedMs": 1
       },
       "21": {
         "Status": "FAILED",
-        "ElapsedMs": 269
+        "ElapsedMs": 308
       }
     },
-    "Postgres": {
+    "DataFusion": {
       "0": {
         "Status": "OK",
-        "ElapsedMs": 2690
+        "ElapsedMs": 405
       },
       "1": {
-        "Status": "FAILED",
-        "ElapsedMs": 30015
+        "Status": "OK",
+        "ElapsedMs": 138
       },
       "2": {
         "Status": "OK",
-        "ElapsedMs": 973
+        "ElapsedMs": 132
       },
       "3": {
         "Status": "OK",
-        "ElapsedMs": 882
+        "ElapsedMs": 169
       },
       "4": {
         "Status": "OK",
-        "ElapsedMs": 481
+        "ElapsedMs": 347
       },
       "5": {
         "Status": "OK",
-        "ElapsedMs": 428
+        "ElapsedMs": 57
       },
       "6": {
         "Status": "OK",
-        "ElapsedMs": 568
+        "ElapsedMs": 336
       },
       "7": {
         "Status": "OK",
-        "ElapsedMs": 488
+        "ElapsedMs": 298
       },
       "8": {
         "Status": "OK",
-        "ElapsedMs": 1263
+        "ElapsedMs": 380
       },
       "9": {
         "Status": "OK",
-        "ElapsedMs": 669
+        "ElapsedMs": 243
       },
       "10": {
         "Status": "OK",
-        "ElapsedMs": 102
+        "ElapsedMs": 124
       },
       "11": {
         "Status": "OK",
-        "ElapsedMs": 679
+        "ElapsedMs": 106
       },
       "12": {
         "Status": "OK",
-        "ElapsedMs": 578
+        "ElapsedMs": 210
       },
       "13": {
         "Status": "OK",
-        "ElapsedMs": 417
+        "ElapsedMs": 66
       },
       "14": {
         "Status": "OK",
-        "ElapsedMs": 399
+        "ElapsedMs": 66
       },
       "15": {
         "Status": "OK",
-        "ElapsedMs": 178
+        "ElapsedMs": 102
       },
       "16": {
-        "Status": "FAILED",
-        "ElapsedMs": 30006
+        "Status": "OK",
+        "ElapsedMs": 378
       },
       "17": {
         "Status": "OK",
-        "ElapsedMs": 3046
+        "ElapsedMs": 742
       },
       "18": {
         "Status": "OK",
-        "ElapsedMs": 603
+        "ElapsedMs": 243
       },
       "19": {
-        "Status": "FAILED",
-        "ElapsedMs": 30005
+        "Status": "OK",
+        "ElapsedMs": 44
       },
       "20": {
-        "Status": "FAILED",
-        "ElapsedMs": 30022
+        "Status": "OK",
+        "ElapsedMs": 519
       },
       "21": {
         "Status": "OK",
-        "ElapsedMs": 204
+        "ElapsedMs": 93
       }
     },
     "Database": {
       "0": {
         "Status": "OK",
-        "ElapsedMs": 1676
+        "ElapsedMs": 1558
       },
       "1": {
         "Status": "OK",
-        "ElapsedMs": 273
+        "ElapsedMs": 319
       },
       "2": {
         "Status": "OK",
-        "ElapsedMs": 589
+        "ElapsedMs": 597
       },
       "3": {
         "Status": "OK",
-        "ElapsedMs": 2280
+        "ElapsedMs": 661
       },
       "4": {
         "Status": "OK",
-        "ElapsedMs": 611
+        "ElapsedMs": 803
       },
       "5": {
         "Status": "OK",
-        "ElapsedMs": 143
+        "ElapsedMs": 176
       },
       "6": {
         "Status": "OK",
-        "ElapsedMs": 465
+        "ElapsedMs": 285
       },
       "7": {
         "Status": "OK",
-        "ElapsedMs": 659
+        "ElapsedMs": 684
       },
       "8": {
         "Status": "OK",
-        "ElapsedMs": 2398
+        "ElapsedMs": 2020
       },
       "9": {
         "Status": "OK",
-        "ElapsedMs": 510
+        "ElapsedMs": 479
       },
       "10": {
         "Status": "OK",
-        "ElapsedMs": 66
+        "ElapsedMs": 103
       },
       "11": {
         "Status": "OK",
-        "ElapsedMs": 414
+        "ElapsedMs": 400
       },
       "12": {
         "Status": "OK",
-        "ElapsedMs": 5015
+        "ElapsedMs": 1432
       },
       "13": {
         "Status": "OK",
-        "ElapsedMs": 101
+        "ElapsedMs": 110
       },
       "14": {
         "Status": "OK",
-        "ElapsedMs": 184
+        "ElapsedMs": 272
       },
       "15": {
         "Status": "OK",
-        "ElapsedMs": 192
+        "ElapsedMs": 211
       },
       "16": {
         "Status": "OK",
-        "ElapsedMs": 752
+        "ElapsedMs": 719
       },
       "17": {
         "Status": "OK",
-        "ElapsedMs": 2287
+        "ElapsedMs": 2184
       },
       "18": {
         "Status": "OK",
-        "ElapsedMs": 815
+        "ElapsedMs": 701
       },
       "19": {
         "Status": "FAILED",
@@ -358,110 +358,200 @@
       "21": {
         "Status": "FAILED",
         "ElapsedMs": 0
+      }
+    },
+    "Postgres": {
+      "0": {
+        "Status": "OK",
+        "ElapsedMs": 2426
+      },
+      "1": {
+        "Status": "FAILED",
+        "ElapsedMs": 30014
+      },
+      "2": {
+        "Status": "OK",
+        "ElapsedMs": 797
+      },
+      "3": {
+        "Status": "OK",
+        "ElapsedMs": 800
+      },
+      "4": {
+        "Status": "OK",
+        "ElapsedMs": 474
+      },
+      "5": {
+        "Status": "OK",
+        "ElapsedMs": 404
+      },
+      "6": {
+        "Status": "OK",
+        "ElapsedMs": 543
+      },
+      "7": {
+        "Status": "OK",
+        "ElapsedMs": 445
+      },
+      "8": {
+        "Status": "OK",
+        "ElapsedMs": 1144
+      },
+      "9": {
+        "Status": "OK",
+        "ElapsedMs": 649
+      },
+      "10": {
+        "Status": "OK",
+        "ElapsedMs": 99
+      },
+      "11": {
+        "Status": "OK",
+        "ElapsedMs": 647
+      },
+      "12": {
+        "Status": "OK",
+        "ElapsedMs": 534
+      },
+      "13": {
+        "Status": "OK",
+        "ElapsedMs": 400
+      },
+      "14": {
+        "Status": "OK",
+        "ElapsedMs": 394
+      },
+      "15": {
+        "Status": "OK",
+        "ElapsedMs": 175
+      },
+      "16": {
+        "Status": "FAILED",
+        "ElapsedMs": 30005
+      },
+      "17": {
+        "Status": "OK",
+        "ElapsedMs": 2958
+      },
+      "18": {
+        "Status": "OK",
+        "ElapsedMs": 574
+      },
+      "19": {
+        "Status": "FAILED",
+        "ElapsedMs": 30007
+      },
+      "20": {
+        "Status": "FAILED",
+        "ElapsedMs": 30014
+      },
+      "21": {
+        "Status": "OK",
+        "ElapsedMs": 193
       }
     },
     "Spark": {
       "0": {
         "Status": "OK",
-        "ElapsedMs": 3960
+        "ElapsedMs": 3521
       },
       "1": {
         "Status": "OK",
-        "ElapsedMs": 1773
+        "ElapsedMs": 395
       },
       "2": {
         "Status": "OK",
-        "ElapsedMs": 2533
+        "ElapsedMs": 1043
       },
       "3": {
         "Status": "OK",
-        "ElapsedMs": 1761
+        "ElapsedMs": 1218
       },
       "4": {
         "Status": "OK",
-        "ElapsedMs": 2473
+        "ElapsedMs": 1988
       },
       "5": {
         "Status": "OK",
-        "ElapsedMs": 123
+        "ElapsedMs": 127
       },
       "6": {
         "Status": "OK",
-        "ElapsedMs": 1760
+        "ElapsedMs": 1413
       },
       "7": {
         "Status": "OK",
-        "ElapsedMs": 977
+        "ElapsedMs": 798
       },
       "8": {
         "Status": "OK",
-        "ElapsedMs": 2204
+        "ElapsedMs": 1593
       },
       "9": {
         "Status": "OK",
-        "ElapsedMs": 1468
+        "ElapsedMs": 1443
       },
       "10": {
         "Status": "OK",
-        "ElapsedMs": 359
+        "ElapsedMs": 348
       },
       "11": {
         "Status": "OK",
-        "ElapsedMs": 608
+        "ElapsedMs": 552
       },
       "12": {
         "Status": "OK",
-        "ElapsedMs": 1434
+        "ElapsedMs": 1335
       },
       "13": {
         "Status": "OK",
-        "ElapsedMs": 152
+        "ElapsedMs": 185
       },
       "14": {
         "Status": "OK",
-        "ElapsedMs": 364
+        "ElapsedMs": 330
       },
       "15": {
         "Status": "OK",
-        "ElapsedMs": 493
+        "ElapsedMs": 481
       },
       "16": {
         "Status": "OK",
-        "ElapsedMs": 1891
+        "ElapsedMs": 1669
       },
       "17": {
         "Status": "OK",
-        "ElapsedMs": 4331
+        "ElapsedMs": 4073
       },
       "18": {
         "Status": "OK",
-        "ElapsedMs": 604
+        "ElapsedMs": 548
       },
       "19": {
         "Status": "OK",
-        "ElapsedMs": 408
+        "ElapsedMs": 392
       },
       "20": {
         "Status": "OK",
-        "ElapsedMs": 5008
+        "ElapsedMs": 4824
       },
       "21": {
         "Status": "OK",
-        "ElapsedMs": 440
+        "ElapsedMs": 346
       }
     },
     "Sqlite": {
       "0": {
         "Status": "OK",
-        "ElapsedMs": 5634
+        "ElapsedMs": 5100
       },
       "1": {
         "Status": "OK",
-        "ElapsedMs": 1386
+        "ElapsedMs": 1314
       },
       "2": {
         "Status": "OK",
-        "ElapsedMs": 7715
+        "ElapsedMs": 7007
       },
       "3": {
         "Status": "TIMED OUT",
@@ -473,47 +563,47 @@
       },
       "5": {
         "Status": "OK",
-        "ElapsedMs": 790
+        "ElapsedMs": 738
       },
       "6": {
         "Status": "OK",
-        "ElapsedMs": 3084
+        "ElapsedMs": 2990
       },
       "7": {
         "Status": "OK",
-        "ElapsedMs": 14236
+        "ElapsedMs": 15241
       },
       "8": {
         "Status": "OK",
-        "ElapsedMs": 17477
+        "ElapsedMs": 15547
       },
       "9": {
         "Status": "OK",
-        "ElapsedMs": 973
+        "ElapsedMs": 937
       },
       "10": {
         "Status": "OK",
-        "ElapsedMs": 1158
+        "ElapsedMs": 1117
       },
       "11": {
         "Status": "OK",
-        "ElapsedMs": 759
+        "ElapsedMs": 731
       },
       "12": {
         "Status": "OK",
-        "ElapsedMs": 4288
+        "ElapsedMs": 4542
       },
       "13": {
         "Status": "OK",
-        "ElapsedMs": 419
+        "ElapsedMs": 402
       },
       "14": {
         "Status": "OK",
-        "ElapsedMs": 392
+        "ElapsedMs": 377
       },
       "15": {
         "Status": "OK",
-        "ElapsedMs": 239
+        "ElapsedMs": 234
       },
       "16": {
         "Status": "TIMED OUT",

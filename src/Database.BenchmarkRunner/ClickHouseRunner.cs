@@ -47,6 +47,12 @@ public class ClickHouseRunner : IQueryRunner
 
     public List<Row> Run(string query, CancellationToken token)
     {
+        return Run(query, token, out _);
+    }
+
+    public List<Row> Run(string query, CancellationToken token, out TimeSpan? duration)
+    {
+        duration = null;
         using var command = _conn.CreateCommand();
         command.CommandText = query;
         command.CommandTimeout = (int)Timeout.TotalSeconds;

@@ -23,8 +23,9 @@ var allRunners = new IQueryRunner[]
 {
     new DuckDbRunner(),
     new ClickHouseRunner(),
-    new PostgresRunner(),
+    new DataFusionRunner(),
     new DatabaseRunner(),
+    new PostgresRunner(),
     new SparkRunner(),
     new SqliteRunner(),
 };
@@ -108,10 +109,11 @@ foreach (var runner in runners)
                 throw new OperationCanceledException($"Query {queryId} is known to fail for runner {runnerName}");
             }
 
-            var res = runner.Run(query, source.Token);
+            var res = runner.Run(query, source.Token, out var internalDuration);
             sw.Stop();
             status = "OK";
-            var roundedMs = Math.Round(sw.ElapsedMilliseconds / 10.0) * 10;
+            var elapsedMs = internalDuration?.TotalMilliseconds ?? sw.ElapsedMilliseconds;
+            var roundedMs = Math.Round(elapsedMs / 10.0) * 10;
             Console.WriteLine($"query_{queryId:00} OK took {roundedMs:N0}ms");
         }
         catch (OperationCanceledException)
