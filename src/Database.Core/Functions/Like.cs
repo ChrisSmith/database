@@ -29,9 +29,9 @@ public record DynamicLike() : BoolFunction(), IFilterFunctionTwo<string>
 
 // TODO hook these up during expression simplification or something
 
-public record StaticLike(Regex Regex) : BoolFunction(), IFilterFunctionOne<string>
+public record StaticLike(Regex Regex) : BoolFunction(), IFilterFunctionTwo<string>
 {
-    public bool[] Ok(string[] values)
+    public bool[] Ok(string[] values, string[] ignored)
     {
         var result = new bool[values.Length];
         for (var i = 0; i < values.Length; i++)
@@ -94,7 +94,7 @@ public record EndsWithTwo() : BoolFunction(), IFilterFunctionTwo<string>
     }
 }
 
-public record Contains(string Needle) : BoolFunction(), IFilterFunctionOne<string>
+public record ContainsTwo(string Needle) : BoolFunction(), IFilterFunctionOne<string>
 {
     public bool[] Ok(string[] values)
     {

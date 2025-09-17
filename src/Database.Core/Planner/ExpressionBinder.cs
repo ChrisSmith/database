@@ -147,7 +147,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
                     PERCENT => functions.BindFunction("%", args),
                     AND => functions.BindFunction("and", args),
                     OR => functions.BindFunction("or", args),
-                    LIKE => functions.BindFunction("like", args),
+                    LIKE => BindRegex(args),
                     IN => new ExpressionListFn(DataType.Bool),
                     _ => throw new QueryPlanException($"operator '{be.Operator}' not setup for binding yet"),
                 };
@@ -312,6 +312,22 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             BoundDataType = function.ReturnType,
             Alias = alias,
         };
+    }
+
+    private IFunction BindRegex(BaseExpression[] args)
+    {
+        if (args.Length == 2)
+        {
+            var (left, right) = (args[0], args[1]);
+            if (right is StringLiteral str)
+            {
+
+                var regex = DynamicLike.StringToRegex(str.Literal);
+                return new StaticLike(regex);
+            }
+        }
+
+        return functions.BindFunction("like", args);
     }
 
     private DataType FindCompatibleType(IReadOnlyList<BaseExpression> expressions)
