@@ -48,11 +48,11 @@ Project(revenue, rows=6001215) -> .revenue
 
 
 Optimized
-Project(revenue, rows=17283) -> .revenue
- Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by (, rows=17283) -> .revenue 
-    Filter(p_brand = Brand#12 and p_container IN subquery(1) and l_quantity >= cast(1 as Decimal) and l_quantity <= cast(11 as Decimal) and p_size between 1 and 5 or p_brand = Brand#23 and p_container IN subquery(3) and l_quantity >= cast(10 as Decimal) and l_quantity <= cast(20 as Decimal) and p_size between 1 and 10 or p_brand = Brand#34 and p_container IN subquery(4) and l_quantity >= cast(20 as Decimal) and l_quantity <= cast(30 as Decimal) and p_size between 1 and 15, rows=17283) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, $subquery_2$.$subquery_2$, .p_partkey, .p_brand, .p_size, .p_container    
-       Join(Inner on p_partkey = l_partkey, rows=86417) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, $subquery_2$.$subquery_2$, .p_partkey, .p_brand, .p_size, .p_container       
-          Join(Semi on l_shipmode = $subquery_2$, rows=432087) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, $subquery_2$.$subquery_2$          
+Project(revenue, rows=2400) -> .revenue
+ Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) group by (, rows=2400) -> .revenue 
+    Filter(p_brand = Brand#12 and p_container IN subquery(1) and l_quantity >= cast(1 as Decimal) and l_quantity <= cast(11 as Decimal) and p_size between 1 and 5 or p_brand = Brand#23 and p_container IN subquery(3) and l_quantity >= cast(10 as Decimal) and l_quantity <= cast(20 as Decimal) and p_size between 1 and 10 or p_brand = Brand#34 and p_container IN subquery(4) and l_quantity >= cast(20 as Decimal) and l_quantity <= cast(30 as Decimal) and p_size between 1 and 15, rows=2400) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, $subquery_2$.$subquery_2$, .p_partkey, .p_brand, .p_size, .p_container    
+       Join(Inner on p_partkey = l_partkey, rows=12002) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, $subquery_2$.$subquery_2$, .p_partkey, .p_brand, .p_size, .p_container       
+          Join(Semi on l_shipmode = $subquery_2$, rows=60012) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, $subquery_2$.$subquery_2$          
              Filter(l_shipinstruct = DELIVER IN PERSON, rows=1200243) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode             
                 Filter(l_quantity >= cast(1 as Decimal), rows=1200243) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode                
                    Filter(l_quantity <= cast(30 as Decimal), rows=1200243) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode                   
@@ -65,11 +65,11 @@ Project(revenue, rows=17283) -> .revenue
 
 
 Cost Optimized
-Project(revenue) cost (output_rows=17283, cpu=17283, disk=0, total=60027) -> .revenue
- UngroupedAggregate(SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=17283, cpu=17283, disk=0, total=60010) -> .revenue 
-    Filter(p_brand = Brand#12 and p_container IN subquery(1) and l_quantity >= cast(1 as Decimal) and l_quantity <= cast(11 as Decimal) and p_size between 1 and 5 or p_brand = Brand#23 and p_container IN subquery(3) and l_quantity >= cast(10 as Decimal) and l_quantity <= cast(20 as Decimal) and p_size between 1 and 10 or p_brand = Brand#34 and p_container IN subquery(4) and l_quantity >= cast(20 as Decimal) and l_quantity <= cast(30 as Decimal) and p_size between 1 and 15) cost (output_rows=17283, cpu=864170, disk=0, total=59992) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, .p_partkey, .p_brand, .p_size, .p_container    
-       HashJoin(Inner p_partkey, l_partkey) cost (output_rows=86417, cpu=512087, disk=0, total=59128) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, .p_partkey, .p_brand, .p_size, .p_container       
-          HashJoin(Semi $subquery_2$, l_shipmode) cost (output_rows=432087, cpu=1200247, disk=0, total=57615) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode          
+Project(revenue) cost (output_rows=2400, cpu=2400, disk=0, total=58881) -> .revenue
+ UngroupedAggregate(SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=2400, cpu=2400, disk=0, total=58879) -> .revenue 
+    Filter(p_brand = Brand#12 and p_container IN subquery(1) and l_quantity >= cast(1 as Decimal) and l_quantity <= cast(11 as Decimal) and p_size between 1 and 5 or p_brand = Brand#23 and p_container IN subquery(3) and l_quantity >= cast(10 as Decimal) and l_quantity <= cast(20 as Decimal) and p_size between 1 and 10 or p_brand = Brand#34 and p_container IN subquery(4) and l_quantity >= cast(20 as Decimal) and l_quantity <= cast(30 as Decimal) and p_size between 1 and 15) cost (output_rows=2400, cpu=120020, disk=0, total=58876) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, .p_partkey, .p_brand, .p_size, .p_container    
+       HashJoin(Inner p_partkey, l_partkey) cost (output_rows=12002, cpu=140012, disk=0, total=58756) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode, .p_partkey, .p_brand, .p_size, .p_container       
+          HashJoin(Semi $subquery_2$, l_shipmode) cost (output_rows=60012, cpu=1200247, disk=0, total=57615) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode          
              Filter(l_shipinstruct = DELIVER IN PERSON) cost (output_rows=1200243, cpu=7201458, disk=0, total=56415) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode             
                 Filter(l_quantity >= cast(1 as Decimal)) cost (output_rows=1200243, cpu=7201458, disk=0, total=49213) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode                
                    Filter(l_quantity <= cast(30 as Decimal)) cost (output_rows=1200243, cpu=36007290, disk=0, total=42012) -> .l_partkey, .l_quantity, .l_extendedprice, .l_discount, .l_shipinstruct, .l_shipmode                   

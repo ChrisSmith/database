@@ -11,6 +11,7 @@ namespace Database.Core.Planner;
 public class CostEstimation(Catalog.Catalog catalog, ParquetPool bufferPool)
 {
     public const double EQUI_FILTER_SELECTIVITY = 0.2;
+    public const double SEMI_JOIN_SELECTIVITY = 0.05;
 
     public CostEstimate Estimate(LogicalPlan plan)
     {
@@ -63,14 +64,9 @@ public class CostEstimation(Catalog.Catalog catalog, ParquetPool bufferPool)
             {
                 if (join.Condition != null)
                 {
-                    var selectivity = EstimateSelectivity(join.Condition);
-                    var probOdds = 1 - Math.Pow(1.0 - selectivity, right.OutputCardinality);
-                    if (join.JoinType == JoinType.AntiSemi)
-                    {
-                        probOdds = 1.0 - probOdds;
-                    }
-                    numRows = (long)(left.OutputCardinality * probOdds);
-                    return new CostEstimate(numRows, rowsProcessed + numRows, selectivity);
+                    numRows = (long)(left.OutputCardinality * SEMI_JOIN_SELECTIVITY);
+                    numRows = Math.Max(numRows, 1);
+                    return new CostEstimate(numRows, rowsProcessed + numRows, SEMI_JOIN_SELECTIVITY);
                 }
                 return left;
             }

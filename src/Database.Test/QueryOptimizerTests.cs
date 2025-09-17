@@ -141,9 +141,7 @@ public class QueryOptimizerTests
     [TestCase("query_12.sql")]
     [TestCase("query_13.sql")]
     [TestCase("query_14.sql")]
-    /*
     [TestCase("query_15.sql")]
-    */
     [TestCase("query_16.sql")]
     [TestCase("query_17.sql")]
     [TestCase("query_18.sql")]
