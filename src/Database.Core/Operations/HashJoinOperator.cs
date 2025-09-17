@@ -216,8 +216,8 @@ public record HashJoinOperator(
             throw new Exception("Probe and Scan keys must be the same length");
         }
 
-        var cost = EstimateCost();
-        var estimatedRows = checked((int)BigInteger.Max(BigInteger.Min(cost.OutputRows, int.MaxValue), 7));
+        var costEst = 1.2 * (double)ProbeSource.EstimateCost().OutputRows;
+        var estimatedRows = checked((int)BigInteger.Max(BigInteger.Min((long)(costEst * 1.4), int.MaxValue), 7));
         var keyTypes = ProbeKeys.Select(p => p.BoundDataType!.Value.ClrTypeFromDataType()).ToArray();
         var hashTable = new HashTable<RowRef?>(keyTypes, size: estimatedRows);
 
