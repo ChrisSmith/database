@@ -18,7 +18,7 @@ public abstract record LiteralExpression : BaseExpression
 }
 
 [DebuggerDisplay("{Literal}")]
-public record DecimalLiteral(decimal Literal) : LiteralExpression
+public record DecimalLiteral(Decimal15 Literal) : LiteralExpression
 {
     public override string ToString()
     {

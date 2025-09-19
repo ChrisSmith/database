@@ -12,14 +12,14 @@ where
 Original
 Project(revenue, rows=1200243) -> .revenue
  Agg(sum(l_extendedprice * l_discount)) group by (, rows=1200243) -> .revenue 
-    Filter(l_shipdate >= 01/01/1994 00:00:00 and l_shipdate < 01/01/1995 00:00:00 and l_discount between 0.05 and 0.07 and l_quantity < cast(24 as Decimal), rows=1200243) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment    
+    Filter(l_shipdate >= 01/01/1994 00:00:00 and l_shipdate < 01/01/1995 00:00:00 and l_discount between 0.05 and 0.07 and l_quantity < cast(24 as Decimal15), rows=1200243) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment    
        Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment       
 
 
 Optimized
 Project(revenue, rows=1200243) -> .revenue
  Agg(sum(l_extendedprice * l_discount)) group by (, rows=1200243) -> .revenue 
-    Filter(l_quantity < cast(24 as Decimal), rows=1200243) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate    
+    Filter(l_quantity < cast(24 as Decimal15), rows=1200243) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate    
        Filter(l_discount between 0.05 and 0.07, rows=1200243) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate       
           Filter(l_shipdate < 01/01/1995 00:00:00, rows=1200243) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate          
              Filter(l_shipdate >= 01/01/1994 00:00:00, rows=1200243) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate             
@@ -29,7 +29,7 @@ Project(revenue, rows=1200243) -> .revenue
 Cost Optimized
 Project(revenue) cost (output_rows=1200243, cpu=1200243, disk=0, total=46813) -> .revenue
  UngroupedAggregate(sum(l_extendedprice * l_discount)) cost (output_rows=1200243, cpu=1200243, disk=0, total=45613) -> .revenue 
-    Filter(l_quantity < cast(24 as Decimal)) cost (output_rows=1200243, cpu=4800972, disk=0, total=44412) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate    
+    Filter(l_quantity < cast(24 as Decimal15)) cost (output_rows=1200243, cpu=4800972, disk=0, total=44412) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate    
        Filter(l_discount between 0.05 and 0.07) cost (output_rows=1200243, cpu=4800972, disk=0, total=39612) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate       
           Filter(l_shipdate < 01/01/1995 00:00:00) cost (output_rows=1200243, cpu=4800972, disk=0, total=34811) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate          
              Filter(l_shipdate >= 01/01/1994 00:00:00) cost (output_rows=1200243, cpu=24004860, disk=0, total=30010) -> .l_quantity, .l_extendedprice, .l_discount, .l_shipdate             

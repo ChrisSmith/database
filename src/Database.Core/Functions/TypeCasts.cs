@@ -1,5 +1,6 @@
 using System.Numerics;
 using Database.Core.Catalog;
+using Database.Core.Types;
 
 namespace Database.Core.Functions;
 
@@ -66,11 +67,11 @@ public record CastDouble<T>() : Cast<T, double>(DataType.Double)
     }
 }
 
-public record CastDecimal<T>() : Cast<T, decimal>(DataType.Decimal)
+public record CastDecimal<T>() : Cast<T, Decimal15>(DataType.Decimal15)
 {
-    public override decimal[] Execute(T[] values)
+    public override Decimal15[] Execute(T[] values)
     {
-        var result = new decimal[values.Length];
+        var result = new Decimal15[values.Length];
         for (var i = 0; i < values.Length; i++)
         {
             result[i] = Convert.ToDecimal(values[i]);

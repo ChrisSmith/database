@@ -7,6 +7,7 @@ using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 using Database.Core.Operations;
+using Database.Core.Types;
 using static Database.Core.TokenType;
 
 namespace Database.Core.Planner;
@@ -59,7 +60,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         IFunction? function = expression switch
         {
             IntegerLiteral numInt => new LiteralFunction(numInt.Literal, DataType.Int),
-            DecimalLiteral num => new LiteralFunction(num.Literal, DataType.Decimal),
+            DecimalLiteral num => new LiteralFunction(num.Literal, DataType.Decimal15),
             StringLiteral str => new LiteralFunction(str.Literal, DataType.String),
             BoolLiteral b => new LiteralFunction(b.Literal, DataType.Bool),
             DateLiteral d => new LiteralFunction(d.Literal, DataType.Date),
@@ -363,9 +364,9 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             return DataType.Long;
         }
 
-        if (allTypes.All(t => t == DataType.Decimal || integers.Contains(t)))
+        if (allTypes.All(t => t == DataType.Decimal15 || integers.Contains(t)))
         {
-            return DataType.Decimal;
+            return DataType.Decimal15;
         }
 
         var floating = new[] { DataType.Float, DataType.Double };
@@ -376,12 +377,13 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
 
         if (expressions.Any(ExpressionIsNonLiteralDecimal))
         {
-            return DataType.Decimal;
+            // TODO need to support both precisions
+            return DataType.Decimal15;
         }
 
         foreach (var floatType in floating)
         {
-            if (allTypes.All(t => t == DataType.Decimal || t == floatType))
+            if (allTypes.All(t => t == DataType.Decimal15 || t == floatType))
             {
                 return floatType;
             }
@@ -398,7 +400,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
 
         bool ExpressionIsNonLiteralDecimal(BaseExpression expr)
         {
-            return expr is not DecimalLiteral && expr.BoundDataType!.Value == DataType.Decimal;
+            return expr is not DecimalLiteral && expr.BoundDataType!.Value == DataType.Decimal15;
         }
     }
 
@@ -455,7 +457,7 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             DataType.Long => "cast_long",
             DataType.Float => "cast_float",
             DataType.Double => "cast_double",
-            DataType.Decimal => "cast_decimal",
+            DataType.Decimal15 => "cast_decimal",
             DataType.DateTime => "cast_datetime",
             _ => throw new QueryPlanException($"unsupported cast type '{targetType}'"),
         };

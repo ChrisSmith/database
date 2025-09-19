@@ -3,6 +3,7 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Functions;
 using Database.Core.Planner;
+using Database.Core.Types;
 
 namespace Database.Core.Expressions;
 
@@ -150,39 +151,39 @@ public class ExpressionInterpreter
         {
             outputArray = smdf.Execute((double[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<decimal, int> smdmi)
+        else if (fun is IScalarMathOne<Decimal15, int> smdmi)
         {
-            outputArray = smdmi.Execute((decimal[])col.ValuesArray);
+            outputArray = smdmi.Execute((Decimal15[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<decimal, long> smdml)
+        else if (fun is IScalarMathOne<Decimal15, long> smdml)
         {
-            outputArray = smdml.Execute((decimal[])col.ValuesArray);
+            outputArray = smdml.Execute((Decimal15[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<decimal, float> smdfm)
+        else if (fun is IScalarMathOne<Decimal15, float> smdfm)
         {
-            outputArray = smdfm.Execute((decimal[])col.ValuesArray);
+            outputArray = smdfm.Execute((Decimal15[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<decimal, double> smddm)
+        else if (fun is IScalarMathOne<Decimal15, double> smddm)
         {
-            outputArray = smddm.Execute((decimal[])col.ValuesArray);
+            outputArray = smddm.Execute((Decimal15[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<decimal, decimal> smddcm)
+        else if (fun is IScalarMathOne<Decimal15, Decimal15> smddcm)
         {
-            outputArray = smddcm.Execute((decimal[])col.ValuesArray);
+            outputArray = smddcm.Execute((Decimal15[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<int, decimal> smidcm)
+        else if (fun is IScalarMathOne<int, Decimal15> smidcm)
         {
             outputArray = smidcm.Execute((int[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<long, decimal> smldcm)
+        else if (fun is IScalarMathOne<long, Decimal15> smldcm)
         {
             outputArray = smldcm.Execute((long[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<float, decimal> smfdcm)
+        else if (fun is IScalarMathOne<float, Decimal15> smfdcm)
         {
             outputArray = smfdcm.Execute((float[])col.ValuesArray);
         }
-        else if (fun is IScalarMathOne<double, decimal> smddcm2)
+        else if (fun is IScalarMathOne<double, Decimal15> smddcm2)
         {
             outputArray = smddcm2.Execute((double[])col.ValuesArray);
         }
@@ -236,9 +237,9 @@ public class ExpressionInterpreter
         {
             outputArray = std.Execute((double[])left.ValuesArray, (double[])right.ValuesArray);
         }
-        else if (fun is IScalarMathTwo<decimal> stdm)
+        else if (fun is IScalarMathTwo<Decimal15> stdm)
         {
-            outputArray = stdm.Execute((decimal[])left.ValuesArray, (decimal[])right.ValuesArray);
+            outputArray = stdm.Execute((Decimal15[])left.ValuesArray, (Decimal15[])right.ValuesArray);
         }
         else if (fun is IFilterFunctionTwo<int> fi)
         {
@@ -268,9 +269,9 @@ public class ExpressionInterpreter
         {
             outputArray = fb.Ok((bool[])left.ValuesArray, (bool[])right.ValuesArray);
         }
-        else if (fun is IFilterFunctionTwo<decimal> fdm)
+        else if (fun is IFilterFunctionTwo<Decimal15> fdm)
         {
-            outputArray = fdm.Ok((decimal[])left.ValuesArray, (decimal[])right.ValuesArray);
+            outputArray = fdm.Ok((Decimal15[])left.ValuesArray, (Decimal15[])right.ValuesArray);
         }
         else if (fun is IFilterFunctionTwo<string> ffts)
         {
@@ -313,9 +314,9 @@ public class ExpressionInterpreter
         {
             outputArray = std.Ok((double[])value.ValuesArray, (double[])lower.ValuesArray, (double[])upper.ValuesArray);
         }
-        else if (fun is IFilterThreeColsThree<decimal> stdm)
+        else if (fun is IFilterThreeColsThree<Decimal15> stdm)
         {
-            outputArray = stdm.Ok((decimal[])value.ValuesArray, (decimal[])lower.ValuesArray, (decimal[])upper.ValuesArray);
+            outputArray = stdm.Ok((Decimal15[])value.ValuesArray, (Decimal15[])lower.ValuesArray, (Decimal15[])upper.ValuesArray);
         }
         else if (fun is IFilterThreeColsThree<DateTime> dt)
         {
@@ -458,7 +459,7 @@ public class ExpressionInterpreter
             DataType.String => Contains((string[])left.ValuesArray, (string[])column.ValuesArray),
             DataType.Date => Contains((DateOnly[])left.ValuesArray, (DateOnly[])column.ValuesArray),
             DataType.DateTime => Contains((DateTime[])left.ValuesArray, (DateTime[])column.ValuesArray),
-            DataType.Decimal => Contains((decimal[])left.ValuesArray, (decimal[])column.ValuesArray),
+            DataType.Decimal15 => Contains((Decimal15[])left.ValuesArray, (Decimal15[])column.ValuesArray),
             DataType.Bool => Contains((bool[])left.ValuesArray, (bool[])column.ValuesArray),
             _ => throw new NotImplementedException($"In Subquery column type {column.Type} not implemented")
         };

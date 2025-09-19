@@ -30,8 +30,8 @@ ORDER BY
 
 Original
 PlanWithSubQueries(u=1, rows=160000) -> .ps_partkey, .value
- Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001, rows=800000) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
-    Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by (, rows=800000) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+ Project(SUM(ps_supplycost * cast(ps_availqty as Decimal15)) * 0, rows=800000) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal15)) * 0 
+    Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal15))) group by (, rows=800000) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal15))    
        JoinSet(partsupp (Inner) x supplier (Inner) x nation (Inner), rows=800000) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .n_comment       
        BinaryEdge { Expression = ps_suppkey = s_suppkey, One = partsupp, Two = supplier }
        BinaryEdge { Expression = s_nationkey = n_nationkey, One = supplier, Two = nation }
@@ -40,9 +40,9 @@ PlanWithSubQueries(u=1, rows=160000) -> .ps_partkey, .value
           Scan(supplier, rows=10000) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment          
           Scan(nation, rows=25) -> .n_nationkey, .n_name, .n_regionkey, .n_comment          
  Project(ps_partkey, value, rows=160000) -> .ps_partkey, .value 
-    Sort(value DESC), rows=160000 -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
-       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal)) > subquery(1), rows=160000) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))       
-          Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal)), ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by (ps_partkey, rows=800000) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))          
+    Sort(value DESC), rows=160000 -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))    
+       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal15)) > subquery(1), rows=160000) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))       
+          Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal15)), ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal15))) group by (ps_partkey, rows=800000) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))          
              JoinSet(partsupp (Inner) x supplier (Inner) x nation (Inner), rows=800000) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .ps_comment, .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .n_nationkey, .n_name, .n_regionkey, .n_comment             
              BinaryEdge { Expression = ps_suppkey = s_suppkey, One = partsupp, Two = supplier }
              BinaryEdge { Expression = s_nationkey = n_nationkey, One = supplier, Two = nation }
@@ -54,8 +54,8 @@ PlanWithSubQueries(u=1, rows=160000) -> .ps_partkey, .value
 
 Optimized
 PlanWithSubQueries(u=1, rows=32000) -> .ps_partkey, .value
- Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001, rows=160000) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
-    Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by (, rows=160000) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+ Project(SUM(ps_supplycost * cast(ps_availqty as Decimal15)) * 0, rows=160000) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal15)) * 0 
+    Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal15))) group by (, rows=160000) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal15))    
        Join(Inner on ps_suppkey = s_suppkey, rows=160000) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name       
           Scan(partsupp, rows=800000) with projection  -> .ps_suppkey, .ps_availqty, .ps_supplycost          
        
@@ -65,9 +65,9 @@ PlanWithSubQueries(u=1, rows=32000) -> .ps_partkey, .value
              Filter(n_name = GERMANY, rows=5) -> .n_nationkey, .n_name             
                 Scan(nation, rows=25) with projection  -> .n_nationkey, .n_name                
  Project(ps_partkey, value, rows=32000) -> .ps_partkey, .value 
-    Sort(value DESC), rows=32000 -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
-       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal)) > subquery(1), rows=32000) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))       
-          Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal)), ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal))) group by (ps_partkey, rows=160000) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal))          
+    Sort(value DESC), rows=32000 -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))    
+       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal15)) > subquery(1), rows=32000) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))       
+          Agg(SUM(ps_supplycost * cast(ps_availqty as Decimal15)), ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal15))) group by (ps_partkey, rows=160000) -> .value, .ps_partkey, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))          
              Join(Inner on ps_suppkey = s_suppkey, rows=160000) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name             
                 Scan(partsupp, rows=800000) with projection  -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost                
              
@@ -80,17 +80,17 @@ PlanWithSubQueries(u=1, rows=32000) -> .ps_partkey, .value
 
 Cost Optimized
 PlanWithSubQueries(u=1) -> .ps_partkey, .value
- Project(SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001) cost (output_rows=160000, cpu=320000, disk=0, total=2104) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal)) * 0.0001 
-    UngroupedAggregate(SUM(ps_supplycost * cast(ps_availqty as Decimal))) cost (output_rows=160000, cpu=160000, disk=0, total=1784) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
+ Project(SUM(ps_supplycost * cast(ps_availqty as Decimal15)) * 0) cost (output_rows=160000, cpu=320000, disk=0, total=2104) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal15)) * 0 
+    UngroupedAggregate(SUM(ps_supplycost * cast(ps_availqty as Decimal15))) cost (output_rows=160000, cpu=160000, disk=0, total=1784) -> .SUM(ps_supplycost * cast(ps_availqty as Decimal15))    
        HashJoin(Inner s_suppkey, ps_suppkey) cost (output_rows=160000, cpu=804000, disk=0, total=1624) -> .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name       
           FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_suppkey, .ps_availqty, .ps_supplycost       
           HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=2000, cpu=10010, disk=0, total=20) -> .s_suppkey, .s_nationkey, .n_nationkey, .n_name          
              FileScan({SolutionDirectory}tpch/1/supplier2.parquet) cost (output_rows=10000, cpu=10000, disk=1, total=10) -> .s_suppkey, .s_nationkey          
              Filter(n_name = GERMANY) cost (output_rows=5, cpu=50, disk=0, total=0) -> .n_nationkey, .n_name             
                 FileScan({SolutionDirectory}tpch/1/nation2.parquet) cost (output_rows=25, cpu=25, disk=1, total=0) -> .n_nationkey, .n_name Project(ps_partkey, value) cost (output_rows=32000, cpu=64000, disk=0, total=4216) -> .ps_partkey, .value 
-    Sort(value DESC) cost (output_rows=32000, cpu=448000, disk=0, total=4152) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))    
-       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal)) > subquery(1)) cost (output_rows=32000, cpu=480000, disk=0, total=3704) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))       
-          HashAggregate(ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal)), SUM(ps_supplycost * cast(ps_availqty as Decimal))) cost (output_rows=160000, cpu=1600000, disk=0, total=3224) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal))          
+    Sort(value DESC) cost (output_rows=32000, cpu=448000, disk=0, total=4152) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))    
+       Filter(SUM(ps_supplycost * cast(ps_availqty as Decimal15)) > subquery(1)) cost (output_rows=32000, cpu=480000, disk=0, total=3704) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))       
+          HashAggregate(ps_partkey, SUM(ps_supplycost * cast(ps_availqty as Decimal15)), SUM(ps_supplycost * cast(ps_availqty as Decimal15))) cost (output_rows=160000, cpu=1600000, disk=0, total=3224) -> .ps_partkey, .value, .SUM(ps_supplycost * cast(ps_availqty as Decimal15))          
              HashJoin(Inner s_suppkey, ps_suppkey) cost (output_rows=160000, cpu=804000, disk=0, total=1624) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost, .s_suppkey, .s_nationkey, .n_nationkey, .n_name             
                 FileScan({SolutionDirectory}tpch/1/partsupp2.parquet) cost (output_rows=800000, cpu=800000, disk=7, total=800) -> .ps_partkey, .ps_suppkey, .ps_availqty, .ps_supplycost             
                 HashJoin(Inner n_nationkey, s_nationkey) cost (output_rows=2000, cpu=10010, disk=0, total=20) -> .s_suppkey, .s_nationkey, .n_nationkey, .n_name                

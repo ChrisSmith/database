@@ -5,6 +5,7 @@ using Database.Core.Execution;
 using Database.Core.Expressions;
 using Database.Core.Functions;
 using Database.Core.Operations;
+using Database.Core.Types;
 
 namespace Database.Core.Planner;
 
@@ -201,9 +202,9 @@ public class CostEstimation(Catalog.Catalog catalog, ParquetPool bufferPool)
             return EstimateNvdFromStats<long>(statsTable, table, columnName);
         }
 
-        if (column.DataType == DataType.Decimal)
+        if (column.DataType == DataType.Decimal15)
         {
-            return EstimateNvdFromStats<decimal>(statsTable, table, columnName);
+            return EstimateNvdFromStats<Decimal15>(statsTable, table, columnName);
         }
 
         if (column.DataType == DataType.Float)

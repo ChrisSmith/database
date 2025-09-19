@@ -36,7 +36,7 @@ PlanWithSubQueries(u=1, rows=1200243) -> .s_suppkey, .s_name, .s_address, .s_pho
  Project(MAX(total_revenue), rows=1200243) -> .MAX(total_revenue) 
     Agg(MAX(total_revenue)) group by (, rows=1200243) -> .MAX(total_revenue)    
        Project(l_suppkey, total_revenue, rows=1200243) -> revenue1.supplier_no, revenue1.total_revenue       
-          Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount), l_suppkey) group by (l_suppkey, rows=1200243) -> revenue1.total_revenue, revenue1.l_suppkey          
+          Agg(SUM(l_extendedprice * cast(1 as Decimal15) - l_discount), l_suppkey) group by (l_suppkey, rows=1200243) -> revenue1.total_revenue, revenue1.l_suppkey          
              Filter(l_shipdate >= 01/01/1996 00:00:00 AND l_shipdate < 04/01/1996 00:00:00, rows=1200243) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment             
                 Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
  Project(s_suppkey, s_name, s_address, s_phone, total_revenue, rows=1200243) -> .s_suppkey, .s_name, .s_address, .s_phone, .total_revenue 
@@ -46,7 +46,7 @@ PlanWithSubQueries(u=1, rows=1200243) -> .s_suppkey, .s_name, .s_address, .s_pho
        UnaryEdge { Expression = total_revenue = subquery(1), Relation = revenue1 }
           Scan(supplier, rows=10000) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment          
           Project(l_suppkey, total_revenue, rows=1200243) -> revenue1.supplier_no, revenue1.total_revenue          
-             Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount), l_suppkey) group by (l_suppkey, rows=1200243) -> revenue1.total_revenue, revenue1.l_suppkey             
+             Agg(SUM(l_extendedprice * cast(1 as Decimal15) - l_discount), l_suppkey) group by (l_suppkey, rows=1200243) -> revenue1.total_revenue, revenue1.l_suppkey             
                 Filter(l_shipdate >= 01/01/1996 00:00:00 AND l_shipdate < 04/01/1996 00:00:00, rows=1200243) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                
                    Scan(lineitem, rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment                   
 
@@ -56,7 +56,7 @@ PlanWithSubQueries(u=1, rows=240048) -> .s_suppkey, .s_name, .s_address, .s_phon
  Project(MAX(total_revenue), rows=1200243) -> .MAX(total_revenue) 
     Agg(MAX(total_revenue)) group by (, rows=1200243) -> .MAX(total_revenue)    
        Project(l_suppkey, total_revenue, rows=1200243) -> revenue1.supplier_no, revenue1.total_revenue       
-          Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount), l_suppkey) group by (l_suppkey, rows=1200243) -> revenue1.total_revenue, revenue1.l_suppkey          
+          Agg(SUM(l_extendedprice * cast(1 as Decimal15) - l_discount), l_suppkey) group by (l_suppkey, rows=1200243) -> revenue1.total_revenue, revenue1.l_suppkey          
              Filter(l_shipdate < 04/01/1996 00:00:00, rows=1200243) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate             
                 Filter(l_shipdate >= 01/01/1996 00:00:00, rows=1200243) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                
                    Scan(lineitem, rows=6001215) with projection  -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                   
@@ -65,7 +65,7 @@ PlanWithSubQueries(u=1, rows=240048) -> .s_suppkey, .s_name, .s_address, .s_phon
        Join(Inner on s_suppkey = supplier_no, rows=240048) -> revenue1.supplier_no, revenue1.total_revenue, .s_suppkey, .s_name, .s_address, .s_phone       
           Filter(total_revenue = subquery(1), rows=240048) -> revenue1.supplier_no, revenue1.total_revenue          
              Project(l_suppkey, total_revenue, rows=1200243) -> revenue1.supplier_no, revenue1.total_revenue             
-                Agg(SUM(l_extendedprice * cast(1 as Decimal) - l_discount), l_suppkey) group by (l_suppkey, rows=1200243) -> revenue1.total_revenue, revenue1.l_suppkey                
+                Agg(SUM(l_extendedprice * cast(1 as Decimal15) - l_discount), l_suppkey) group by (l_suppkey, rows=1200243) -> revenue1.total_revenue, revenue1.l_suppkey                
                    Filter(l_shipdate < 04/01/1996 00:00:00, rows=1200243) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                   
                       Filter(l_shipdate >= 01/01/1996 00:00:00, rows=1200243) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                      
                          Scan(lineitem, rows=6001215) with projection  -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                         
@@ -78,7 +78,7 @@ PlanWithSubQueries(u=1) -> .s_suppkey, .s_name, .s_address, .s_phone, .total_rev
  Project(MAX(total_revenue)) cost (output_rows=1200243, cpu=1200243, disk=0, total=46813) -> .MAX(total_revenue) 
     UngroupedAggregate(MAX(total_revenue)) cost (output_rows=1200243, cpu=1200243, disk=0, total=45613) -> .MAX(total_revenue)    
        Project(l_suppkey, total_revenue) cost (output_rows=1200243, cpu=2400486, disk=0, total=44412) -> revenue1.supplier_no, revenue1.total_revenue       
-          HashAggregate(l_suppkey, SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=1200243, cpu=7201458, disk=0, total=42012) -> revenue1.l_suppkey, revenue1.total_revenue          
+          HashAggregate(l_suppkey, SUM(l_extendedprice * cast(1 as Decimal15) - l_discount)) cost (output_rows=1200243, cpu=7201458, disk=0, total=42012) -> revenue1.l_suppkey, revenue1.total_revenue          
              Filter(l_shipdate < 04/01/1996 00:00:00) cost (output_rows=1200243, cpu=4800972, disk=0, total=34811) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate             
                 Filter(l_shipdate >= 01/01/1996 00:00:00) cost (output_rows=1200243, cpu=24004860, disk=0, total=30010) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                
                    FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate Project(s_suppkey, s_name, s_address, s_phone, total_revenue) cost (output_rows=240048, cpu=1200240, disk=0, total=52365) -> .s_suppkey, .s_name, .s_address, .s_phone, .total_revenue 
@@ -86,7 +86,7 @@ PlanWithSubQueries(u=1) -> .s_suppkey, .s_name, .s_address, .s_phone, .total_rev
        HashJoin(Inner s_suppkey, supplier_no) cost (output_rows=240048, cpu=260048, disk=0, total=47084) -> revenue1.supplier_no, revenue1.total_revenue, .s_suppkey, .s_name, .s_address, .s_phone       
           Filter(total_revenue = subquery(1)) cost (output_rows=240048, cpu=2400486, disk=0, total=46813) -> revenue1.supplier_no, revenue1.total_revenue          
              Project(l_suppkey, total_revenue) cost (output_rows=1200243, cpu=2400486, disk=0, total=44412) -> revenue1.supplier_no, revenue1.total_revenue             
-                HashAggregate(l_suppkey, SUM(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=1200243, cpu=7201458, disk=0, total=42012) -> revenue1.l_suppkey, revenue1.total_revenue                
+                HashAggregate(l_suppkey, SUM(l_extendedprice * cast(1 as Decimal15) - l_discount)) cost (output_rows=1200243, cpu=7201458, disk=0, total=42012) -> revenue1.l_suppkey, revenue1.total_revenue                
                    Filter(l_shipdate < 04/01/1996 00:00:00) cost (output_rows=1200243, cpu=4800972, disk=0, total=34811) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                   
                       Filter(l_shipdate >= 01/01/1996 00:00:00) cost (output_rows=1200243, cpu=24004860, disk=0, total=30010) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate                      
                          FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate       
