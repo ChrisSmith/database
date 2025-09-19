@@ -443,6 +443,20 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             };
         }
 
+        if (expr is LiteralExpression)
+        {
+            // If this is a literal, convert it instead of casting
+            // TODO there are some more casts that can probably be optimized away, see the snapshots
+            if (targetType == DataType.Decimal15 && expr is IntegerLiteral intLit)
+            {
+                var newExpr = new DecimalLiteral(new Decimal15(intLit.Literal))
+                {
+                    Alias = expr.Alias,
+                };
+                return Bind(context, newExpr, columns, ignoreMissingColumns, mutateContext);
+            }
+        }
+
         return Bind(context, new CastExpression(expr, targetType)
         {
             Alias = expr.Alias,

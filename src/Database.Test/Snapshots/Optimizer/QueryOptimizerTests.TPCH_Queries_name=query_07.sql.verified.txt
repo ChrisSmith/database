@@ -42,7 +42,7 @@ Original
 Project(supp_nation, cust_nation, l_year, revenue, rows=6001215) -> .supp_nation, .cust_nation, .l_year, .revenue
  Sort(supp_nation ASC, cust_nation ASC, l_year ASC), rows=6001215 -> .revenue, .supp_nation, .cust_nation, .l_year 
     Agg(sum(volume), supp_nation, cust_nation, l_year) group by (supp_nation, cust_nation, l_year, rows=6001215) -> .revenue, .supp_nation, .cust_nation, .l_year    
-       Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * cast(1 as Decimal15) - l_discount, rows=6001215) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
+       Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * 1 - l_discount, rows=6001215) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
           JoinSet(supplier (Inner) x lineitem (Inner) x orders (Inner) x customer (Inner) x n1 (Inner) x n2 (Inner), rows=6001215) -> .s_suppkey, .s_name, .s_address, .s_nationkey, .s_phone, .s_acctbal, .s_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, n1.n_nationkey, n1.n_name, n1.n_regionkey, n1.n_comment, n2.n_nationkey, n2.n_name, n2.n_regionkey, n2.n_comment          
           BinaryEdge { Expression = s_suppkey = l_suppkey, One = supplier, Two = lineitem }
           BinaryEdge { Expression = o_orderkey = l_orderkey, One = lineitem, Two = orders }
@@ -65,7 +65,7 @@ Optimized
 Project(supp_nation, cust_nation, l_year, revenue, rows=9601) -> .supp_nation, .cust_nation, .l_year, .revenue
  Sort(supp_nation ASC, cust_nation ASC, l_year ASC), rows=9601 -> .revenue, .supp_nation, .cust_nation, .l_year 
     Agg(sum(volume), supp_nation, cust_nation, l_year) group by (supp_nation, cust_nation, l_year, rows=9601) -> .revenue, .supp_nation, .cust_nation, .l_year    
-       Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * cast(1 as Decimal15) - l_discount, rows=9601) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
+       Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * 1 - l_discount, rows=9601) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
           Filter(n_name != n_name, rows=9601) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .c_custkey, .c_nationkey, n2.n_nationkey, n2.n_name          
              Join(Inner on c_custkey = o_custkey, rows=48009) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .c_custkey, .c_nationkey, n2.n_nationkey, n2.n_name             
                 Join(Inner on o_orderkey = l_orderkey, rows=240048) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name                
@@ -92,7 +92,7 @@ Cost Optimized
 Project(supp_nation, cust_nation, l_year, revenue) cost (output_rows=9601, cpu=38404, disk=0, total=42604) -> .supp_nation, .cust_nation, .l_year, .revenue
  Sort(supp_nation ASC, cust_nation ASC, l_year ASC) cost (output_rows=9601, cpu=374439, disk=0, total=42566) -> .supp_nation, .cust_nation, .l_year, .revenue 
     HashAggregate(supp_nation, cust_nation, l_year, sum(volume)) cost (output_rows=9601, cpu=96010, disk=0, total=42191) -> .supp_nation, .cust_nation, .l_year, .revenue    
-       Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * cast(1 as Decimal15) - l_discount) cost (output_rows=9601, cpu=57606, disk=0, total=42095) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
+       Project(n_name, n_name, extract(year, l_shipdate), l_extendedprice * 1 - l_discount) cost (output_rows=9601, cpu=57606, disk=0, total=42095) -> shipping.supp_nation, shipping.cust_nation, shipping.l_year, shipping.volume       
           Filter(n_name != n_name) cost (output_rows=9601, cpu=720135, disk=0, total=42037) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .c_custkey, .c_nationkey, n2.n_nationkey, n2.n_name          
              HashJoin(Inner c_custkey, o_custkey) cost (output_rows=48009, cpu=300048, disk=0, total=41317) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name, .c_custkey, .c_nationkey, n2.n_nationkey, n2.n_name             
                 HashJoin(Inner l_orderkey, o_orderkey) cost (output_rows=240048, cpu=1980096, disk=0, total=40717) -> .o_orderkey, .o_custkey, .l_orderkey, .l_suppkey, .l_extendedprice, .l_discount, .l_shipdate, .s_suppkey, .s_nationkey, n1.n_nationkey, n1.n_name                
