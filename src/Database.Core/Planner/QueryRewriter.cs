@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
+using Database.Core.Types;
 
 namespace Database.Core.Planner;
 
@@ -435,7 +436,7 @@ public static class QueryRewriter
             var min = decLit.Literal;
             foreach (var lit in literals)
             {
-                min = Math.Min(min, ((DecimalLiteral)lit).Literal);
+                min = Decimal15.Min(min, ((DecimalLiteral)lit).Literal);
             }
             return new DecimalLiteral(min);
         }
@@ -460,7 +461,7 @@ public static class QueryRewriter
             var min = decLit.Literal;
             foreach (var lit in literals)
             {
-                min = Math.Max(min, ((DecimalLiteral)lit).Literal);
+                min = Decimal15.Max(min, ((DecimalLiteral)lit).Literal);
             }
             return new DecimalLiteral(min);
         }

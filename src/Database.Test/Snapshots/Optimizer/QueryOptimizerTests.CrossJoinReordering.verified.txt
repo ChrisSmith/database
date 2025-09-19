@@ -20,7 +20,7 @@ Original
 Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
  Project(l_orderkey, revenue, o_orderdate, o_shippriority, rows=6001215) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority 
     Sort(revenue DESC, o_orderdate ASC), rows=6001215 -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
-       Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=6001215) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority       
+       Agg(sum(l_extendedprice * cast(1 as Decimal15) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=6001215) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority       
           JoinSet(customer (Inner) x orders (Inner) x lineitem (Inner), rows=6001215) -> .c_custkey, .c_name, .c_address, .c_nationkey, .c_phone, .c_acctbal, .c_mktsegment, .c_comment, .o_orderkey, .o_custkey, .o_orderstatus, .o_totalprice, .o_orderdate, .o_orderpriority, .o_clerk, .o_shippriority, .o_comment, .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment          
           UnaryEdge { Expression = c_mktsegment = BUILDING, Relation = customer }
           BinaryEdge { Expression = c_custkey = o_custkey, One = customer, Two = orders }
@@ -35,7 +35,7 @@ Limit(n=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
 Optimized
 Project(l_orderkey, revenue, o_orderdate, o_shippriority, rows=10) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
  TopSort(n=10, revenue DESC, o_orderdate ASC) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority 
-    Agg(sum(l_extendedprice * cast(1 as Decimal) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=48009) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
+    Agg(sum(l_extendedprice * cast(1 as Decimal15) - l_discount), l_orderkey, o_orderdate, o_shippriority) group by (l_orderkey, o_orderdate, o_shippriority, rows=48009) -> .revenue, .l_orderkey, .o_orderdate, .o_shippriority    
        Join(Inner on l_orderkey = o_orderkey, rows=48009) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment       
           Filter(l_shipdate > 03/15/1995 00:00:00, rows=1200243) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
              Scan(lineitem, rows=6001215) with projection  -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate             
@@ -51,7 +51,7 @@ Project(l_orderkey, revenue, o_orderdate, o_shippriority, rows=10) -> .l_orderke
 Cost Optimized
 Project(l_orderkey, revenue, o_orderdate, o_shippriority) cost (output_rows=10, cpu=40, disk=0, total=41562) -> .l_orderkey, .revenue, .o_orderdate, .o_shippriority
  TopSort(n=10, revenue DESC, o_orderdate ASC) -> .l_orderkey, .o_orderdate, .o_shippriority, .revenue 
-    HashAggregate(l_orderkey, o_orderdate, o_shippriority, sum(l_extendedprice * cast(1 as Decimal) - l_discount)) cost (output_rows=48009, cpu=480090, disk=0, total=40122) -> .l_orderkey, .o_orderdate, .o_shippriority, .revenue    
+    HashAggregate(l_orderkey, o_orderdate, o_shippriority, sum(l_extendedprice * cast(1 as Decimal15) - l_discount)) cost (output_rows=48009, cpu=480090, disk=0, total=40122) -> .l_orderkey, .o_orderdate, .o_shippriority, .revenue    
        HashJoin(Inner o_orderkey, l_orderkey) cost (output_rows=48009, cpu=1320243, disk=0, total=39642) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate, .o_orderkey, .o_custkey, .o_orderdate, .o_shippriority, .c_custkey, .c_mktsegment       
           Filter(l_shipdate > 03/15/1995 00:00:00) cost (output_rows=1200243, cpu=24004860, disk=0, total=30010) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate          
              FileScan({SolutionDirectory}tpch/1/lineitem2.parquet) cost (output_rows=6001215, cpu=6001215, disk=49, total=6005) -> .l_orderkey, .l_extendedprice, .l_discount, .l_shipdate       

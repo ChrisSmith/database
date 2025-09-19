@@ -107,7 +107,7 @@ public class ParquetPool
         var reader = handle.Reader.OpenRowGroupReader(columnRef.RowGroup);
         var field = handle.DataFields[columnRef.Column];
         var parquetCol = reader.ReadColumnAsync(field).GetAwaiter().GetResult();
-        var (targetType, finalCopy) = TypeConversion.ThrowIfNullable(parquetCol, field);
+        var (targetType, finalCopy) = TypeConversion.ConvertIfNecessary(parquetCol, field);
         var columnObj = ColumnHelper.CreateColumn(targetType, field.Name, finalCopy);
         _columnIndexes.Add((columnRef.ColumnId, columnRef.RowGroup));
         _columnCache.Add(columnObj);

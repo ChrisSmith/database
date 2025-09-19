@@ -1,6 +1,7 @@
 using System.IO.Hashing;
 using System.Text;
 using Database.Core.Execution;
+using Database.Core.Types;
 
 namespace Database.Core.Functions;
 
@@ -47,7 +48,7 @@ public static class HashFunctions
         {
             return HashOne(doubleColumn, BitConverter.GetBytes);
         }
-        if (column is decimal[] decimals)
+        if (column is Decimal15[] decimals)
         {
             return HashOne(decimals, DecimalToBytes);
         }
@@ -92,7 +93,7 @@ public static class HashFunctions
             HashAndMix(doubleColumn, BitConverter.GetBytes, hashes);
             return;
         }
-        if (column is decimal[] decimals)
+        if (column is Decimal15[] decimals)
         {
             HashAndMix(decimals, DecimalToBytes, hashes);
             return;
@@ -120,9 +121,9 @@ public static class HashFunctions
         throw new NotImplementedException($"HashAndMix not implemented for type {column.GetType().Name}");
     }
 
-    private static byte[] DecimalToBytes(decimal d)
+    private static byte[] DecimalToBytes(Decimal15 d)
     {
-        return BitConverter.GetBytes((double)Convert.ChangeType(d, typeof(double)));
+        return BitConverter.GetBytes(d.Value);
     }
 
     private static int[] HashOne<T>(T[] values, Func<T, byte[]> getBytes)

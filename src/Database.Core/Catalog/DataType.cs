@@ -1,3 +1,5 @@
+using Database.Core.Types;
+
 namespace Database.Core.Catalog;
 
 public enum DataType
@@ -8,7 +10,8 @@ public enum DataType
     String,
     Float,
     Double,
-    Decimal,
+    Decimal15,
+    Decimal38,
     Date,
     DateTime,
     Interval,
@@ -39,9 +42,13 @@ public static class DataTypeExtensions
         {
             return DataType.Double;
         }
-        if (clrType == typeof(decimal))
+        if (clrType == typeof(Decimal15))
         {
-            return DataType.Decimal;
+            return DataType.Decimal15;
+        }
+        if (clrType == typeof(Decimal38))
+        {
+            return DataType.Decimal38;
         }
         if (clrType == typeof(DateOnly))
         {
@@ -72,7 +79,8 @@ public static class DataTypeExtensions
             case DataType.Long: return typeof(long);
             case DataType.Float: return typeof(float);
             case DataType.Double: return typeof(double);
-            case DataType.Decimal: return typeof(decimal);
+            case DataType.Decimal15: return typeof(Decimal15);
+            case DataType.Decimal38: return typeof(Decimal38);
             case DataType.Date: return typeof(DateOnly);
             case DataType.DateTime: return typeof(DateTime);
             case DataType.Interval: return typeof(TimeSpan);

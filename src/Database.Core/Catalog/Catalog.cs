@@ -1,5 +1,6 @@
 using Database.Core.BufferPool;
 using Database.Core.Execution;
+using Database.Core.Types;
 using Parquet.Schema;
 
 namespace Database.Core.Catalog;
@@ -44,12 +45,13 @@ public record Catalog(ParquetPool BufferPool)
             var columnId = NextColumnId();
 
             var columnRef = new ColumnRef(columnId, tableRef, -1, i);
+            var type = TypeConversion.ConvertIfNecessary(field.ClrType);
             schema.Add(new ColumnSchema(
                 columnRef,
                 columnId,
                 field.Name,
-                field.ClrType.DataTypeFromClrType(),
-                field.ClrType,
+                type.DataTypeFromClrType(),
+                type,
                 SourceTableName: name,
                 SourceTableAlias: ""
                 ));
@@ -122,6 +124,10 @@ public record Catalog(ParquetPool BufferPool)
         {
             var column = table.Columns[i];
             var columnType = column.ClrType;
+            if (columnType == typeof(decimal))
+            {
+                columnType = typeof(Decimal15);
+            }
 
             var s = i * 4;
             var minColumn = statsColumns[s];
@@ -177,6 +183,20 @@ public record Catalog(ParquetPool BufferPool)
                 var asDouble = Convert.ToDouble(value);
                 return DateTime.UnixEpoch.AddDays(asDouble);
             }
+
+            if (columnType == typeof(Decimal15))
+            {
+                return value switch
+                {
+                    int i => new Decimal15(i),
+                    long l => new Decimal15(l),
+                    float f => new Decimal15(f),
+                    double d => new Decimal15(d),
+                    decimal d => new Decimal15(d),
+                    _ => new Decimal15(Convert.ToDecimal(value)),
+                };
+            }
+
             return Convert.ChangeType(value, columnType);
         }
     }

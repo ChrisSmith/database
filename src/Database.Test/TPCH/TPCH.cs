@@ -1,5 +1,6 @@
 using Database.BenchmarkRunner;
 using Database.Core.Execution;
+using Database.Core.Types;
 using FluentAssertions;
 
 namespace Database.Test.TPCH;
@@ -17,12 +18,30 @@ public class TPCHTests
         _runner.Initialize();
     }
 
+    private List<Row> RunQuery(string query, CancellationToken token)
+    {
+        var result = _runner.Run(query, token);
+        return result.Select(ConvertDecimalTypes).ToList();
+    }
+
+    private Row ConvertDecimalTypes(Row arg)
+    {
+        return new Row(arg.Values.Select(t =>
+        {
+            if (t is Decimal15 d)
+            {
+                return d.AsDecimal();
+            }
+            return t;
+        }).ToList());
+    }
+
     [Test]
     public void Q01(CancellationToken token)
     {
         var query = ReadQuery("query_01.sql");
 
-        var result = _runner.Run(query, token);
+        var result = RunQuery(query, token);
         result.Should().HaveCount(4);
 
         result.Should().BeEquivalentTo(new List<Row>
@@ -52,7 +71,7 @@ public class TPCHTests
     {
         var query = ReadQuery("query_02.sql");
 
-        var result = _runner.Run(query, token);
+        var result = RunQuery(query, token);
         result[..20].Should().BeEquivalentTo(new List<Row>
         {
             new([9938.53m, "Supplier#000005359", "UNITED KINGDOM", 185358, "Manufacturer#4", "bgxj2K0w1kJvxYl5mhCfou,W", "33-429-790-6131", "l, ironic instructions cajole"]),
@@ -83,7 +102,7 @@ public class TPCHTests
     {
         var query = ReadQuery("query_03.sql");
 
-        var result = _runner.Run(query, token);
+        var result = RunQuery(query, token);
         result.Should().BeEquivalentTo(new List<Row>
         {
             new ([2456423, 406181.0111m, new DateTime(1995, 03, 05), 0]),
@@ -105,7 +124,7 @@ public class TPCHTests
     {
         var query = ReadQuery("query_04.sql");
 
-        var result = _runner.Run(query, token);
+        var result = RunQuery(query, token);
         result.Should().BeEquivalentTo(new List<Row>
         {
             new(["1-URGENT", 10594]),
@@ -121,7 +140,7 @@ public class TPCHTests
     {
         var query = ReadQuery("query_05.sql");
 
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
             new (["INDONESIA" , 55502041.1697m]),
@@ -136,7 +155,7 @@ public class TPCHTests
     public void Q06(CancellationToken token)
     {
         var query = ReadQuery("query_06.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().HaveCountGreaterOrEqualTo(1);
         result.Should().BeEquivalentTo(new List<Row>
         {
@@ -148,7 +167,7 @@ public class TPCHTests
     public void Q07(CancellationToken token)
     {
         var query = ReadQuery("query_07.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
             new(["FRANCE", "GERMANY", 1995, 54639732.7336m]),
@@ -162,7 +181,7 @@ public class TPCHTests
     public void Q08(CancellationToken token)
     {
         var query = ReadQuery("query_08.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
             new ([1995, 0.0344358904066547974259817099M]),
@@ -174,7 +193,7 @@ public class TPCHTests
     public void Q09(CancellationToken token)
     {
         var query = ReadQuery("query_09.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().HaveCount(175);
         result[0..20].Should().BeEquivalentTo(new List<Row>
         {
@@ -205,7 +224,7 @@ public class TPCHTests
     public void Q10(CancellationToken token)
     {
         var query = ReadQuery("query_10.sql");
-        var result = _runner.Run(query, token);
+        var result = RunQuery(query, token);
         result.Should().HaveCount(37967);
         result[0..10].Should().BeEquivalentTo(new List<Row>
         {
@@ -226,7 +245,7 @@ public class TPCHTests
     public void Q11(CancellationToken token)
     {
         var query = ReadQuery("query_11.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().HaveCount(1048);
         result[..20].Should().BeEquivalentTo(new List<Row>
         {
@@ -257,7 +276,7 @@ public class TPCHTests
     public void Q12(CancellationToken token)
     {
         var query = ReadQuery("query_12.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
             new (["MAIL", 6202, 9324]),
@@ -269,7 +288,7 @@ public class TPCHTests
     public void Q13(CancellationToken token)
     {
         var query = ReadQuery("query_13.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
             new([0, 50004]),
@@ -321,7 +340,7 @@ public class TPCHTests
     public void Q14(CancellationToken token)
     {
         var query = ReadQuery("query_14.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
             new([16.380778626395540147992741460m]),
@@ -332,7 +351,7 @@ public class TPCHTests
     public void Q15(CancellationToken token)
     {
         var query = ReadQuery("query_15.sql");
-        var result = _runner.Run(query, token);
+        var result = RunQuery(query, token);
         result.Should().BeEquivalentTo(new List<Row>
         {
             new([8449, "Supplier#000008449", "5BXWsJERA2mP5OyO4", "20-469-856-8873",1772627.2087m]),
@@ -343,7 +362,7 @@ public class TPCHTests
     public void Q16(CancellationToken token)
     {
         var query = ReadQuery("query_16.sql");
-        var result = _runner.Run(query, token);
+        var result = RunQuery(query, token);
         result.Should().HaveCount(18314);
         result[0..20].Should().BeEquivalentTo(new List<Row>
         {
@@ -374,7 +393,7 @@ public class TPCHTests
     public void Q17(CancellationToken token)
     {
         var query = ReadQuery("query_17.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
             new ([348406.05428571428571428571429m]),
@@ -385,7 +404,7 @@ public class TPCHTests
     public void Q18(CancellationToken token)
     {
         var query = ReadQuery("query_18.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().HaveCount(57);
         result[0..20].Should().BeEquivalentTo(new List<Row>
         {
@@ -416,7 +435,7 @@ public class TPCHTests
     public void Q19(CancellationToken token)
     {
         var query = ReadQuery("query_19.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
             new ([3083843.0578m]),
@@ -427,7 +446,7 @@ public class TPCHTests
     public void Q20(CancellationToken token)
     {
         var query = ReadQuery("query_20.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
@@ -435,7 +454,7 @@ public class TPCHTests
     public void Q21(CancellationToken token)
     {
         var query = ReadQuery("query_21.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 
@@ -443,7 +462,7 @@ public class TPCHTests
     public void Q22(CancellationToken token)
     {
         var query = ReadQuery("query_22.sql");
-        var result = _runner.Run(query, token); ;
+        var result = RunQuery(query, token); ;
         result.Should().HaveCountGreaterOrEqualTo(1);
     }
 }
