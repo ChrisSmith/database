@@ -1,3 +1,4 @@
+using Database.Core.Types;
 using Parquet.Data;
 using Parquet.Schema;
 
@@ -5,22 +6,35 @@ namespace Database.Core.Execution;
 
 public static class TypeConversion
 {
-    public static (Type, Array) ThrowIfNullable(DataColumn column, DataField field)
+    public static Type ConvertIfNecessary(Type type)
+    {
+        if (type == typeof(decimal))
+        {
+            return typeof(Decimal15);
+        }
+
+        return type;
+    }
+
+
+    public static (Type, Array) ConvertIfNecessary(DataColumn column, DataField field)
     {
         if (column.Field.IsNullable && field.ClrType != typeof(string))
         {
             throw new NotImplementedException("Nullable types aren't supported yet");
         }
 
-        return (field.ClrType, column.Data);
+        if (field.ClrType == typeof(decimal))
+        {
+            var source = (decimal[])column.Data;
+            var finalCopy = new Decimal15[source.Length];
+            for (var j = 0; j < source.Length; j++)
+            {
+                finalCopy[j] = new Decimal15(source[j]);
+            }
+            return (typeof(Decimal15), finalCopy);
+        }
 
-        // var targetType = typeof(double);
-        // var finalCopy = new double[column.Data.Length];
-        // var source = (decimal[])column.Data;
-        // for (var j = 0; j < column.Data.Length; j++)
-        // {
-        //     finalCopy[j] = (double)source[j];
-        // }
-        // return (targetType, finalCopy);
+        return (field.ClrType, column.Data);
     }
 }

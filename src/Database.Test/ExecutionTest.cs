@@ -5,6 +5,7 @@ using Database.Core.Catalog;
 using Database.Core.Execution;
 using Database.Core.Options;
 using Database.Core.Planner;
+using Database.Core.Types;
 using FluentAssertions;
 
 namespace Database.Test;
@@ -122,7 +123,16 @@ public class ExecutionTest
         var result = Query($"SELECT {expr} FROM table where Id = 10;").AsRowList();
 
         result.Should().HaveCount(1);
-        return result[0].Values[0]!;
+        var value = result[0].Values[0]!;
+        if (value is Decimal15 d)
+        {
+            return d.AsDecimal();
+        }
+        if (value is Decimal38 d2)
+        {
+            return d2.AsDecimal();
+        }
+        return value;
     }
 
     [Test]

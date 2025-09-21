@@ -1,5 +1,6 @@
 using System.Numerics;
 using Database.Core.Catalog;
+using Database.Core.Types;
 
 namespace Database.Core.Functions;
 
@@ -66,14 +67,79 @@ public record CastDouble<T>() : Cast<T, double>(DataType.Double)
     }
 }
 
-public record CastDecimal<T>() : Cast<T, decimal>(DataType.Decimal)
+public record CastDecimal15<T>() : Cast<T, Decimal15>(DataType.Decimal15)
 {
-    public override decimal[] Execute(T[] values)
+    public override Decimal15[] Execute(T[] values)
     {
-        var result = new decimal[values.Length];
+        var result = new Decimal15[values.Length];
         for (var i = 0; i < values.Length; i++)
         {
             result[i] = Convert.ToDecimal(values[i]);
+        }
+        return result;
+    }
+}
+
+public record CastDecimal38Int() : Cast<int, Decimal38>(DataType.Decimal38)
+{
+    public override Decimal38[] Execute(int[] values)
+    {
+        var result = new Decimal38[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = new Decimal38(values[i]);
+        }
+        return result;
+    }
+}
+
+public record CastDecimal38Long() : Cast<long, Decimal38>(DataType.Decimal38)
+{
+    public override Decimal38[] Execute(long[] values)
+    {
+        var result = new Decimal38[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = new Decimal38(values[i]);
+        }
+        return result;
+    }
+}
+
+public record CastDecimal38Float() : Cast<float, Decimal38>(DataType.Decimal38)
+{
+    public override Decimal38[] Execute(float[] values)
+    {
+        var result = new Decimal38[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = new Decimal38(values[i]);
+        }
+        return result;
+    }
+}
+
+public record CastDecimal38Double() : Cast<double, Decimal38>(DataType.Decimal38)
+{
+    public override Decimal38[] Execute(double[] values)
+    {
+        var result = new Decimal38[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = new Decimal38(values[i]);
+        }
+        return result;
+    }
+}
+
+public record CastDecimal38Decimal15() : Cast<Decimal15, Decimal38>(DataType.Decimal38)
+{
+    public override Decimal38[] Execute(Decimal15[] values)
+    {
+        var result = new Decimal38[values.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            result[i] = new Decimal38(values[i]);
         }
         return result;
     }

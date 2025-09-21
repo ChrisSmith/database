@@ -308,3 +308,4 @@ metadata
 
 .rustc_info.json
 CACHEDIR.TAG
+venv/

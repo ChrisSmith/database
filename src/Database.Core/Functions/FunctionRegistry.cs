@@ -1,6 +1,7 @@
 using System.Diagnostics.Contracts;
 using Database.Core.Catalog;
 using Database.Core.Expressions;
+using Database.Core.Types;
 
 namespace Database.Core.Functions;
 
@@ -18,7 +19,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(Count<long>)},
             { DataType.Float, typeof(Count<float>)},
             { DataType.Double, typeof(Count<double>)},
-            { DataType.Decimal, typeof(Count<decimal>)},
+            { DataType.Decimal15, typeof(Count<Decimal15>)},
+            { DataType.Decimal38, typeof(Count<Decimal38>)},
             { DataType.String, typeof(StringCount)},
         }));
         _funcs.Add("count_distinct", new("count_distinct", 1, new()
@@ -27,7 +29,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(CountDistinct<long>)},
             { DataType.Float, typeof(CountDistinct<float>)},
             { DataType.Double, typeof(CountDistinct<double>)},
-            { DataType.Decimal, typeof(CountDistinct<decimal>)},
+            { DataType.Decimal15, typeof(CountDistinct<Decimal15>)},
+            { DataType.Decimal38, typeof(CountDistinct<Decimal38>)},
             { DataType.String, typeof(CountDistinct<string>)},
         }));
 
@@ -37,7 +40,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(Sum<long>)},
             { DataType.Float, typeof(Sum<float>)},
             { DataType.Double, typeof(Sum<double>)},
-            { DataType.Decimal, typeof(Sum<decimal>)},
+            { DataType.Decimal15, typeof(Sum<Decimal15>)},
+            { DataType.Decimal38, typeof(Sum<Decimal38>)},
         }));
 
         _funcs.Add("avg", new("avg", 1, new()
@@ -46,7 +50,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(Avg<long>)},
             { DataType.Float, typeof(Avg<float>)},
             { DataType.Double, typeof(Avg<double>)},
-            { DataType.Decimal, typeof(Avg<decimal>)},
+            { DataType.Decimal15, typeof(Avg<Decimal15>)},
+            { DataType.Decimal38, typeof(Avg<Decimal38>)},
         }));
         _funcs.Add("max", new("max", 1, new()
         {
@@ -54,9 +59,10 @@ public class FunctionRegistry
             { DataType.Long, typeof(Max<long>)},
             { DataType.Float, typeof(Max<float>)},
             { DataType.Double, typeof(Max<double>)},
-            { DataType.Decimal, typeof(Max<decimal>)},
+            { DataType.Decimal15, typeof(Max<Decimal15>)},
             { DataType.String, typeof(StringMax)},
             { DataType.Bool, typeof(BoolMax)},
+            { DataType.Decimal38, typeof(Max<Decimal38>)},
         }));
         _funcs.Add("min", new("min", 1, new()
         {
@@ -64,7 +70,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(Min<long>)},
             { DataType.Float, typeof(Min<float>)},
             { DataType.Double, typeof(Min<double>)},
-            { DataType.Decimal, typeof(Min<decimal>)},
+            { DataType.Decimal15, typeof(Min<Decimal15>)},
+            { DataType.Decimal38, typeof(Min<Decimal38>)},
         }));
 
         _funcs.Add("=", new("=", 2, new()
@@ -75,7 +82,8 @@ public class FunctionRegistry
             { DataType.Double, typeof(EqualTwo<double>) },
             { DataType.Date, typeof(EqualTwoDateOnly) },
             { DataType.DateTime, typeof(EqualTwoDateTime) },
-            { DataType.Decimal, typeof(EqualTwo<decimal>) },
+            { DataType.Decimal15, typeof(EqualTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(EqualTwo<Decimal38>) },
             { DataType.String, typeof(EqualTwoString) },
             { DataType.Bool, typeof(EqualTwoBool) },
         }));
@@ -87,7 +95,8 @@ public class FunctionRegistry
             { DataType.Double, typeof(NotEqualTwo<double>) },
             { DataType.Date, typeof(NotEqualTwoDateOnly) },
             { DataType.DateTime, typeof(NotEqualTwoDateTime) },
-            { DataType.Decimal, typeof(NotEqualTwo<decimal>) },
+            { DataType.Decimal15, typeof(NotEqualTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(NotEqualTwo<Decimal38>) },
             { DataType.String, typeof(NotEqualTwoString) },
         }));
         _funcs.Add(">", new(">", 2, new()
@@ -98,7 +107,8 @@ public class FunctionRegistry
             { DataType.Double, typeof(GreaterThanTwo<double>) },
             { DataType.Date, typeof(GreaterThanTwoDateOnly) },
             { DataType.DateTime, typeof(GreaterThanTwoDateTime) },
-            { DataType.Decimal, typeof(GreaterThanTwo<decimal>) },
+            { DataType.Decimal15, typeof(GreaterThanTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(GreaterThanTwo<Decimal38>) },
         }));
         _funcs.Add(">=", new(">=", 2, new()
         {
@@ -108,7 +118,8 @@ public class FunctionRegistry
             { DataType.Double, typeof(GreaterThanEqualTwo<double>) },
             { DataType.Date, typeof(GreaterThanEqualTwoDateOnly) },
             { DataType.DateTime, typeof(GreaterThanEqualTwoDateTime) },
-            { DataType.Decimal, typeof(GreaterThanEqualTwo<decimal>) },
+            { DataType.Decimal15, typeof(GreaterThanEqualTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(GreaterThanEqualTwo<Decimal38>) },
         }));
         _funcs.Add("<", new("<", 2, new()
         {
@@ -118,7 +129,8 @@ public class FunctionRegistry
             { DataType.Double, typeof(LessThanTwo<double>) },
             { DataType.Date, typeof(LessThanTwoDateOnly) },
             { DataType.DateTime, typeof(LessThanTwoDateTime) },
-            { DataType.Decimal, typeof(LessThanTwo<decimal>) },
+            { DataType.Decimal15, typeof(LessThanTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(LessThanTwo<Decimal38>) },
         }));
         _funcs.Add("<=", new("<=", 2, new()
         {
@@ -128,7 +140,8 @@ public class FunctionRegistry
             { DataType.Double, typeof(LessThanEqualTwo<double>) },
             { DataType.Date, typeof(LessThanEqualTwoDateOnly) },
             { DataType.DateTime, typeof(LessThanEqualTwoDateTime) },
-            { DataType.Decimal, typeof(LessThanEqualTwo<decimal>) },
+            { DataType.Decimal15, typeof(LessThanEqualTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(LessThanEqualTwo<Decimal38>) },
         }));
         _funcs.Add("*", new("*", 2, new()
         {
@@ -136,7 +149,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(MultiplyTwo<long>) },
             { DataType.Float, typeof(MultiplyTwo<float>) },
             { DataType.Double, typeof(MultiplyTwo<double>) },
-            { DataType.Decimal, typeof(MultiplyTwo<decimal>) },
+            { DataType.Decimal15, typeof(MultiplyTwoDecimals) },
+            { DataType.Decimal38, typeof(MultiplyTwo<Decimal38>) },
         }));
         _funcs.Add("/", new("/", 2, new()
         {
@@ -144,7 +158,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(DivideTwo<long>) },
             { DataType.Float, typeof(DivideTwo<float>) },
             { DataType.Double, typeof(DivideTwo<double>) },
-            { DataType.Decimal, typeof(DivideTwo<decimal>) },
+            { DataType.Decimal15, typeof(DivideTwoDecimals) },
+            { DataType.Decimal38, typeof(DivideTwoDecimals38) },
         }));
         _funcs.Add("-", new("-", 2, new()
         {
@@ -152,7 +167,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(MinusTwo<long>) },
             { DataType.Float, typeof(MinusTwo<float>) },
             { DataType.Double, typeof(MinusTwo<double>) },
-            { DataType.Decimal, typeof(MinusTwo<decimal>) },
+            { DataType.Decimal15, typeof(MinusTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(MinusTwo<Decimal38>) },
         }));
         _funcs.Add("+", new("+", 2, new()
         {
@@ -160,7 +176,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(SumTwo<long>) },
             { DataType.Float, typeof(SumTwo<float>) },
             { DataType.Double, typeof(SumTwo<double>) },
-            { DataType.Decimal, typeof(SumTwo<decimal>) },
+            { DataType.Decimal15, typeof(SumTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(SumTwo<Decimal38>) },
         }));
         _funcs.Add("%", new("%", 2, new()
         {
@@ -168,7 +185,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(ModuloTwo<long>) },
             { DataType.Float, typeof(ModuloTwo<float>) },
             { DataType.Double, typeof(ModuloTwo<double>) },
-            { DataType.Decimal, typeof(ModuloTwo<decimal>) },
+            { DataType.Decimal15, typeof(ModuloTwo<Decimal15>) },
+            { DataType.Decimal38, typeof(ModuloTwo<Decimal38>) },
         }));
         _funcs.Add("between", new("between", 3, new()
         {
@@ -176,8 +194,9 @@ public class FunctionRegistry
             { DataType.Long, typeof(Between<long>)},
             { DataType.Float, typeof(Between<float>)},
             { DataType.Double, typeof(Between<double>)},
-            { DataType.Decimal, typeof(Between<decimal>) },
+            { DataType.Decimal15, typeof(Between<Decimal15>) },
             { DataType.DateTime, typeof(BetweenDateTime) },
+            { DataType.Decimal38, typeof(Between<Decimal38>) },
         }));
         _funcs.Add("not_between", new("not_between", 3, new()
         {
@@ -185,7 +204,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(NotBetween<long>)},
             { DataType.Float, typeof(NotBetween<float>)},
             { DataType.Double, typeof(NotBetween<double>)},
-            { DataType.Decimal, typeof(NotBetween<decimal>) },
+            { DataType.Decimal15, typeof(NotBetween<Decimal15>) },
+            { DataType.Decimal38, typeof(NotBetween<Decimal38>) },
             { DataType.DateTime, typeof(NotBetweenDateTime) },
         }));
         _funcs.Add("cast_int", new("cast_int", 1, new()
@@ -194,7 +214,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(CastInt<long>)},
             { DataType.Float, typeof(CastInt<float>)},
             { DataType.Double, typeof(CastInt<double>)},
-            { DataType.Decimal, typeof(CastInt<decimal>) },
+            { DataType.Decimal15, typeof(CastInt<Decimal15>) },
+            { DataType.Decimal38, typeof(CastInt<Decimal38>) },
         }));
         _funcs.Add("cast_long", new("cast_long", 1, new()
         {
@@ -202,7 +223,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(CastLong<long>)},
             { DataType.Float, typeof(CastLong<float>)},
             { DataType.Double, typeof(CastLong<double>)},
-            { DataType.Decimal, typeof(CastLong<decimal>) },
+            { DataType.Decimal15, typeof(CastLong<Decimal15>) },
+            { DataType.Decimal38, typeof(CastLong<Decimal38>) },
         }));
         _funcs.Add("cast_float", new("cast_float", 1, new()
         {
@@ -210,7 +232,8 @@ public class FunctionRegistry
             { DataType.Long, typeof(CastFloat<long>)},
             { DataType.Float, typeof(CastFloat<float>)},
             { DataType.Double, typeof(CastFloat<double>)},
-            { DataType.Decimal, typeof(CastFloat<decimal>) },
+            { DataType.Decimal15, typeof(CastFloat<Decimal15>) },
+            { DataType.Decimal38, typeof(CastFloat<Decimal38>) },
         }));
         _funcs.Add("cast_double", new("cast_double", 1, new()
         {
@@ -218,14 +241,23 @@ public class FunctionRegistry
             { DataType.Long, typeof(CastDouble<long>)},
             { DataType.Float, typeof(CastDouble<float>)},
             { DataType.Double, typeof(CastDouble<double>)},
-            { DataType.Decimal, typeof(CastDouble<decimal>) },
+            { DataType.Decimal15, typeof(CastDouble<Decimal15>) },
+            { DataType.Decimal38, typeof(CastDouble<Decimal38>) },
         }));
-        _funcs.Add("cast_decimal", new("cast_decimal", 1, new()
+        _funcs.Add("cast_decimal_15", new("cast_decimal_15", 1, new()
         {
-            { DataType.Int, typeof(CastDecimal<int>)},
-            { DataType.Long, typeof(CastDecimal<long>)},
-            { DataType.Float, typeof(CastDecimal<float>)},
-            { DataType.Double, typeof(CastDecimal<double>) },
+            { DataType.Int, typeof(CastDecimal15<int>)},
+            { DataType.Long, typeof(CastDecimal15<long>)},
+            { DataType.Float, typeof(CastDecimal15<float>)},
+            { DataType.Double, typeof(CastDecimal15<double>) },
+        }));
+        _funcs.Add("cast_decimal_38", new("cast_decimal_38", 1, new()
+        {
+            { DataType.Int, typeof(CastDecimal38Int)},
+            { DataType.Long, typeof(CastDecimal38Long)},
+            { DataType.Float, typeof(CastDecimal38Float)},
+            { DataType.Double, typeof(CastDecimal38Double) },
+            { DataType.Decimal15, typeof(CastDecimal38Decimal15) },
         }));
         _funcs.Add("cast_datetime", new("cast_datetime", 1, new()
         {
