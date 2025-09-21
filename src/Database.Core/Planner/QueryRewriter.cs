@@ -355,7 +355,7 @@ public static class QueryRewriter
                 continue;
             }
 
-            if (rightLit is not (StringLiteral or IntegerLiteral or DecimalLiteral))
+            if (rightLit is not (StringLiteral or IntegerLiteral or Decimal15Literal or Decimal38Literal))
             {
                 continue;
             }
@@ -431,14 +431,23 @@ public static class QueryRewriter
             }
             return new IntegerLiteral(min);
         }
-        else if (first is DecimalLiteral decLit)
+        else if (first is Decimal15Literal decLit)
         {
             var min = decLit.Literal;
             foreach (var lit in literals)
             {
-                min = Decimal15.Min(min, ((DecimalLiteral)lit).Literal);
+                min = Decimal15.Min(min, ((Decimal15Literal)lit).Literal);
             }
-            return new DecimalLiteral(min);
+            return new Decimal15Literal(min);
+        }
+        else if (first is Decimal38Literal decLit38)
+        {
+            var min = decLit38.Literal;
+            foreach (var lit in literals)
+            {
+                min = Decimal38.Min(min, ((Decimal38Literal)lit).Literal);
+            }
+            return new Decimal38Literal(min);
         }
 
         throw new QueryPlanException("Min on non integer literal");
@@ -456,14 +465,23 @@ public static class QueryRewriter
             }
             return new IntegerLiteral(min);
         }
-        else if (first is DecimalLiteral decLit)
+        else if (first is Decimal15Literal decLit)
         {
             var min = decLit.Literal;
             foreach (var lit in literals)
             {
-                min = Decimal15.Max(min, ((DecimalLiteral)lit).Literal);
+                min = Decimal15.Max(min, ((Decimal15Literal)lit).Literal);
             }
-            return new DecimalLiteral(min);
+            return new Decimal15Literal(min);
+        }
+        else if (first is Decimal38Literal decLit38)
+        {
+            var min = decLit38.Literal;
+            foreach (var lit in literals)
+            {
+                min = Decimal38.Max(min, ((Decimal38Literal)lit).Literal);
+            }
+            return new Decimal38Literal(min);
         }
 
         throw new QueryPlanException("Min on non integer literal");

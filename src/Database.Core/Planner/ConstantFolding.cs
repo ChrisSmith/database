@@ -60,7 +60,7 @@ public static class ConstantFolding
                     };
                     return new IntegerLiteral(result);
                 }
-                if (left is DecimalLiteral ld && right is DecimalLiteral rd)
+                if (left is Decimal15Literal ld && right is Decimal15Literal rd)
                 {
                     var result = b.Operator switch
                     {
@@ -71,7 +71,20 @@ public static class ConstantFolding
                         PERCENT => ld.Literal % ld.Literal,
                         _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
                     };
-                    return new DecimalLiteral(result);
+                    return new Decimal15Literal(result);
+                }
+                if (left is Decimal38Literal ld38 && right is Decimal38Literal rd38)
+                {
+                    var result = b.Operator switch
+                    {
+                        PLUS => ld38.Literal + rd38.Literal,
+                        MINUS => ld38.Literal - rd38.Literal,
+                        STAR => ld38.Literal * rd38.Literal,
+                        SLASH => ld38.Literal / rd38.Literal,
+                        PERCENT => ld38.Literal % ld38.Literal,
+                        _ => throw new QueryPlanException($"Operator '{b.Operator}' not supported for constant folding")
+                    };
+                    return new Decimal38Literal(result);
                 }
                 if (left is DateTimeLiteral ldt && right is IntervalLiteral ril)
                 {

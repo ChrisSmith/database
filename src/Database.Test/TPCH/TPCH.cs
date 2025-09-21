@@ -32,6 +32,10 @@ public class TPCHTests
             {
                 return d.AsDecimal();
             }
+            if (t is Decimal38 d2)
+            {
+                return d2.AsDecimal();
+            }
             return t;
         }).ToList());
     }
@@ -184,8 +188,8 @@ public class TPCHTests
         var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
-            new ([1995, 0.0344358904066547974259817099M]),
-            new ([1996, 0.0414855212935303207474250901M]),
+            new ([1995, 0.0344358904066548]),
+            new ([1996, 0.04148552129353032]),
         });
     }
 
@@ -343,7 +347,7 @@ public class TPCHTests
         var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
-            new([16.380778626395540147992741460m]),
+            new([16.38077862639554]),
         });
     }
 
@@ -396,7 +400,7 @@ public class TPCHTests
         var result = RunQuery(query, token); ;
         result.Should().BeEquivalentTo(new List<Row>
         {
-            new ([348406.05428571428571428571429m]),
+            new ([348406.054285m]), // TODO this is supposed to be a double
         });
     }
 

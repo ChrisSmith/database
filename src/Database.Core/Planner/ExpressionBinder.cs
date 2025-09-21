@@ -60,7 +60,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         IFunction? function = expression switch
         {
             IntegerLiteral numInt => new LiteralFunction(numInt.Literal, DataType.Int),
-            DecimalLiteral num => new LiteralFunction(num.Literal, DataType.Decimal15),
+            Decimal15Literal num => new LiteralFunction(num.Literal, DataType.Decimal15),
+            Decimal38Literal num => new LiteralFunction(num.Literal, DataType.Decimal38),
             StringLiteral str => new LiteralFunction(str.Literal, DataType.String),
             BoolLiteral b => new LiteralFunction(b.Literal, DataType.Bool),
             DateLiteral d => new LiteralFunction(d.Literal, DataType.Date),
@@ -369,21 +370,30 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             return DataType.Decimal15;
         }
 
+        if (allTypes.All(t => t == DataType.Decimal38 || integers.Contains(t)))
+        {
+            return DataType.Decimal38;
+        }
+
         var floating = new[] { DataType.Float, DataType.Double };
         if (allTypes.All(t => floating.Contains(t)))
         {
             return DataType.Double;
         }
 
-        if (expressions.Any(ExpressionIsNonLiteralDecimal))
+        if (expressions.Any(ExpressionIsNonLiteralDecimal38))
         {
-            // TODO need to support both precisions
+            return DataType.Decimal38;
+        }
+        if (expressions.Any(ExpressionIsNonLiteralDecimal15))
+        {
             return DataType.Decimal15;
         }
 
+
         foreach (var floatType in floating)
         {
-            if (allTypes.All(t => t == DataType.Decimal15 || t == floatType))
+            if (allTypes.All(t => t == DataType.Decimal15 || t == DataType.Decimal38 || t == floatType))
             {
                 return floatType;
             }
@@ -398,9 +408,13 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         var allTypesStr = string.Join(", ", allTypes.Select(t => t.ToString()));
         throw new QueryPlanException($"unable to automatically convert types '{allTypesStr}' to a compatible type.");
 
-        bool ExpressionIsNonLiteralDecimal(BaseExpression expr)
+        bool ExpressionIsNonLiteralDecimal15(BaseExpression expr)
         {
-            return expr is not DecimalLiteral && expr.BoundDataType!.Value == DataType.Decimal15;
+            return expr is not Decimal15Literal && expr.BoundDataType!.Value == DataType.Decimal15;
+        }
+        bool ExpressionIsNonLiteralDecimal38(BaseExpression expr)
+        {
+            return expr is not Decimal38Literal && expr.BoundDataType!.Value == DataType.Decimal38;
         }
     }
 
@@ -447,13 +461,36 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
         {
             // If this is a literal, convert it instead of casting
             // TODO there are some more casts that can probably be optimized away, see the snapshots
-            if (targetType == DataType.Decimal15 && expr is IntegerLiteral intLit)
+            if (expr is IntegerLiteral intLit)
             {
-                var newExpr = new DecimalLiteral(new Decimal15(intLit.Literal))
+                if (targetType == DataType.Decimal15)
                 {
-                    Alias = expr.Alias,
-                };
-                return Bind(context, newExpr, columns, ignoreMissingColumns, mutateContext);
+                    var newExpr = new Decimal15Literal(new Decimal15(intLit.Literal))
+                    {
+                        Alias = expr.Alias,
+                    };
+                    return Bind(context, newExpr, columns, ignoreMissingColumns, mutateContext);
+                }
+                if (targetType == DataType.Decimal38)
+                {
+                    var newExpr = new Decimal38Literal(new Decimal38(intLit.Literal))
+                    {
+                        Alias = expr.Alias,
+                    };
+                    return Bind(context, newExpr, columns, ignoreMissingColumns, mutateContext);
+                }
+            }
+
+            if (expr is Decimal15Literal decLit)
+            {
+                if (targetType == DataType.Decimal38)
+                {
+                    var newExpr = new Decimal38Literal(new Decimal38(decLit.Literal))
+                    {
+                        Alias = expr.Alias,
+                    };
+                    return Bind(context, newExpr, columns, ignoreMissingColumns, mutateContext);
+                }
             }
         }
 
@@ -471,7 +508,8 @@ public class ExpressionBinder(ParquetPool bufferPool, FunctionRegistry functions
             DataType.Long => "cast_long",
             DataType.Float => "cast_float",
             DataType.Double => "cast_double",
-            DataType.Decimal15 => "cast_decimal",
+            DataType.Decimal15 => "cast_decimal_15",
+            DataType.Decimal38 => "cast_decimal_38",
             DataType.DateTime => "cast_datetime",
             _ => throw new QueryPlanException($"unsupported cast type '{targetType}'"),
         };

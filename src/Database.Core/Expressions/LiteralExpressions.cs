@@ -18,7 +18,16 @@ public abstract record LiteralExpression : BaseExpression
 }
 
 [DebuggerDisplay("{Literal}")]
-public record DecimalLiteral(Decimal15 Literal) : LiteralExpression
+public record Decimal15Literal(Decimal15 Literal) : LiteralExpression
+{
+    public override string ToString()
+    {
+        return Literal.ToString(CultureInfo.InvariantCulture);
+    }
+}
+
+[DebuggerDisplay("{Literal}")]
+public record Decimal38Literal(Decimal38 Literal) : LiteralExpression
 {
     public override string ToString()
     {

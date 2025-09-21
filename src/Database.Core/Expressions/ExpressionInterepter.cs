@@ -187,6 +187,46 @@ public class ExpressionInterpreter
         {
             outputArray = smddcm2.Execute((double[])col.ValuesArray);
         }
+        else if (fun is IScalarMathOne<Decimal38, int> smdmi38)
+        {
+            outputArray = smdmi38.Execute((Decimal38[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<Decimal38, long> smdml38)
+        {
+            outputArray = smdml38.Execute((Decimal38[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<Decimal38, float> smdfm38)
+        {
+            outputArray = smdfm38.Execute((Decimal38[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<Decimal38, double> smddm38)
+        {
+            outputArray = smddm38.Execute((Decimal38[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<Decimal38, Decimal38> smddcm38)
+        {
+            outputArray = smddcm38.Execute((Decimal38[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<int, Decimal38> smidcm38)
+        {
+            outputArray = smidcm38.Execute((int[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<long, Decimal38> smldcm38)
+        {
+            outputArray = smldcm38.Execute((long[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<float, Decimal38> smfdcm38)
+        {
+            outputArray = smfdcm38.Execute((float[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<double, Decimal38> smddcm238)
+        {
+            outputArray = smddcm238.Execute((double[])col.ValuesArray);
+        }
+        else if (fun is IScalarMathOne<Decimal15, Decimal38> smddcm23)
+        {
+            outputArray = smddcm23.Execute((Decimal15[])col.ValuesArray);
+        }
         else if (fun is IScalarMathOne<string, DateOnly> smsdo)
         {
             outputArray = smsdo.Execute((string[])col.ValuesArray);
@@ -273,6 +313,10 @@ public class ExpressionInterpreter
         {
             outputArray = fdm.Ok((Decimal15[])left.ValuesArray, (Decimal15[])right.ValuesArray);
         }
+        else if (fun is IFilterFunctionTwo<Decimal38> fdm38)
+        {
+            outputArray = fdm38.Ok((Decimal38[])left.ValuesArray, (Decimal38[])right.ValuesArray);
+        }
         else if (fun is IFilterFunctionTwo<string> ffts)
         {
             outputArray = ffts.Ok((string[])left.ValuesArray, (string[])right.ValuesArray);
@@ -280,6 +324,18 @@ public class ExpressionInterpreter
         else if (fun is IFunctionTwo<string, DateTime, int> fftsti)
         {
             outputArray = fftsti.Execute((string[])left.ValuesArray, (DateTime[])right.ValuesArray);
+        }
+        else if (fun is IScalarMathTwoFull<Decimal15, Decimal38> stdm38)
+        {
+            outputArray = stdm38.Execute((Decimal15[])left.ValuesArray, (Decimal15[])right.ValuesArray);
+        }
+        else if (fun is IScalarMathTwo<Decimal38> smtd38)
+        {
+            outputArray = smtd38.Execute((Decimal38[])left.ValuesArray, (Decimal38[])right.ValuesArray);
+        }
+        else if (fun is IScalarMathTwoFull<Decimal38, double> stdmd)
+        {
+            outputArray = stdmd.Execute((Decimal38[])left.ValuesArray, (Decimal38[])right.ValuesArray);
         }
         else
         {
