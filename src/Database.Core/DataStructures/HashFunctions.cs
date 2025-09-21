@@ -60,6 +60,11 @@ public static class HashFunctions
             bytes = new byte[sizeof(long)];
             return HashOne(decimals, bytes, DecimalToBytes);
         }
+        if (column is Decimal38[] decimals38)
+        {
+            bytes = new byte[16];
+            return HashOne(decimals38, bytes, Decimal38ToBytes);
+        }
         if (column is string[] strings)
         {
             bytes = new byte[4096];
@@ -116,6 +121,12 @@ public static class HashFunctions
             HashAndMix(decimals, bytes, DecimalToBytes, hashes);
             return;
         }
+        if (column is Decimal38[] decimals38)
+        {
+            bytes = new byte[16];
+            HashAndMix(decimals38, bytes, Decimal38ToBytes, hashes);
+            return;
+        }
         if (column is string[] strings)
         {
             bytes = new byte[4096];
@@ -160,6 +171,11 @@ public static class HashFunctions
         // TODO if the string is too large we need to loop over it multiple times
         // to include all pieces in the hash
         return Encoding.UTF8.TryGetBytes(s, dest, out bytesWritten);
+    }
+
+    private static bool Decimal38ToBytes(Span<byte> dest, Decimal38 d)
+    {
+        return BitConverter.TryWriteBytes(dest, d.Value);
     }
 
     private static bool DecimalToBytes(Span<byte> dest, Decimal15 d)

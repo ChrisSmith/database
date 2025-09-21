@@ -567,7 +567,12 @@ public class Parser
             {
                 return new IntegerLiteral(literal);
             }
-            return new DecimalLiteral((decimal)num.Literal!);
+            decimal d = (decimal)num.Literal!;
+            if (d.Scale > 2)
+            {
+                return new Decimal38Literal(d);
+            }
+            return new Decimal15Literal(d);
         }
         if (Match(STRING, out var str))
         {

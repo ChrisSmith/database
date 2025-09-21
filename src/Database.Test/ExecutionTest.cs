@@ -128,6 +128,10 @@ public class ExecutionTest
         {
             return d.AsDecimal();
         }
+        if (value is Decimal38 d2)
+        {
+            return d2.AsDecimal();
+        }
         return value;
     }
 

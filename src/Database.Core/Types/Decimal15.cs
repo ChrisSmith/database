@@ -67,7 +67,11 @@ public readonly struct Decimal15 : INumber<Decimal15>, IMinMaxValue<Decimal15>, 
 
     public long Value { get; private init; }
 
-    public decimal AsDecimal() => new decimal(Math.Round(Value / (float)factor, 2));
+    public decimal AsDecimal()
+    {
+        var res = (decimal)Value / factor;
+        return Math.Round(res, scale);
+    }
 
     private const int scale = 2;
     private const int factor = 100; // 10^scale
@@ -416,7 +420,7 @@ public readonly struct Decimal15 : INumber<Decimal15>, IMinMaxValue<Decimal15>, 
 
     public decimal ToDecimal(IFormatProvider? provider)
     {
-        throw new NotImplementedException();
+        return AsDecimal();
     }
 
     public double ToDouble(IFormatProvider? provider)

@@ -16,7 +16,7 @@ WHERE
 
 
 Original
-Project(100 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)) / SUM(l_extendedprice * 1 - l_discount), rows=6001215) -> .promo_revenue
+Project(cast(100 as Double) * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)) / SUM(l_extendedprice * 1 - l_discount), rows=6001215) -> .promo_revenue
  Agg(SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)), SUM(l_extendedprice * 1 - l_discount)) group by (, rows=6001215) -> .SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)), .SUM(l_extendedprice * 1 - l_discount) 
     JoinSet(lineitem (Inner) x part (Inner), rows=6001215) -> .l_orderkey, .l_partkey, .l_suppkey, .l_linenumber, .l_quantity, .l_extendedprice, .l_discount, .l_tax, .l_returnflag, .l_linestatus, .l_shipdate, .l_commitdate, .l_receiptdate, .l_shipinstruct, .l_shipmode, .l_comment, .p_partkey, .p_name, .p_mfgr, .p_brand, .p_type, .p_size, .p_container, .p_retailprice, .p_comment    
     BinaryEdge { Expression = l_partkey = p_partkey, One = lineitem, Two = part }
@@ -27,7 +27,7 @@ Project(100 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 
 
 
 Optimized
-Project(100 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)) / SUM(l_extendedprice * 1 - l_discount), rows=1200243) -> .promo_revenue
+Project(cast(100 as Double) * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)) / SUM(l_extendedprice * 1 - l_discount), rows=1200243) -> .promo_revenue
  Agg(SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)), SUM(l_extendedprice * 1 - l_discount)) group by (, rows=1200243) -> .SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)), .SUM(l_extendedprice * 1 - l_discount) 
     Join(Inner on l_partkey = p_partkey, rows=1200243) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate, .p_partkey, .p_type    
        Filter(l_shipdate < 10/01/1995 00:00:00, rows=1200243) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate       
@@ -38,7 +38,7 @@ Project(100 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 
 
 
 Cost Optimized
-Project(100 * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)) / SUM(l_extendedprice * 1 - l_discount)) cost (output_rows=1200243, cpu=2400486, disk=0, total=41413) -> .promo_revenue
+Project(cast(100 as Double) * SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)) / SUM(l_extendedprice * 1 - l_discount)) cost (output_rows=1200243, cpu=2400486, disk=0, total=41413) -> .promo_revenue
  UngroupedAggregate(SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)), SUM(l_extendedprice * 1 - l_discount)) cost (output_rows=1200243, cpu=2400486, disk=0, total=39012) -> .SUM(CASE(WHEN starts_with(p_type, PROMO) THEN l_extendedprice * 1 - l_discount)), .SUM(l_extendedprice * 1 - l_discount) 
     HashJoin(Inner p_partkey, l_partkey) cost (output_rows=1200243, cpu=1600243, disk=0, total=36612) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate, .p_partkey, .p_type    
        Filter(l_shipdate < 10/01/1995 00:00:00) cost (output_rows=1200243, cpu=4800972, disk=0, total=34811) -> .l_partkey, .l_extendedprice, .l_discount, .l_shipdate       
